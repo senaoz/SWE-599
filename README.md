@@ -5,6 +5,7 @@
 This project aims to build an automated recommendation and matching system for academic publications. The system monitors a predefined list of publicators (institutions/publishers). When a new paper is released, it triggers a workflow to find and recommend similar articles and researchers specifically from the Boğaziçi University (BOUN) academic corpus.
 
 ### Core Workflow
+
 - Subscription & Trigger: Users maintain a "Followed Publicators" list. The system monitors these sources for new releases.
 
 - Text Representation: New publication metadata (titles/abstracts) are processed into high-dimensional vectors.
