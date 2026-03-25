@@ -91,3 +91,82 @@ These tasks validate that the similarity pipeline ranks known-relevant papers hi
 - Given a target paper, retrieve its reference list (papers it cites) from the dataset.
 - Rank the cited papers by similarity score to the target paper.
 - Expected: directly cited works should score higher than unrelated papers, validating the embedding quality.
+
+--------------
+
+## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
+Week 3 builds a robust evaluation dataset focused on cited paper ranking to quantitatively assess embedding methods' ability to prioritize semantically relevant references over random distractors.
+
+This extends Week 2's Task 3b by creating structured test sets with positives (actual citations) and hard negatives (random papers), enabling precision@k and ranking metrics. The dataset targets the the corpus from data/cleaned/priority_followed.csv, assuming reference lists are available via OpenAlex IDs or reconstructed from metadata.
+
+### Step 1: Select Main Papers (P_i)
+
+- Randomly sample 100 papers (P_i) from the others corpus where each has 6-14 references (refCount ∈ ).
+- Filter them by referenced_works_count or equivalent field.
+- Ensure references are resolvable in the dataset (e.g., present in related csv file or via OpenAlex fetch).
+
+Output: List of 100 P_i with metadata saved as eval_dataset/week3_main_papers.json.
+
+### Step 2: Build Per-P_i Evaluation Set
+
+- For each P_i (with refCount = n):
+- Collect n positive papers: Its actual references (if in BOUN corpus; else fetch abstracts via OpenAlex).
+- Sample 2n random negative papers: From the corpus, excluding P_i's references and same-author works to create "hard" negatives.
+
+Resulting set of P_i: Array of 3n papers (n positives + 2n negatives) plus P_i as query.
+
+### Step 3: Compute Embeddings and Rankings
+
+- For each P_i query, embed title/abstract/concepts using Week 2 methods (TF-IDF, Sentence Transformers, Gemini, Google Embedding Model).
+- Rank the n (with n = refCount) candidates by similarity score to P_i.
+- Return Top n tanesinin ac tanesi referans paperlardan ve bu yuzde kaca denk geliyor ref count ile oranlayinca
+
+### Step 4: Evaluation Metrics and Comparison
+Mean, Standart Sapma, Median, etc
+
+
+--------
+
+## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
+
+Week 3 constructs a cited paper ranking dataset using papers from `data/cleaned/priority_followed.csv` (followed institutions) to test how embedding methods prioritize true references over random distractors from the followed corpus.
+
+This extends Week 2's Task 3b with structured positives (citations) and hard negatives, enabling quantitative ranking metrics like precision@k. Reference lists are accessed via OpenAlex IDs or API fetches from the dataset metadata.
+
+### Step 1: Select Main Papers (P_i)
+Randomly sample 100 papers (P_i) from `priority_followed.csv` where each has 6-14 references (refCount ∈ ).
+- Filter by `referenced_works_count` or equivalent field.
+- Ensure references are resolvable in the corpus or fetchable via OpenAlex.
+
+Output: `eval_dataset/week3/main_papers.json` with 100 P_i metadata.
+
+### Step 2: Build Per-P_i Evaluation Set
+For each P_i (refCount = n):
+- Positives: n actual references (prioritize those in followed corpus; fetch abstracts/titles via OpenAlex otherwise).
+- Negatives: 2n random papers from `priority_followed.csv`, excluding P_i's references and same-author works for hard negatives.
+
+Result: Per P_i set of 3n candidates (n positives + 2n negatives); P_i as query.
+
+### Step 3: Compute Embeddings and Rankings
+Embed P_i (title/abstract/concepts) and 3n candidates using Week 2 methods: TF-IDF + Cosine, Sentence Transformers, Gemini API, Google Embedding Model.
+- Rank all 3n candidates by similarity score to P_i.
+- In top-n results: Count how many (a) are true references out of n slots; compute hit rate = (a / n) × 100%.
+
+Save: `eval_dataset/week3/rankings_{method}.json` with full ranks, scores, and per-query hit rates.
+
+### Step 4: Evaluation Metrics and Comparison
+Aggregate across 100 queries; report per-method: Mean, Std Dev, Median.
+- Hit Rate %: Average percentage of top-n filled by true references.
+- Precision@n: Equivalent to mean hit rate.
+- MRR: Mean reciprocal rank of first positive.
+- nDCG@n: Ranking quality accounting for all positives' positions.
+
+| Metric | TF-IDF + Cosine | all-MiniLM | SPECTER2 | Gemini | Google Embed |
+|--------|-----------------|------------|----------|--------|--------------|
+| Mean Hit Rate % | - | - | - | - | - |
+| Std Dev Hit Rate % | - | - | - | - | - |
+| Median Hit Rate % | - | - | - | - | - |
+| Mean MRR | - | - | - | - | - |
+| Mean nDCG@n | - | - | - | - | - |
+
+These metrics identify methods best at surfacing citations from followed institutions.
