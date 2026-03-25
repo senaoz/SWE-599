@@ -92,39 +92,6 @@ These tasks validate that the similarity pipeline ranks known-relevant papers hi
 - Rank the cited papers by similarity score to the target paper.
 - Expected: directly cited works should score higher than unrelated papers, validating the embedding quality.
 
---------------
-
-## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
-Week 3 builds a robust evaluation dataset focused on cited paper ranking to quantitatively assess embedding methods' ability to prioritize semantically relevant references over random distractors.
-
-This extends Week 2's Task 3b by creating structured test sets with positives (actual citations) and hard negatives (random papers), enabling precision@k and ranking metrics. The dataset targets the the corpus from data/cleaned/priority_followed.csv, assuming reference lists are available via OpenAlex IDs or reconstructed from metadata.
-
-### Step 1: Select Main Papers (P_i)
-
-- Randomly sample 100 papers (P_i) from the others corpus where each has 6-14 references (refCount ∈ ).
-- Filter them by referenced_works_count or equivalent field.
-- Ensure references are resolvable in the dataset (e.g., present in related csv file or via OpenAlex fetch).
-
-Output: List of 100 P_i with metadata saved as eval_dataset/week3_main_papers.json.
-
-### Step 2: Build Per-P_i Evaluation Set
-
-- For each P_i (with refCount = n):
-- Collect n positive papers: Its actual references (if in BOUN corpus; else fetch abstracts via OpenAlex).
-- Sample 2n random negative papers: From the corpus, excluding P_i's references and same-author works to create "hard" negatives.
-
-Resulting set of P_i: Array of 3n papers (n positives + 2n negatives) plus P_i as query.
-
-### Step 3: Compute Embeddings and Rankings
-
-- For each P_i query, embed title/abstract/concepts using Week 2 methods (TF-IDF, Sentence Transformers, Gemini, Google Embedding Model).
-- Rank the n (with n = refCount) candidates by similarity score to P_i.
-- Return Top n tanesinin ac tanesi referans paperlardan ve bu yuzde kaca denk geliyor ref count ile oranlayinca
-
-### Step 4: Evaluation Metrics and Comparison
-Mean, Standart Sapma, Median, etc
-
-
 --------
 
 ## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
@@ -161,7 +128,7 @@ Aggregate across 100 queries; report per-method: Mean, Std Dev, Median.
 - MRR: Mean reciprocal rank of first positive.
 - nDCG@n: Ranking quality accounting for all positives' positions.
 
-| Metric | TF-IDF + Cosine | all-MiniLM | SPECTER2 | Gemini | Google Embed |
+| Metric | TF-IDF + Cosine | all-MiniLM | SPECTER2 | Gemini (LLM as judge) | Google Embed |
 |--------|-----------------|------------|----------|--------|--------------|
 | Mean Hit Rate % | - | - | - | - | - |
 | Std Dev Hit Rate % | - | - | - | - | - |
