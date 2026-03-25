@@ -69,7 +69,7 @@ Run Task 1 using the following similarity methods and compare results:
 | Method | Description |
 |---|---|
 | **TF-IDF + Cosine** | Sparse vector baseline |
-| **Sentence Embeddings** | e.g. `all-MiniLM`, `SPECTER2`, `Google Embdedding`, `Quwen` |
+| **Sentence Embeddings** | e.g. `all-MiniLM`, `SPECTER2`, `Google Embdedding`, `Quwen`, `BM25` |
 | **Gemini API** | Prompt Gemini to score semantic similarity between two papers directly |
 
 Produce a comparison table: for each method, report top-3 retrieved papers per query along with similarity scores. Evaluate against the benchmark pairs from Week 1 where applicable.
