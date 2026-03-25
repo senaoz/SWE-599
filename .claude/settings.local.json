@@ -8,7 +8,9 @@
       "Bash(pip list:*)",
       "Bash(pip install:*)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(pip3 show:*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }
