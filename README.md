@@ -37,7 +37,7 @@ The immediate goal is to establish a benchmark dataset to evaluate different vec
 
 ---
 
-## Week 2: Performance Evaluation & Embedding Comparison
+## Week 2: Dataset for Performance Evaluation & Embedding Comparison
 
 Since the project relies on finding "similar" content, selecting the most accurate embedding model is critical. This week focuses on building the similarity pipeline and evaluating it across different methods and scopes.
 
@@ -76,7 +76,7 @@ Produce a comparison table: for each method, report top-3 retrieved papers per q
 
 ---
 
-### Task 3 — Intra-Paper Similarity (Sanity Checks & Ground Truth Validation)
+### Task 3 — Intra-Paper Similarity
 
 These tasks validate that the similarity pipeline ranks known-relevant papers highly, serving as a qualitative sanity check.
 
