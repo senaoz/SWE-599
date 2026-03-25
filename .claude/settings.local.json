@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /Users/senaoz/Developer/SWE-599/eval_dataset/*.json)",
+      "Bash(wc -l /Users/senaoz/Developer/SWE-599/data/cleaned/*.csv)",
+      "Bash(python3:*)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(pip list:*)",
+      "Bash(pip install:*)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
+    ]
+  }
+}
