@@ -137,3 +137,12 @@ Aggregate across 100 queries; report per-method: Mean, Std Dev, Median.
 | Mean nDCG@n | - | - | - | - | - |
 
 These metrics identify methods best at surfacing citations from followed institutions.
+
+--------
+
+Gemini nasil calismali?
+
+Inputs: Main Paper ve benzerliklerini siralayacagi aday paperlar (min 18 - max 42 paper)
+
+
+--------
