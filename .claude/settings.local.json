@@ -11,7 +11,9 @@
       "Skill(update-config:*)",
       "Bash(pip3 show:*)",
       "Bash(pip3 install:*)",
-      "Bash(jupyter nbconvert:*)"
+      "Bash(jupyter nbconvert:*)",
+      "Bash(ls -d /Users/senaoz/Developer/SWE-599/*/)",
+      "Bash(ls:*)"
     ]
   }
 }
