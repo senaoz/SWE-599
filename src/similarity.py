@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import time
 
@@ -175,6 +176,68 @@ def sentence_embedding_similarity(
         np.save(query_cache, query_emb)
 
     return cosine_similarity(query_emb, corpus_emb)
+
+
+def gemini_rank_candidates(query_text, candidates, model_name='gemini-2.5-flash-lite',
+                           abstract_sentences=5):
+    """Rank candidate papers against a query paper in a single Gemini API call.
+
+    Instead of one call per candidate, sends all candidates in one prompt and
+    asks Gemini to return a ranked list — much cheaper and allows relative
+    comparison across candidates.
+
+    Parameters
+    ----------
+    query_text : str
+        Text of the main (query) paper.
+    candidates : list of str
+        Texts of the candidate papers (18–42 items typical).
+    model_name : str
+    abstract_sentences : int
+        Number of sentences to keep from each candidate text. Default: 3.
+        Set to None to use the full text.
+
+    Returns
+    -------
+    list of (candidate_idx, score)
+        Sorted by score descending. Score is (N - rank) / N, where N is the
+        number of candidates, so rank-1 gets score 1.0 and rank-N gets ~0.
+        Falls back to original order on parse failure.
+    """
+    query_text = _as_str(query_text)
+    n = len(candidates)
+
+    candidate_lines = '\n'.join(f'{i + 1}. {_as_str(c)}' for i, c in enumerate(candidates))
+    prompt = (
+        'You are a research paper relevance ranker.\n\n'
+        f'Main Paper:\n{query_text[:800]}\n\n'
+        f'Candidate Papers (1–{n}):\n{candidate_lines}\n\n'
+        f'Rank these {n} candidates from most to least relevant to the Main Paper. '
+        'Respond ONLY with a JSON array of candidate numbers, e.g.: [3, 1, 7, ...]'
+    )
+    try:
+        model = genai.GenerativeModel(model_name)
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        # Extract the JSON array from the response
+        start, end = text.find('['), text.rfind(']')
+        ranked_nums = json.loads(text[start:end + 1])
+        # Convert 1-based numbers to 0-based indices with positional scores
+        seen = set()
+        result = []
+        for rank, num in enumerate(ranked_nums):
+            idx = int(num) - 1
+            if 0 <= idx < n and idx not in seen:
+                seen.add(idx)
+                result.append((idx, (n - rank) / n))
+        # Append any missing candidates at the bottom
+        for idx in range(n):
+            if idx not in seen:
+                result.append((idx, 0.0))
+        return result
+    except Exception as e:
+        print(f'  Gemini rank error: {e}')
+        return [(i, 0.0) for i in range(n)]
 
 
 def gemini_score_pair(query_text, candidate_text, model_name='gemini-2.5-flash-lite'):

@@ -48,7 +48,13 @@ def extract_concept_names(val):
     return ''
 
 
-def build_text(row, fields=('abstract', 'title', 'concepts')):
+def _first_n_sentences(text, n):
+    """Return the first n sentences of text using a simple regex split."""
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    return ' '.join(sentences[:n])
+
+
+def build_text(row, fields=('abstract', 'title', 'concepts'), abstract_sentences=None):
     """Build text representation from selected fields.
 
     Parameters
@@ -57,12 +63,19 @@ def build_text(row, fields=('abstract', 'title', 'concepts')):
         Paper row with 'title', 'abstract', 'concepts' keys.
     fields : tuple of str
         Any combination of 'abstract', 'title', 'concepts'. Default: all three.
+    abstract_sentences : int or None
+        If set, only the first N sentences of the abstract are used.
+        None (default) uses the full abstract.
     """
     parts = []
     if 'title' in fields and isinstance(row.get('title'), str) and row['title']:
         parts.append(row['title'])
     if 'abstract' in fields and isinstance(row.get('abstract'), str) and row['abstract']:
-        parts.append(row['abstract'])
+        abstract = row['abstract']
+        if abstract_sentences is not None:
+            abstract = _first_n_sentences(abstract, abstract_sentences)
+        if abstract:
+            parts.append(abstract)
     if 'concepts' in fields:
         ct = extract_concept_names(row.get('concepts', ''))
         if ct.strip():
