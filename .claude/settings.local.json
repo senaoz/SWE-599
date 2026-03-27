@@ -13,7 +13,8 @@
       "Bash(pip3 install:*)",
       "Bash(jupyter nbconvert:*)",
       "Bash(ls -d /Users/senaoz/Developer/SWE-599/*/)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(python:*)"
     ]
   }
 }
