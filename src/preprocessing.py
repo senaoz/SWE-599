@@ -32,7 +32,7 @@ def reconstruct_abstract(inv_index):
     return ' '.join(w for _, w in words)
 
 
-def clean_abstract(text):
+def clean_text(text):
     """Remove HTML entities/tags, URLs, and extra whitespace from abstract text."""
     if not isinstance(text, str):
         return None
@@ -119,12 +119,19 @@ def process_papers(csv_path: str, name: str) -> pd.DataFrame:
 
     # Sort and filter
     df = df.sort_values(by='publication_year', ascending=False)
-    df = df[df['language'] == 'en'].copy()
+    df = df[df['language'] == 'en' or df['language'] == 'en-US' or df['language'] == 'en-GB'].copy()
     print(f"After English filter: {len(df):,} papers")
+
+    # clean the title
+    df['title'] = df['title'].apply(clean_text)
 
     # Abstract reconstruction and cleaning
     df['abstract_raw'] = df['abstract_inverted_index'].apply(reconstruct_abstract)
-    df['abstract'] = df['abstract_raw'].apply(clean_abstract)
+    df['abstract'] = df['abstract_raw'].apply(clean_text)
+
+    # Filter out papers with no abstract
+    df = df[df['abstract'].notna()]
+    print(f"After abstract filter: {len(df):,} papers")
 
     # Derived fields
     df['abstract_word_count'] = df['abstract'].apply(
