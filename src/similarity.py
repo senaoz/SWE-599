@@ -72,6 +72,17 @@ def _truncate_texts(texts, model_name):
 # Similarity functions
 # ---------------------------------------------------------------------------
 
+def _as_str(x):
+    """Coerce corpus/query entries to str; pandas NaN / missing -> ''."""
+    if x is None:
+        return ''
+    if isinstance(x, float) and np.isnan(x):
+        return ''
+    if isinstance(x, str):
+        return x
+    return str(x)
+
+
 def bm25_similarity(query_texts, corpus_texts):
     """Compute BM25 scores between query and corpus texts.
 
@@ -80,6 +91,8 @@ def bm25_similarity(query_texts, corpus_texts):
     np.ndarray of shape (len(query_texts), len(corpus_texts)),
     scores normalized to [0, 1] via saturation normalization.
     """
+    corpus_texts = [_as_str(d) for d in corpus_texts]
+    query_texts = [_as_str(q) for q in query_texts]
     tokenized_corpus = [doc.lower().split() for doc in corpus_texts]
     bm25 = BM25Okapi(tokenized_corpus)
     scores = np.array([bm25.get_scores(q.lower().split()) for q in query_texts])
@@ -96,6 +109,8 @@ def tfidf_similarity(query_texts, corpus_texts):
     -------
     np.ndarray of shape (len(query_texts), len(corpus_texts))
     """
+    corpus_texts = [_as_str(d) for d in corpus_texts]
+    query_texts = [_as_str(q) for q in query_texts]
     vectorizer = TfidfVectorizer(max_features=50000, stop_words='english')
     all_texts = list(corpus_texts) + list(query_texts)
     tfidf_matrix = vectorizer.fit_transform(all_texts)
@@ -133,7 +148,7 @@ def sentence_embedding_similarity(
     model = _get_model(model_name)
     batch_size = BATCH_SIZES.get(model_name, 64)
 
-    corpus_enc = _truncate_texts(list(corpus_texts), model_name)
+    corpus_enc = _truncate_texts([_as_str(t) for t in corpus_texts], model_name)
     c_hash = _corpus_hash(corpus_enc)
     corpus_cache = _cache_path(model_name, 'corpus', len(corpus_enc), c_hash, cache_dir)
 
@@ -146,7 +161,7 @@ def sentence_embedding_similarity(
         )
         np.save(corpus_cache, corpus_emb)
 
-    query_enc = _truncate_texts(list(query_texts), model_name)
+    query_enc = _truncate_texts([_as_str(t) for t in query_texts], model_name)
     q_hash = _corpus_hash(query_enc)
     query_cache = _cache_path(model_name, 'query', len(query_enc), q_hash, cache_dir)
 
@@ -167,6 +182,8 @@ def gemini_score_pair(query_text, candidate_text, model_name='gemini-2.5-flash-l
 
     Returns 0.0 on API error rather than None, so callers need no None-check.
     """
+    query_text = _as_str(query_text)
+    candidate_text = _as_str(candidate_text)
     prompt = (
         'Rate the semantic similarity between these two academic paper descriptions '
         'on a scale of 0 to 100, where 0 is completely unrelated and 100 is identical.\n\n'
