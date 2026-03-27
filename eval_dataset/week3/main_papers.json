@@ -1,0 +1,211 @@
+[
+  {
+    "id": "https://openalex.org/W4292549392",
+    "title": "Oral Nirmatrelvir and Ritonavir in Nonhospitalized Vaccinated Patients With Coronavirus Disease 2019",
+    "abstract": "Treatment with NMV-r in nonhospitalized vaccinated patients with COVID-19 was associated with a reduced likelihood of ER visits, hospitalization, or death. Complications and overall resource utilization were also decreased.",
+    "referenced_works": [
+      "https://openalex.org/W2735301415",
+      "https://openalex.org/W3208400521",
+      "https://openalex.org/W4200051875",
+      "https://openalex.org/W4200206478",
+      "https://openalex.org/W4200303124",
+      "https://openalex.org/W4207079197",
+      "https://openalex.org/W4212904481",
+      "https://openalex.org/W4226236384"
+    ],
+    "referenced_works_count": 8,
+    "text": "Oral Nirmatrelvir and Ritonavir in Nonhospitalized Vaccinated Patients With Coronavirus Disease 2019 Treatment with NMV-r in nonhospitalized vaccinated patients with COVID-19 was associated with a reduced likelihood of ER visits, hospitalization, or death. Complications and overall resource utilization were also decreased. Medicine Cohort Retrospective cohort study Odds ratio Internal medicine Cohort study Confidence interval"
+  },
+  {
+    "id": "https://openalex.org/W4399940463",
+    "title": "ADMET-AI: a machine learning ADMET platform for evaluation of large-scale chemical libraries",
+    "abstract": "The ADMET-AI platform is freely available both as a web server at admet.ai.greenstonebio.com and as an open-source Python package for local batch prediction at github.com/swansonk14/admet_ai (also archived on Zenodo at doi.org/10.5281/zenodo.10372930). All data and models are archived on Zenodo at doi.org/10.5281/zenodo.10372418.",
+    "referenced_works": [
+      "https://openalex.org/W2009867031",
+      "https://openalex.org/W2593436234",
+      "https://openalex.org/W2767891136",
+      "https://openalex.org/W2775175656",
+      "https://openalex.org/W2966357564",
+      "https://openalex.org/W2968734407",
+      "https://openalex.org/W3015208165",
+      "https://openalex.org/W3109916301",
+      "https://openalex.org/W3154258817",
+      "https://openalex.org/W3158755582",
+      "https://openalex.org/W3201539868",
+      "https://openalex.org/W4242746271",
+      "https://openalex.org/W4310709716",
+      "https://openalex.org/W4316507591"
+    ],
+    "referenced_works_count": 14,
+    "text": "ADMET-AI: a machine learning ADMET platform for evaluation of large-scale chemical libraries The ADMET-AI platform is freely available both as a web server at admet.ai.greenstonebio.com and as an open-source Python package for local batch prediction at github.com/swansonk14/admet_ai (also archived on Zenodo at doi.org/10.5281/zenodo.10372930). All data and models are archived on Zenodo at doi.org/10.5281/zenodo.10372418. Python (programming language) Computer science Web site Web server Drug discovery Artificial intelligence Machine learning The Internet Chemistry Programming language Operating system Biochemistry"
+  },
+  {
+    "id": "https://openalex.org/W3113115421",
+    "title": "COVID\u201019 Vaccines May Not Prevent Nasal SARS\u2010CoV\u20102 Infection and Asymptomatic Transmission",
+    "abstract": "Current COVID-19 vaccine candidates are administered by injection and designed to produce an IgG response, preventing viremia and the COVID-19 syndrome. However, systemic respiratory vaccines generally provide limited protection against viral replication and shedding within the airway, as this requires a local mucosal secretory IgA response. Indeed, preclinical studies of adenovirus and mRNA candidate vaccines demonstrated persistent virus in nasal swabs despite preventing COVID-19. This suggests that systemically vaccinated patients, while asymptomatic, may still be become infected and transmit live virus from the upper airway. COVID-19 is known to spread through respiratory droplets and aerosols. Furthermore, significant evidence has shown that many clinic and surgical endonasal procedures are aerosol generating. Until further knowledge is acquired regarding mucosal immunity following systemic vaccination, otolaryngology providers should maintain precautions against viral transmission to protect the proportion of persistently vulnerable patients who exhibit subtotal vaccine efficacy or waning immunity or who defer vaccination.",
+    "referenced_works": [
+      "https://openalex.org/W2043944957",
+      "https://openalex.org/W2147842782",
+      "https://openalex.org/W2336491233",
+      "https://openalex.org/W3014842906",
+      "https://openalex.org/W3029056825",
+      "https://openalex.org/W3042517887",
+      "https://openalex.org/W3045734160",
+      "https://openalex.org/W3046061621",
+      "https://openalex.org/W3054686440",
+      "https://openalex.org/W3089749249"
+    ],
+    "referenced_works_count": 10,
+    "text": "COVID\u201019 Vaccines May Not Prevent Nasal SARS\u2010CoV\u20102 Infection and Asymptomatic Transmission Current COVID-19 vaccine candidates are administered by injection and designed to produce an IgG response, preventing viremia and the COVID-19 syndrome. However, systemic respiratory vaccines generally provide limited protection against viral replication and shedding within the airway, as this requires a local mucosal secretory IgA response. Indeed, preclinical studies of adenovirus and mRNA candidate vaccines demonstrated persistent virus in nasal swabs despite preventing COVID-19. This suggests that systemically vaccinated patients, while asymptomatic, may still be become infected and transmit live virus from the upper airway. COVID-19 is known to spread through respiratory droplets and aerosols. Furthermore, significant evidence has shown that many clinic and surgical endonasal procedures are aerosol generating. Until further knowledge is acquired regarding mucosal immunity following systemic vaccination, otolaryngology providers should maintain precautions against viral transmission to protect the proportion of persistently vulnerable patients who exhibit subtotal vaccine efficacy or waning immunity or who defer vaccination. Medicine Viral shedding Vaccination Asymptomatic Immunology Transmission (telecommunications) Viremia Virology Immunity Virus Pandemic Coronavirus disease 2019 (COVID-19) Immune system Infectious disease (medical specialty) Internal medicine Disease Electrical engineering Engineering"
+  },
+  {
+    "id": "https://openalex.org/W3081182880",
+    "title": "Community-Level Factors Associated With Racial And Ethnic Disparities In COVID-19 Rates In Massachusetts",
+    "abstract": "Massachusetts has one of the highest cumulative incidence rates of coronavirus disease 2019 (COVID-19) cases in the US. Understanding which specific demographic, economic, and occupational factors have contributed to disparities in COVID-19 incidence rates across the state is critical to informing public health strategies. We performed a cross-sectional study of 351 Massachusetts cities and towns from January 1 to May 6, 2020, and found that a 10-percentage-point increase in the Black non-Latino population was associated with an increase of 312.3 COVID-19 cases per 100,000 population, whereas a 10-percentage-point increase in the Latino population was associated with an increase of 258.2 cases per 100,000. Independent predictors of higher COVID-19 rates included the proportion of foreign-born noncitizens living in a community, mean household size, and share of food service workers. After adjustment for these variables, the association between the Latino population and COVID-19 rates was attenuated. In contrast, the association between the Black population and COVID-19 rates persisted but may be explained by other systemic inequities. Public health and policy efforts that improve care for foreign-born noncitizens, address crowded housing, and protect food service workers may help mitigate the spread of COVID-19 among minority communities.",
+    "referenced_works": [
+      "https://openalex.org/W2795565022",
+      "https://openalex.org/W2885261459",
+      "https://openalex.org/W3013763896",
+      "https://openalex.org/W3015807396",
+      "https://openalex.org/W3015937556",
+      "https://openalex.org/W3016535995",
+      "https://openalex.org/W3020264722",
+      "https://openalex.org/W3021626303",
+      "https://openalex.org/W3023031160",
+      "https://openalex.org/W3025818509",
+      "https://openalex.org/W3026564589",
+      "https://openalex.org/W3031713996",
+      "https://openalex.org/W3042399949",
+      "https://openalex.org/W4237066268"
+    ],
+    "referenced_works_count": 14,
+    "text": "Community-Level Factors Associated With Racial And Ethnic Disparities In COVID-19 Rates In Massachusetts Massachusetts has one of the highest cumulative incidence rates of coronavirus disease 2019 (COVID-19) cases in the US. Understanding which specific demographic, economic, and occupational factors have contributed to disparities in COVID-19 incidence rates across the state is critical to informing public health strategies. We performed a cross-sectional study of 351 Massachusetts cities and towns from January 1 to May 6, 2020, and found that a 10-percentage-point increase in the Black non-Latino population was associated with an increase of 312.3 COVID-19 cases per 100,000 population, whereas a 10-percentage-point increase in the Latino population was associated with an increase of 258.2 cases per 100,000. Independent predictors of higher COVID-19 rates included the proportion of foreign-born noncitizens living in a community, mean household size, and share of food service workers. After adjustment for these variables, the association between the Latino population and COVID-19 rates was attenuated. In contrast, the association between the Black population and COVID-19 rates persisted but may be explained by other systemic inequities. Public health and policy efforts that improve care for foreign-born noncitizens, address crowded housing, and protect food service workers may help mitigate the spread of COVID-19 among minority communities. Demography Population Ethnic group Public health Immigration Coronavirus disease 2019 (COVID-19) Health equity Incidence (geometry) Environmental health Medicine Geography Disease Political science Infectious disease (medical specialty) Sociology Nursing Optics Law Physics Archaeology Pathology"
+  },
+  {
+    "id": "https://openalex.org/W4220920296",
+    "title": "Quantifying Regional Methane Emissions in the New Mexico Permian Basin with a Comprehensive Aerial Survey",
+    "abstract": "Limiting emissions of climate-warming methane from oil and gas (O&G) is a major opportunity for short-term climate benefits. We deploy a basin-wide airborne survey of O&G extraction and transportation activities in the New Mexico Permian Basin, spanning 35 923 km2, 26 292 active wells, and over 15 000 km of natural gas pipelines using an independently validated hyperspectral methane point source detection and quantification system. The airborne survey repeatedly visited over 90% of the active wells in the survey region throughout October 2018 to January 2020, totaling approximately 98 000 well site visits. We estimate total O&G methane emissions in this area at 194 (+72/\u201368, 95% CI) metric tonnes per hour (t/h), or 9.4% (+3.5%/\u20133.3%) of gross gas production. 50% of observed emissions come from large emission sources with persistence-averaged emission rates over 308 kg/h. The fact that a large sample size is required to characterize the heavy tail of the distribution emphasizes the importance of capturing low-probability, high-consequence events through basin-wide surveys when estimating regional O&G methane emissions.",
+    "referenced_works": [
+      "https://openalex.org/W2018546748",
+      "https://openalex.org/W2556131455",
+      "https://openalex.org/W2808857148",
+      "https://openalex.org/W2894247026",
+      "https://openalex.org/W2989263805",
+      "https://openalex.org/W3016238740",
+      "https://openalex.org/W3019335541",
+      "https://openalex.org/W3090739047",
+      "https://openalex.org/W3092958676",
+      "https://openalex.org/W3120004878",
+      "https://openalex.org/W3172331002",
+      "https://openalex.org/W3177036778",
+      "https://openalex.org/W3187580681"
+    ],
+    "referenced_works_count": 13,
+    "text": "Quantifying Regional Methane Emissions in the New Mexico Permian Basin with a Comprehensive Aerial Survey Limiting emissions of climate-warming methane from oil and gas (O&G) is a major opportunity for short-term climate benefits. We deploy a basin-wide airborne survey of O&G extraction and transportation activities in the New Mexico Permian Basin, spanning 35 923 km2, 26 292 active wells, and over 15 000 km of natural gas pipelines using an independently validated hyperspectral methane point source detection and quantification system. The airborne survey repeatedly visited over 90% of the active wells in the survey region throughout October 2018 to January 2020, totaling approximately 98 000 well site visits. We estimate total O&G methane emissions in this area at 194 (+72/\u201368, 95% CI) metric tonnes per hour (t/h), or 9.4% (+3.5%/\u20133.3%) of gross gas production. 50% of observed emissions come from large emission sources with persistence-averaged emission rates over 308 kg/h. The fact that a large sample size is required to characterize the heavy tail of the distribution emphasizes the importance of capturing low-probability, high-consequence events through basin-wide surveys when estimating regional O&G methane emissions. Methane Environmental science Tonne Structural basin Natural gas Methane emissions Greenhouse gas Hydrology (agriculture) Atmospheric methane Physical geography Geography Geology Oceanography Chemistry Geomorphology Organic chemistry Archaeology Geotechnical engineering"
+  },
+  {
+    "id": "https://openalex.org/W4327681325",
+    "title": "Using ChatGPT to evaluate cancer myths and misconceptions: artificial intelligence and cancer information",
+    "abstract": "Data about the quality of cancer information that chatbots and other artificial intelligence systems provide are limited. Here, we evaluate the accuracy of cancer information on ChatGPT compared with the National Cancer Institute's (NCI's) answers by using the questions on the \"Common Cancer Myths and Misconceptions\" web page. The NCI's answers and ChatGPT answers to each question were blinded, and then evaluated for accuracy (accurate: yes vs no). Ratings were evaluated independently for each question, and then compared between the blinded NCI and ChatGPT answers. Additionally, word count and Flesch-Kincaid readability grade level for each individual response were evaluated. Following expert review, the percentage of overall agreement for accuracy was 100% for NCI answers and 96.9% for ChatGPT outputs for questions 1 through 13 (\u0138 = \u20120.03, standard error = 0.08). There were few noticeable differences in the number of words or the readability of the answers from NCI or ChatGPT. Overall, the results suggest that ChatGPT provides accurate information about common cancer myths and misconceptions.",
+    "referenced_works": [
+      "https://openalex.org/W1975879668",
+      "https://openalex.org/W2970416896",
+      "https://openalex.org/W2981869278",
+      "https://openalex.org/W3021999948",
+      "https://openalex.org/W3087533146",
+      "https://openalex.org/W3186653455"
+    ],
+    "referenced_works_count": 6,
+    "text": "Using ChatGPT to evaluate cancer myths and misconceptions: artificial intelligence and cancer information Data about the quality of cancer information that chatbots and other artificial intelligence systems provide are limited. Here, we evaluate the accuracy of cancer information on ChatGPT compared with the National Cancer Institute's (NCI's) answers by using the questions on the \"Common Cancer Myths and Misconceptions\" web page. The NCI's answers and ChatGPT answers to each question were blinded, and then evaluated for accuracy (accurate: yes vs no). Ratings were evaluated independently for each question, and then compared between the blinded NCI and ChatGPT answers. Additionally, word count and Flesch-Kincaid readability grade level for each individual response were evaluated. Following expert review, the percentage of overall agreement for accuracy was 100% for NCI answers and 96.9% for ChatGPT outputs for questions 1 through 13 (\u0138 = \u20120.03, standard error = 0.08). There were few noticeable differences in the number of words or the readability of the answers from NCI or ChatGPT. Overall, the results suggest that ChatGPT provides accurate information about common cancer myths and misconceptions. Readability Medicine Cancer Mythology Artificial intelligence Questions and answers Medical physics Natural language processing Computer science Internal medicine Programming language Philosophy Theology"
+  },
+  {
+    "id": "https://openalex.org/W3107851654",
+    "title": "Diagnosis, Management, and Pathophysiology of Arterial and Venous Thrombosis in COVID-19",
+    "abstract": "Seda Bilaloglu, MS; Yin Aphinyanaphongs, MD, PhD; Simon Jones, PhD, MSc; Eduardo Iturrate, MD, MSW; Judith Hochman, MD; Jeffrey S. Berger, MD, MS",
+    "referenced_works": [
+      "https://openalex.org/W3019953082",
+      "https://openalex.org/W3027918021",
+      "https://openalex.org/W3029923949",
+      "https://openalex.org/W3031456278",
+      "https://openalex.org/W3042022927",
+      "https://openalex.org/W3045413314",
+      "https://openalex.org/W3045875966",
+      "https://openalex.org/W3046262049",
+      "https://openalex.org/W3085046828",
+      "https://openalex.org/W3094167898",
+      "https://openalex.org/W4254637827"
+    ],
+    "referenced_works_count": 11,
+    "text": "Diagnosis, Management, and Pathophysiology of Arterial and Venous Thrombosis in COVID-19 Seda Bilaloglu, MS; Yin Aphinyanaphongs, MD, PhD; Simon Jones, PhD, MSc; Eduardo Iturrate, MD, MSW; Judith Hochman, MD; Jeffrey S. Berger, MD, MS Medicine Pathophysiology Coronavirus disease 2019 (COVID-19) Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) Thrombosis 2019-20 coronavirus outbreak Venous thrombosis Intensive care medicine Cardiology Internal medicine Pathology Disease Outbreak Infectious disease (medical specialty)"
+  },
+  {
+    "id": "https://openalex.org/W4220921782",
+    "title": "Use of At-Home COVID-19 Tests \u2014 United States, August 23, 2021\u2013March 12, 2022",
+    "abstract": "COVID-19 testing provides information regarding exposure and transmission risks, guides preventative measures (e.g., if and when to start and end isolation and quarantine), identifies opportunities for appropriate treatments, and helps assess disease prevalence (1). At-home rapid COVID-19 antigen tests (at-home tests) are a convenient and accessible alternative to laboratory-based diagnostic nucleic acid amplification tests (NAATs) for SARS-CoV-2, the virus that causes COVID-19 (2-4). With the emergence of the SARS-CoV-2 B.1.617.2 (Delta) and B.1.1.529 (Omicron) variants in 2021, demand for at-home tests increased\u2020 (5). At-home tests are commonly used for school- or employer-mandated testing and for confirmation of SARS-CoV-2 infection in a COVID-19-like illness or following exposure (6). Mandated COVID-19 reporting requirements omit at-home tests, and there are no standard processes for test takers or manufacturers to share results with appropriate health officials (2). Therefore, with increased COVID-19 at-home test use, laboratory-based reporting systems might increasingly underreport the actual incidence of infection. Data from a cross-sectional, nonprobability-based online survey (August 23, 2021-March 12, 2022) of U.S. adults aged \u226518 years were used to estimate self-reported at-home test use over time, and by demographic characteristics, geography, symptoms/syndromes, and reasons for testing. From the Delta-predominant period (August 23-December 11, 2021) to the Omicron-predominant period (December 19, 2021-March 12, 2022)\u00a7 (7), at-home test use among respondents with self-reported COVID-19-like illness\u00b6 more than tripled from 5.7% to 20.1%. The two most commonly reported reasons for testing among persons who used an at-home test were COVID-19 exposure (39.4%) and COVID-19-like symptoms (28.9%). At-home test use differed by race (e.g., self-identified as White [5.9%] versus self-identified as Black [2.8%]), age (adults aged 30-39 years [6.4%] versus adults aged \u226575 years [3.6%]), household income (>$150,000 [9.5%] versus $50,000-$74,999 [4.7%]), education (postgraduate degree [8.4%] versus high school or less [3.5%]), and geography (New England division [9.6%] versus West South Central division [3.7%]). COVID-19 testing, including at-home tests, along with prevention measures, such as quarantine and isolation when warranted, wearing a well-fitted mask when recommended after a positive test or known exposure, and staying up to date with vaccination,** can help reduce the spread of COVID-19. Further, providing reliable and low-cost or free at-home test kits to underserved populations with otherwise limited access to COVID-19 testing could assist with continued prevention efforts.",
+    "referenced_works": [
+      "https://openalex.org/W3025818509",
+      "https://openalex.org/W3122572428",
+      "https://openalex.org/W3127899647",
+      "https://openalex.org/W3158324281",
+      "https://openalex.org/W3199276442",
+      "https://openalex.org/W4205148896",
+      "https://openalex.org/W4206513796",
+      "https://openalex.org/W4207020509"
+    ],
+    "referenced_works_count": 8,
+    "text": "Use of At-Home COVID-19 Tests \u2014 United States, August 23, 2021\u2013March 12, 2022 COVID-19 testing provides information regarding exposure and transmission risks, guides preventative measures (e.g., if and when to start and end isolation and quarantine), identifies opportunities for appropriate treatments, and helps assess disease prevalence (1). At-home rapid COVID-19 antigen tests (at-home tests) are a convenient and accessible alternative to laboratory-based diagnostic nucleic acid amplification tests (NAATs) for SARS-CoV-2, the virus that causes COVID-19 (2-4). With the emergence of the SARS-CoV-2 B.1.617.2 (Delta) and B.1.1.529 (Omicron) variants in 2021, demand for at-home tests increased\u2020 (5). At-home tests are commonly used for school- or employer-mandated testing and for confirmation of SARS-CoV-2 infection in a COVID-19-like illness or following exposure (6). Mandated COVID-19 reporting requirements omit at-home tests, and there are no standard processes for test takers or manufacturers to share results with appropriate health officials (2). Therefore, with increased COVID-19 at-home test use, laboratory-based reporting systems might increasingly underreport the actual incidence of infection. Data from a cross-sectional, nonprobability-based online survey (August 23, 2021-March 12, 2022) of U.S. adults aged \u226518 years were used to estimate self-reported at-home test use over time, and by demographic characteristics, geography, symptoms/syndromes, and reasons for testing. From the Delta-predominant period (August 23-December 11, 2021) to the Omicron-predominant period (December 19, 2021-March 12, 2022)\u00a7 (7), at-home test use among respondents with self-reported COVID-19-like illness\u00b6 more than tripled from 5.7% to 20.1%. The two most commonly reported reasons for testing among persons who used an at-home test were COVID-19 exposure (39.4%) and COVID-19-like symptoms (28.9%). At-home test use differed by race (e.g., self-identified as White [5.9%] versus self-identified as Black [2.8%]), age (adults aged 30-39 years [6.4%] versus adults aged \u226575 years [3.6%]), household income (>$150,000 [9.5%] versus $50,000-$74,999 [4.7%]), education (postgraduate degree [8.4%] versus high school or less [3.5%]), and geography (New England division [9.6%] versus West South Central division [3.7%]). COVID-19 testing, including at-home tests, along with prevention measures, such as quarantine and isolation when warranted, wearing a well-fitted mask when recommended after a positive test or known exposure, and staying up to date with vaccination,** can help reduce the spread of COVID-19. Further, providing reliable and low-cost or free at-home test kits to underserved populations with otherwise limited access to COVID-19 testing could assist with continued prevention efforts. Medicine Coronavirus disease 2019 (COVID-19) Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) Test (biology) Quarantine Transmission (telecommunications) Incidence (geometry) Isolation (microbiology) Family medicine 2019-20 coronavirus outbreak Environmental health Disease Virology Outbreak Infectious disease (medical specialty) Internal medicine Pathology Microbiology Biology Paleontology Electrical engineering Physics Optics Engineering"
+  },
+  {
+    "id": "https://openalex.org/W3163163465",
+    "title": "Elite party cues increase vaccination intentions among Republicans",
+    "abstract": "Overcoming the COVID-19 pandemic requires motivating the vast majority of Americans to get vaccinated. However, vaccination rates have become politically polarized, and a substantial proportion of Republicans have remained vaccine hesitant for months. Here, we explore how endorsements by party elites affect Republicans' COVID-19 vaccination intentions and attitudes. In a preregistered survey experiment (n = 1,480), we varied whether self-identified Republicans saw endorsements of the vaccine from prominent Republicans (including video of a speech by former President Donald Trump), from the Democratic Party (including video of a speech by President Joseph Biden), or a neutral control condition including no endorsements. Unvaccinated Republicans who were exposed to the Republican elite endorsement reported 7.0% higher vaccination intentions than those who viewed the Democratic elite endorsement and 5.7% higher than those in the neutral control condition. These effects were statistically mediated by participants' reports of how much they thought Republican politicians would want them to get vaccinated. We also found evidence of backlash effects against Democratic elites: Republicans who viewed the Democratic elite endorsement reported they would be significantly less likely to encourage others to vaccinate and had more negative attitudes toward the vaccine, compared with those who viewed the Republican elite endorsement or the neutral control. These results demonstrate the relative advantage of cues from Republican elites-and the risks of messaging from Democrats currently in power-for promoting vaccination among the largest vaccine-hesitant subgroup in the United States.",
+    "referenced_works": [
+      "https://openalex.org/W2515179900",
+      "https://openalex.org/W3015740662",
+      "https://openalex.org/W3041476856",
+      "https://openalex.org/W3096589468",
+      "https://openalex.org/W3162103682",
+      "https://openalex.org/W3175929934",
+      "https://openalex.org/W4235402841",
+      "https://openalex.org/W6827086744"
+    ],
+    "referenced_works_count": 8,
+    "text": "Elite party cues increase vaccination intentions among Republicans Overcoming the COVID-19 pandemic requires motivating the vast majority of Americans to get vaccinated. However, vaccination rates have become politically polarized, and a substantial proportion of Republicans have remained vaccine hesitant for months. Here, we explore how endorsements by party elites affect Republicans' COVID-19 vaccination intentions and attitudes. In a preregistered survey experiment (n = 1,480), we varied whether self-identified Republicans saw endorsements of the vaccine from prominent Republicans (including video of a speech by former President Donald Trump), from the Democratic Party (including video of a speech by President Joseph Biden), or a neutral control condition including no endorsements. Unvaccinated Republicans who were exposed to the Republican elite endorsement reported 7.0% higher vaccination intentions than those who viewed the Democratic elite endorsement and 5.7% higher than those in the neutral control condition. These effects were statistically mediated by participants' reports of how much they thought Republican politicians would want them to get vaccinated. We also found evidence of backlash effects against Democratic elites: Republicans who viewed the Democratic elite endorsement reported they would be significantly less likely to encourage others to vaccinate and had more negative attitudes toward the vaccine, compared with those who viewed the Republican elite endorsement or the neutral control. These results demonstrate the relative advantage of cues from Republican elites-and the risks of messaging from Democrats currently in power-for promoting vaccination among the largest vaccine-hesitant subgroup in the United States. Elite Democracy Vaccination Political science Power (physics) Social psychology Politics Psychology Law Medicine Virology Physics Quantum mechanics"
+  },
+  {
+    "id": "https://openalex.org/W4309411030",
+    "title": "Three-Year Update of Tisagenlecleucel in Pediatric and Young Adult Patients With Relapsed/Refractory Acute Lymphoblastic Leukemia in the ELIANA Trial",
+    "abstract": "Clinical trials frequently include multiple end points that mature at different times. The initial report, typically based on the primary end point, may be published when key planned co-primary or secondary analyses are not yet available. Clinical Trial Updates provide an opportunity to disseminate additional results from studies, published in JCO or elsewhere, for which the primary end point has already been reported.In the primary analysis of the global phase II ELIANA trial (ClinicalTrials.gov identifier: NCT02435849), tisagenlecleucel provided an overall remission rate of 81% in pediatric and young adult patients with relapsed or refractory B-cell acute lymphoblastic leukemia (R/R B-ALL), with 59% of responders remaining relapse-free at 12 months. Here, we report an update on efficacy, safety, and patient-reported quality of life in 79 pediatric and young adult patients with R/R B-ALL following a median follow-up of 38.8 months. The overall remission rate was 82%. The median event-free survival was 24 months, and the median overall survival was not reached. Event-free survival was 44% (95% CI, 31 to 57) and overall survival was 63% (95% CI, 51 to 73) at 3 years overall (most events occur within the first 2 years). The estimated 3-year relapse-free survival with and without censoring for subsequent therapy was 52% (95% CI, 37 to 66) and 48% (95% CI, 34 to 60), respectively. No new or unexpected long-term adverse events were reported. Grade 3/4 adverse events were reported in 29% of patients > 1 year after infusion; grade 3/4 infection rate did not increase > 1 year after infusion. Patients reported improvements in quality of life up to 36 months after infusion. These findings demonstrate favorable long-term safety and suggest tisagenlecleucel as a curative treatment option for heavily pretreated pediatric and young adult patients with R/R B-ALL.",
+    "referenced_works": [
+      "https://openalex.org/W1967517831",
+      "https://openalex.org/W2757776684",
+      "https://openalex.org/W2787301955",
+      "https://openalex.org/W2905241205",
+      "https://openalex.org/W2979548369",
+      "https://openalex.org/W3119718700",
+      "https://openalex.org/W3138004978",
+      "https://openalex.org/W3214897392",
+      "https://openalex.org/W4200086437",
+      "https://openalex.org/W4200141903",
+      "https://openalex.org/W4225887547",
+      "https://openalex.org/W4229060209"
+    ],
+    "referenced_works_count": 12,
+    "text": "Three-Year Update of Tisagenlecleucel in Pediatric and Young Adult Patients With Relapsed/Refractory Acute Lymphoblastic Leukemia in the ELIANA Trial Clinical trials frequently include multiple end points that mature at different times. The initial report, typically based on the primary end point, may be published when key planned co-primary or secondary analyses are not yet available. Clinical Trial Updates provide an opportunity to disseminate additional results from studies, published in JCO or elsewhere, for which the primary end point has already been reported.In the primary analysis of the global phase II ELIANA trial (ClinicalTrials.gov identifier: NCT02435849), tisagenlecleucel provided an overall remission rate of 81% in pediatric and young adult patients with relapsed or refractory B-cell acute lymphoblastic leukemia (R/R B-ALL), with 59% of responders remaining relapse-free at 12 months. Here, we report an update on efficacy, safety, and patient-reported quality of life in 79 pediatric and young adult patients with R/R B-ALL following a median follow-up of 38.8 months. The overall remission rate was 82%. The median event-free survival was 24 months, and the median overall survival was not reached. Event-free survival was 44% (95% CI, 31 to 57) and overall survival was 63% (95% CI, 51 to 73) at 3 years overall (most events occur within the first 2 years). The estimated 3-year relapse-free survival with and without censoring for subsequent therapy was 52% (95% CI, 37 to 66) and 48% (95% CI, 34 to 60), respectively. No new or unexpected long-term adverse events were reported. Grade 3/4 adverse events were reported in 29% of patients > 1 year after infusion; grade 3/4 infection rate did not increase > 1 year after infusion. Patients reported improvements in quality of life up to 36 months after infusion. These findings demonstrate favorable long-term safety and suggest tisagenlecleucel as a curative treatment option for heavily pretreated pediatric and young adult patients with R/R B-ALL. Medicine Lymphoblastic Leukemia Refractory (planetary science) Oncology Young adult Pediatrics Internal medicine Leukemia Physics Astrobiology"
+  },
+  {
+    "id": "https://openalex.org/W4286218372",
+    "title": "Omicron mutations enhance infectivity and reduce antibody neutralization of SARS-CoV-2 virus-like particles",
+    "abstract": "The severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) Omicron variant contains extensive sequence changes relative to the earlier-arising B.1, B.1.1, and Delta SARS-CoV-2 variants that have unknown effects on viral infectivity and response to existing vaccines. Using SARS-CoV-2 virus-like particles (VLPs), we examined mutations in all four structural proteins and found that Omicron and Delta showed 4.6-fold higher luciferase delivery overall relative to the ancestral B.1 lineage, a property conferred mostly by enhancements in the S and N proteins, while mutations in M and E were mostly detrimental to assembly. Thirty-eight antisera samples from individuals vaccinated with Pfizer/BioNTech, Moderna, or Johnson & Johnson vaccines and convalescent sera from unvaccinated COVID-19 survivors had 15-fold lower efficacy to prevent cell transduction by VLPs containing the Omicron mutations relative to the ancestral B.1 spike protein. A third dose of Pfizer vaccine elicited substantially higher neutralization titers against Omicron, resulting in detectable neutralizing antibodies in eight out of eight subjects compared to one out of eight preboosting. Furthermore, the monoclonal antibody therapeutics casirivimab and imdevimab had robust neutralization activity against B.1 and Delta VLPs but no detectable neutralization of Omicron VLPs, while newly authorized bebtelovimab maintained robust neutralization across variants. Our results suggest that Omicron has similar assembly efficiency and cell entry compared to Delta and that its rapid spread is due mostly to reduced neutralization in sera from previously vaccinated subjects. In addition, most currently available monoclonal antibodies will not be useful in treating Omicron-infected patients with the exception of bebtelovimab.",
+    "referenced_works": [
+      "https://openalex.org/W3020828664",
+      "https://openalex.org/W3093768302",
+      "https://openalex.org/W3104722250",
+      "https://openalex.org/W3210408195",
+      "https://openalex.org/W4200317137",
+      "https://openalex.org/W4200505933"
+    ],
+    "referenced_works_count": 6,
+    "text": "Omicron mutations enhance infectivity and reduce antibody neutralization of SARS-CoV-2 virus-like particles The severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) Omicron variant contains extensive sequence changes relative to the earlier-arising B.1, B.1.1, and Delta SARS-CoV-2 variants that have unknown effects on viral infectivity and response to existing vaccines. Using SARS-CoV-2 virus-like particles (VLPs), we examined mutations in all four structural proteins and found that Omicron and Delta showed 4.6-fold higher luciferase delivery overall relative to the ancestral B.1 lineage, a property conferred mostly by enhancements in the S and N proteins, while mutations in M and E were mostly detrimental to assembly. Thirty-eight antisera samples from individuals vaccinated with Pfizer/BioNTech, Moderna, or Johnson & Johnson vaccines and convalescent sera from unvaccinated COVID-19 survivors had 15-fold lower efficacy to prevent cell transduction by VLPs containing the Omicron mutations relative to the ancestral B.1 spike protein. A third dose of Pfizer vaccine elicited substantially higher neutralization titers against Omicron, resulting in detectable neutralizing antibodies in eight out of eight subjects compared to one out of eight preboosting. Furthermore, the monoclonal antibody therapeutics casirivimab and imdevimab had robust neutralization activity against B.1 and Delta VLPs but no detectable neutralization of Omicron VLPs, while newly authorized bebtelovimab maintained robust neutralization across variants. Our results suggest that Omicron has similar assembly efficiency and cell entry compared to Delta and that its rapid spread is due mostly to reduced neutralization in sera from previously vaccinated subjects. In addition, most currently available monoclonal antibodies will not be useful in treating Omicron-infected patients with the exception of bebtelovimab. Infectivity Neutralization Virology Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) Antibody Virus Coronavirus disease 2019 (COVID-19) Chemistry Biology Medicine Immunology Infectious disease (medical specialty) Disease Pathology"
+  }
+]
