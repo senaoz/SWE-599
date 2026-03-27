@@ -140,9 +140,21 @@ These metrics identify methods best at surfacing citations from followed institu
 
 --------
 
-Gemini nasil calismali?
+### Gemini Ranking Approach
 
-Inputs: Main Paper ve benzerliklerini siralayacagi aday paperlar (min 18 - max 42 paper)
+Instead of scoring each candidate individually (one API call per paper), Gemini ranks all candidates in a **single prompt**. For each query, the prompt contains:
 
+- **Main Paper** (title + abstract, up to 800 chars)
+- **Candidate Papers 1–N** (18–42 papers, up to 600 chars each)
+
+Gemini returns a JSON array of candidate numbers ordered by relevance, e.g. `[7, 2, 15, ...]`. Scores are derived from rank position: rank-1 → `1.0`, rank-N → `~0.0`.
+
+**Why this approach:**
+- 1 API call instead of 18–42 calls per query → ~40× fewer requests
+- Gemini compares candidates *relative to each other*, not in isolation
+- Fits comfortably within Gemini 2.5 Flash's 1M-token context window
+
+**Implementation:** `gemini_rank_candidates(query_text, candidates)` in `src/similarity.py`.
 
 --------
+
