@@ -218,6 +218,7 @@ def gemini_rank_candidates(query_text, candidates, model_name='gemini-2.5-flash-
     try:
         model = genai.GenerativeModel(model_name)
         response = model.generate_content(prompt)
+        print(response.text)
         text = response.text.strip()
         # Extract the JSON array from the response
         start, end = text.find('['), text.rfind(']')
@@ -242,7 +243,6 @@ def gemini_rank_candidates(query_text, candidates, model_name='gemini-2.5-flash-
 
 def gemini_score_pair(query_text, candidate_text, model_name='gemini-2.5-flash-lite'):
     """Use Gemini to score semantic similarity between two papers (returns 0–1).
-
     Returns 0.0 on API error rather than None, so callers need no None-check.
     """
     query_text = _as_str(query_text)
