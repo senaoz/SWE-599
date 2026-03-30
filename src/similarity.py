@@ -4,6 +4,7 @@ import os
 import time
 
 import numpy as np
+import requests
 import torch
 import google.generativeai as genai
 from rank_bm25 import BM25Okapi
@@ -21,20 +22,22 @@ DEVICE = 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.i
 MAX_TEXT_CHARS = {
     'all-MiniLM-L6-v2':          1024,
     'allenai/specter2_base':      2048,
-    'Qwen/Qwen3-Embedding-0.6B':  3200,
 }
 
 # GPU-friendly batch sizes per model
 BATCH_SIZES = {
     'all-MiniLM-L6-v2':          256,
     'allenai/specter2_base':      128,
-    'Qwen/Qwen3-Embedding-0.6B':   64,
 }
 
 MODEL_MAP = {
     'minilm':   'all-MiniLM-L6-v2',
     'specter2': 'allenai/specter2_base',
-    'qwen':     'Qwen/Qwen3-Embedding-0.6B',
+}
+
+OLLAMA_MODEL_MAP = {
+    'qwen': 'qwen3-embedding:4b',
+    'embeddinggemma': 'embeddinggemma'
 }
 
 _MODEL_CACHE: dict = {}
@@ -239,6 +242,125 @@ def gemini_rank_candidates(query_text, candidates, model_name='gemini-2.5-flash-
     except Exception as e:
         print(f'  Gemini rank error: {e}')
         return [(i, 0.0) for i in range(n)]
+
+
+def ollama_rank_candidates(query_text, candidates, model_name='llama3.2:3b',
+                           ollama_url='http://localhost:11434', abstract_sentences=5):
+    """Rank candidate papers against a query paper using a local Ollama model.
+
+    Sends all candidates in one prompt and asks the model to return a ranked
+    list — mirrors the gemini_rank_candidates interface.
+
+    Parameters
+    ----------
+    query_text : str
+    candidates : list of str
+    model_name : str
+        Ollama model tag, e.g. 'llama3.2:3b'.
+    ollama_url : str
+        Base URL of the running Ollama server.
+    abstract_sentences : int
+        Number of sentences to keep from each candidate. Default: 5.
+
+    Returns
+    -------
+    list of (candidate_idx, score)
+        Sorted by score descending. Score is (N - rank) / N.
+        Falls back to original order on parse failure.
+    """
+    query_text = _as_str(query_text)
+    n = len(candidates)
+
+    def _truncate_sentences(text, k):
+        sents = text.split('. ')
+        return '. '.join(sents[:k]) if k and len(sents) > k else text
+
+    candidate_lines = '\n'.join(
+        f'{i + 1}. {_truncate_sentences(_as_str(c), abstract_sentences)}'
+        for i, c in enumerate(candidates)
+    )
+    prompt = (
+        'You are a research paper relevance ranker.\n\n'
+        f'Main Paper:\n{query_text[:800]}\n\n'
+        f'Candidate Papers (1\u2013{n}):\n{candidate_lines}\n\n'
+        f'Rank these {n} candidates from most to least relevant to the Main Paper. '
+        'Respond ONLY with a JSON array of candidate numbers, e.g.: [3, 1, 7, ...]'
+    )
+    try:
+        resp = requests.post(
+            f'{ollama_url}/api/chat',
+            json={
+                'model': model_name,
+                'messages': [{'role': 'user', 'content': prompt}],
+                'stream': False,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        text = resp.json()['message']['content'].strip()
+        start, end = text.find('['), text.rfind(']')
+        ranked_nums = json.loads(text[start:end + 1])
+        seen = set()
+        result = []
+        for rank, num in enumerate(ranked_nums):
+            idx = int(num) - 1
+            if 0 <= idx < n and idx not in seen:
+                seen.add(idx)
+                result.append((idx, (n - rank) / n))
+        for idx in range(n):
+            if idx not in seen:
+                result.append((idx, 0.0))
+        return result
+    except Exception as e:
+        print(f'  Ollama rank error: {e}')
+        return [(i, 0.0) for i in range(n)]
+
+
+def ollama_embedding_similarity(
+    query_texts,
+    corpus_texts,
+    model_name='qwen3-embedding:4b',
+    ollama_url='http://localhost:11434',
+    cache_dir='data/embeddings_cache',
+):
+    """Compute cosine similarity using Ollama embedding models (e.g. qwen3-embedding).
+
+    Calls /api/embed in batches and caches results to disk.
+
+    Parameters
+    ----------
+    query_texts : list of str
+    corpus_texts : list of str
+    model_name : str
+        Ollama model tag, e.g. 'qwen3-embedding:4b'.
+    ollama_url : str
+    cache_dir : str
+
+    Returns
+    -------
+    np.ndarray of shape (len(query_texts), len(corpus_texts))
+    """
+    os.makedirs(cache_dir, exist_ok=True)
+
+    def _embed(texts, prefix):
+        safe = model_name.replace('/', '_').replace('-', '_').replace(':', '_')
+        h = _corpus_hash([_as_str(t) for t in texts])
+        cache_file = os.path.join(cache_dir, f'{safe}_{prefix}_{len(texts)}_{h}.npy')
+        if os.path.exists(cache_file):
+            return np.load(cache_file)
+        resp = requests.post(
+            f'{ollama_url}/api/embed',
+            json={'model': model_name, 'input': [_as_str(t) for t in texts]},
+            timeout=300,
+        )
+        resp.raise_for_status()
+        emb = np.array(resp.json()['embeddings'], dtype=np.float32)
+        np.save(cache_file, emb)
+        return emb
+
+    corpus_emb = _embed(corpus_texts, 'corpus')
+    query_emb = _embed(query_texts, 'query')
+    return cosine_similarity(query_emb, corpus_emb)
 
 
 def gemini_score_pair(query_text, candidate_text, model_name='gemini-2.5-flash-lite'):
