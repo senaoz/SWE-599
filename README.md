@@ -95,6 +95,7 @@ These tasks validate that the similarity pipeline ranks known-relevant papers hi
 --------
 
 ## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
+![IMG_2572](https://github.com/user-attachments/assets/5260e0c9-7734-40c7-b189-322c502f0a70)
 
 Week 3 constructs a cited paper ranking dataset using papers from `data/cleaned/priority_followed.csv` (followed institutions) to test how embedding methods prioritize true references over random distractors from the followed corpus.
 
@@ -124,23 +125,10 @@ Save: `eval_dataset/week3/rankings_{method}.json` with full ranks, scores, and p
 ### Step 4: Evaluation Metrics and Comparison
 Aggregate across 100 queries; report per-method: Mean, Std Dev, Median.
 - Hit Rate %: Average percentage of top-n filled by true references.
-- Precision@n: Equivalent to mean hit rate.
-- MRR: Mean reciprocal rank of first positive.
-- nDCG@n: Ranking quality accounting for all positives' positions.
-
-| Metric | TF-IDF + Cosine | all-MiniLM | SPECTER2 | Gemini (LLM as judge) | Google Embed |
-|--------|-----------------|------------|----------|--------|--------------|
-| Mean Hit Rate % | - | - | - | - | - |
-| Std Dev Hit Rate % | - | - | - | - | - |
-| Median Hit Rate % | - | - | - | - | - |
-| Mean MRR | - | - | - | - | - |
-| Mean nDCG@n | - | - | - | - | - |
-
-These metrics identify methods best at surfacing citations from followed institutions.
-
+- 
 --------
 
-### Gemini Ranking Approach
+#### Gemini Ranking Approach
 
 Instead of scoring each candidate individually (one API call per paper), Gemini ranks all candidates in a **single prompt**. For each query, the prompt contains:
 
@@ -149,8 +137,6 @@ Instead of scoring each candidate individually (one API call per paper), Gemini 
 
 Gemini returns a JSON array of candidate numbers ordered by relevance, e.g. `[7, 2, 15, ...]`. Scores are derived from rank position: rank-1 → `1.0`, rank-N → `~0.0`.
 
-**Why this approach:**
-- 1 API call instead of 18–42 calls per query → ~40× fewer requests
 - Gemini compares candidates *relative to each other*, not in isolation
 - Fits comfortably within Gemini 2.5 Flash's 1M-token context window
 
