@@ -363,6 +363,90 @@ def ollama_embedding_similarity(
     return cosine_similarity(query_emb, corpus_emb)
 
 
+def combined_embedding_similarity(
+    query_texts,
+    corpus_texts,
+    st_model_name='all-MiniLM-L6-v2',
+    ollama_model='llama3.2:3b',
+    ollama_url='http://localhost:11434',
+    cache_dir='data/embeddings_cache',
+):
+    """Cosine similarity on L2-normalized MiniLM + Ollama embeddings concatenated.
+
+    Each embedding family is L2-normalised before concatenation so neither
+    dominates by magnitude.
+
+    Parameters
+    ----------
+    query_texts : list of str
+    corpus_texts : list of str
+    st_model_name : str
+        SentenceTransformer model name (default: all-MiniLM-L6-v2).
+    ollama_model : str
+        Ollama model tag used for /api/embed (default: llama3.2:3b).
+    ollama_url : str
+    cache_dir : str
+
+    Returns
+    -------
+    np.ndarray of shape (len(query_texts), len(corpus_texts))
+    """
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # ── SentenceTransformer (MiniLM) embeddings ──────────────────────────
+    model = _get_model(st_model_name)
+    batch_size = BATCH_SIZES.get(st_model_name, 64)
+
+    corpus_enc = _truncate_texts([_as_str(t) for t in corpus_texts], st_model_name)
+    c_hash = _corpus_hash(corpus_enc)
+    corpus_cache = _cache_path(st_model_name, 'corpus', len(corpus_enc), c_hash, cache_dir)
+    if os.path.exists(corpus_cache):
+        corpus_emb_a = np.load(corpus_cache)
+    else:
+        corpus_emb_a = model.encode(corpus_enc, batch_size=batch_size, convert_to_numpy=True)
+        np.save(corpus_cache, corpus_emb_a)
+
+    query_enc = _truncate_texts([_as_str(t) for t in query_texts], st_model_name)
+    q_hash = _corpus_hash(query_enc)
+    query_cache = _cache_path(st_model_name, 'query', len(query_enc), q_hash, cache_dir)
+    if os.path.exists(query_cache):
+        query_emb_a = np.load(query_cache)
+    else:
+        query_emb_a = model.encode(query_enc, batch_size=batch_size, convert_to_numpy=True)
+        np.save(query_cache, query_emb_a)
+
+    # ── Ollama embeddings ─────────────────────────────────────────────────
+    def _embed_ollama(texts, prefix):
+        safe = ollama_model.replace('/', '_').replace('-', '_').replace(':', '_')
+        h = _corpus_hash([_as_str(t) for t in texts])
+        cache_file = os.path.join(cache_dir, f'{safe}_{prefix}_{len(texts)}_{h}.npy')
+        if os.path.exists(cache_file):
+            return np.load(cache_file)
+        resp = requests.post(
+            f'{ollama_url}/api/embed',
+            json={'model': ollama_model, 'input': [_as_str(t) for t in texts]},
+            timeout=300,
+        )
+        resp.raise_for_status()
+        emb = np.array(resp.json()['embeddings'], dtype=np.float32)
+        np.save(cache_file, emb)
+        return emb
+
+    corpus_emb_b = _embed_ollama(corpus_texts, 'corpus')
+    query_emb_b = _embed_ollama(query_texts, 'query')
+
+    # ── L2-normalise then concatenate ─────────────────────────────────────
+    def _l2_norm(x):
+        norms = np.linalg.norm(x, axis=1, keepdims=True)
+        norms = np.where(norms == 0, 1.0, norms)
+        return x / norms
+
+    corpus_emb = np.concatenate([_l2_norm(corpus_emb_a), _l2_norm(corpus_emb_b)], axis=1)
+    query_emb = np.concatenate([_l2_norm(query_emb_a), _l2_norm(query_emb_b)], axis=1)
+
+    return cosine_similarity(query_emb.astype(np.float32), corpus_emb.astype(np.float32))
+
+
 def gemini_score_pair(query_text, candidate_text, model_name='gemini-2.5-flash-lite'):
     """Use Gemini to score semantic similarity between two papers (returns 0–1).
     Returns 0.0 on API error rather than None, so callers need no None-check.
