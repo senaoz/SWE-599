@@ -36,7 +36,7 @@ MODEL_MAP = {
 }
 
 OLLAMA_MODEL_MAP = {
-    'qwen': 'qwen3-embedding:4b',
+    'qwen': 'qwen3-embedding:latest',
     'embeddinggemma': 'embeddinggemma'
 }
 
@@ -319,7 +319,7 @@ def ollama_rank_candidates(query_text, candidates, model_name='llama3.2:3b',
 def ollama_embedding_similarity(
     query_texts,
     corpus_texts,
-    model_name='qwen3-embedding:4b',
+    model_name='qwen3-embedding:latest',
     ollama_url='http://localhost:11434',
     cache_dir='data/embeddings_cache',
 ):
@@ -332,7 +332,7 @@ def ollama_embedding_similarity(
     query_texts : list of str
     corpus_texts : list of str
     model_name : str
-        Ollama model tag, e.g. 'qwen3-embedding:4b'.
+        Ollama model tag, e.g. 'qwen3-embedding:latest'.
     ollama_url : str
     cache_dir : str
 
@@ -367,25 +367,15 @@ def combined_embedding_similarity(
     query_texts,
     corpus_texts,
     st_model_name='all-MiniLM-L6-v2',
-    ollama_model='llama3.2:3b',
+    ollama_model='qwen3-embedding:latest',
     ollama_url='http://localhost:11434',
     cache_dir='data/embeddings_cache',
 ):
-    """Cosine similarity on L2-normalized MiniLM + Ollama embeddings concatenated.
+    """Cosine similarity on L2-normalised SentenceTransformer + Ollama embedding vectors concatenated.
 
-    Each embedding family is L2-normalised before concatenation so neither
-    dominates by magnitude.
-
-    Parameters
-    ----------
-    query_texts : list of str
-    corpus_texts : list of str
-    st_model_name : str
-        SentenceTransformer model name (default: all-MiniLM-L6-v2).
-    ollama_model : str
-        Ollama model tag used for /api/embed (default: llama3.2:3b).
-    ollama_url : str
-    cache_dir : str
+    Both sources are L2-normalised before concatenation so neither dominates
+    by magnitude. Suitable only when the Ollama model is a dedicated embedding
+    model (e.g. qwen3-embedding:latest), not a generative chat model.
 
     Returns
     -------
@@ -393,29 +383,29 @@ def combined_embedding_similarity(
     """
     os.makedirs(cache_dir, exist_ok=True)
 
-    # ── SentenceTransformer (MiniLM) embeddings ──────────────────────────
-    model = _get_model(st_model_name)
+    # ── SentenceTransformer embeddings ────────────────────────────────────
+    st_model = _get_model(st_model_name)
     batch_size = BATCH_SIZES.get(st_model_name, 64)
 
     corpus_enc = _truncate_texts([_as_str(t) for t in corpus_texts], st_model_name)
     c_hash = _corpus_hash(corpus_enc)
-    corpus_cache = _cache_path(st_model_name, 'corpus', len(corpus_enc), c_hash, cache_dir)
-    if os.path.exists(corpus_cache):
-        corpus_emb_a = np.load(corpus_cache)
+    corpus_cache_st = _cache_path(st_model_name, 'corpus', len(corpus_enc), c_hash, cache_dir)
+    if os.path.exists(corpus_cache_st):
+        corpus_emb_st = np.load(corpus_cache_st)
     else:
-        corpus_emb_a = model.encode(corpus_enc, batch_size=batch_size, convert_to_numpy=True)
-        np.save(corpus_cache, corpus_emb_a)
+        corpus_emb_st = st_model.encode(corpus_enc, batch_size=batch_size, convert_to_numpy=True)
+        np.save(corpus_cache_st, corpus_emb_st)
 
     query_enc = _truncate_texts([_as_str(t) for t in query_texts], st_model_name)
     q_hash = _corpus_hash(query_enc)
-    query_cache = _cache_path(st_model_name, 'query', len(query_enc), q_hash, cache_dir)
-    if os.path.exists(query_cache):
-        query_emb_a = np.load(query_cache)
+    query_cache_st = _cache_path(st_model_name, 'query', len(query_enc), q_hash, cache_dir)
+    if os.path.exists(query_cache_st):
+        query_emb_st = np.load(query_cache_st)
     else:
-        query_emb_a = model.encode(query_enc, batch_size=batch_size, convert_to_numpy=True)
-        np.save(query_cache, query_emb_a)
+        query_emb_st = st_model.encode(query_enc, batch_size=batch_size, convert_to_numpy=True)
+        np.save(query_cache_st, query_emb_st)
 
-    # ── Ollama embeddings ─────────────────────────────────────────────────
+    # ── Ollama embeddings (reuses ollama_embedding_similarity cache) ──────
     def _embed_ollama(texts, prefix):
         safe = ollama_model.replace('/', '_').replace('-', '_').replace(':', '_')
         h = _corpus_hash([_as_str(t) for t in texts])
@@ -432,17 +422,16 @@ def combined_embedding_similarity(
         np.save(cache_file, emb)
         return emb
 
-    corpus_emb_b = _embed_ollama(corpus_texts, 'corpus')
-    query_emb_b = _embed_ollama(query_texts, 'query')
+    corpus_emb_ol = _embed_ollama(corpus_texts, 'corpus')
+    query_emb_ol = _embed_ollama(query_texts, 'query')
 
     # ── L2-normalise then concatenate ─────────────────────────────────────
     def _l2_norm(x):
         norms = np.linalg.norm(x, axis=1, keepdims=True)
-        norms = np.where(norms == 0, 1.0, norms)
-        return x / norms
+        return x / np.where(norms == 0, 1.0, norms)
 
-    corpus_emb = np.concatenate([_l2_norm(corpus_emb_a), _l2_norm(corpus_emb_b)], axis=1)
-    query_emb = np.concatenate([_l2_norm(query_emb_a), _l2_norm(query_emb_b)], axis=1)
+    corpus_emb = np.concatenate([_l2_norm(corpus_emb_st), _l2_norm(corpus_emb_ol)], axis=1)
+    query_emb = np.concatenate([_l2_norm(query_emb_st), _l2_norm(query_emb_ol)], axis=1)
 
     return cosine_similarity(query_emb.astype(np.float32), corpus_emb.astype(np.float32))
 
