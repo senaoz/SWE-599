@@ -14,7 +14,25 @@
       "Bash(jupyter nbconvert:*)",
       "Bash(ls -d /Users/senaoz/Developer/SWE-599/*/)",
       "Bash(ls:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(find:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(mkdir -p /Users/senaoz/Developer/SWE-599/research)",
+      "Bash(mv /Users/senaoz/Developer/SWE-599/cited_paper_ranking.ipynb /Users/senaoz/Developer/SWE-599/fetch_and_preprocessing.ipynb /Users/senaoz/Developer/SWE-599/similarity_evaluation.ipynb /Users/senaoz/Developer/SWE-599/eval_dataset /Users/senaoz/Developer/SWE-599/data /Users/senaoz/Developer/SWE-599/src /Users/senaoz/Developer/SWE-599/unused /Users/senaoz/Developer/SWE-599/requirements.txt /Users/senaoz/Developer/SWE-599/research/)",
+      "Bash(docker compose up:*)",
+      "Bash(uvicorn backend.main:app --reload --port 8000)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(pkill -f \"uvicorn backend.main\")",
+      "Bash(uvicorn backend.main:app --reload --port 8001)",
+      "Bash(curl -s http://localhost:8001/health)",
+      "Bash(curl -s --max-time 10 http://localhost:8001/health)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(timeout 15 uvicorn backend.main:app --port 8001)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(echo \"started PID $!\")",
+      "Bash(> /tmp/backend.log)"
     ]
   }
 }
