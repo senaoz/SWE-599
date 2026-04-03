@@ -13,10 +13,26 @@ This project aims to build an automated recommendation and matching system for a
 
 ---
 
+## Project Structure
+
+```
+├── backend/              # FastAPI backend service
+├── frontend/             # Frontend application
+├── research/             # Research notebooks and data
+│   ├── fetch_and_preprocessing.ipynb
+│   ├── similarity_evaluation.ipynb
+│   ├── cited_paper_ranking.ipynb
+│   ├── src/              # Shared Python modules
+│   ├── data/             # Cleaned datasets and caches
+│   ├── eval_dataset/     # Benchmark and evaluation results
+│   └── unused/
+└── docker-compose.yml
+```
+
 ## Main Files
 
-- `data/cleaned/boun.csv`
-- `data/cleaned/priority_followed.csv`
+- `research/data/cleaned/boun.csv`
+- `research/data/cleaned/priority_followed.csv`
 
 ---
 
@@ -27,8 +43,8 @@ The immediate goal is to establish a benchmark dataset to evaluate different vec
 **Completed tasks:**
 
 - **Data Collection:** Fetched 4,608 BOUN papers and 9,946 followed institution papers (post-2020) via the OpenAlex API.
-- **Preprocessing:** Reconstructed abstracts from inverted index format; applied HTML cleaning, URL removal, stopword filtering, and keyword extraction. Cleaned data saved under `data/cleaned/`.
-- **Benchmark Dataset:** Built 100 query-positive pairs using a 3-tier matching strategy — citation network (gold), topic/keyword overlap (silver), and concept fallback (bronze) (`eval_dataset/benchmark_pairs_with_related_works.json`).
+- **Preprocessing:** Reconstructed abstracts from inverted index format; applied HTML cleaning, URL removal, stopword filtering, and keyword extraction. Cleaned data saved under `research/data/cleaned/`.
+- **Benchmark Dataset:** Built 100 query-positive pairs using a 3-tier matching strategy — citation network (gold), topic/keyword overlap (silver), and concept fallback (bronze) (`research/eval_dataset/benchmark_pairs_with_related_works.json`).
 - **Co-authoring Analysis:** Analyzed BOUN's top collaborating institutions (CNRS, Istanbul University, CERN, etc.) and research domains (particle physics, earthquake studies, etc.).
 ---
 
@@ -97,7 +113,7 @@ These tasks validate that the similarity pipeline ranks known-relevant papers hi
 ## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
 ![IMG_2572](https://github.com/user-attachments/assets/5260e0c9-7734-40c7-b189-322c502f0a70)
 
-Week 3 constructs a cited paper ranking dataset using papers from `data/cleaned/priority_followed.csv` (followed institutions) to test how embedding methods prioritize true references over random distractors from the followed corpus.
+Week 3 constructs a cited paper ranking dataset using papers from `research/data/cleaned/priority_followed.csv` (followed institutions) to test how embedding methods prioritize true references over random distractors from the followed corpus.
 
 This extends Week 2's Task 3b with structured positives (citations) and hard negatives, enabling quantitative ranking metrics like precision@k. Reference lists are accessed via OpenAlex IDs or API fetches from the dataset metadata.
 
@@ -106,7 +122,7 @@ Randomly sample 100 papers (P_i) from `priority_followed.csv` where each has 6-1
 - Filter by `referenced_works_count` or equivalent field.
 - Ensure references are resolvable in the corpus or fetchable via OpenAlex.
 
-Output: `eval_dataset/week3/main_papers.json` with 100 P_i metadata.
+Output: `research/eval_dataset/week3/main_papers.json` with 100 P_i metadata.
 
 ### Step 2: Build Per-P_i Evaluation Set
 For each P_i (refCount = n):
@@ -120,7 +136,7 @@ Embed P_i (title/abstract/concepts) and 3n candidates using Week 2 methods: TF-I
 - Rank all 3n candidates by similarity score to P_i.
 - In top-n results: Count how many (a) are true references out of n slots; compute hit rate = (a / n) × 100%.
 
-Save: `eval_dataset/week3/rankings_{method}.json` with full ranks, scores, and per-query hit rates.
+Save: `research/eval_dataset/week3/rankings_{method}.json` with full ranks, scores, and per-query hit rates.
 
 ### Step 4: Evaluation Metrics and Comparison
 Aggregate across 100 queries; report per-method: Mean, Std Dev, Median.
@@ -140,7 +156,7 @@ Gemini returns a JSON array of candidate numbers ordered by relevance, e.g. `[7,
 - Gemini compares candidates *relative to each other*, not in isolation
 - Fits comfortably within Gemini 2.5 Flash's 1M-token context window
 
-**Implementation:** `gemini_rank_candidates(query_text, candidates)` in `src/similarity.py`.
+**Implementation:** `gemini_rank_candidates(query_text, candidates)` in `research/src/similarity.py`.
 
 --------
 
