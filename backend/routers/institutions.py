@@ -68,10 +68,11 @@ async def unfollow_institution(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    full_id = f"https://openalex.org/{institution_id}" if not institution_id.startswith("http") else institution_id
     result = await db.execute(
         delete(UserFollow).where(
             UserFollow.user_id == current_user.id,
-            UserFollow.institution_openalex_id == institution_id,
+            UserFollow.institution_openalex_id == full_id,
         )
     )
     if result.rowcount == 0:

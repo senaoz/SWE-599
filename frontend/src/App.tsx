@@ -12,7 +12,7 @@ function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
   return (
     <>
       <NavBar onLogout={onLogout} />
-      <main style={{ background: "#f8fafc", minHeight: "calc(100vh - 52px)" }}>
+      <main className="bg-secondary" style={{ minHeight: "calc(100vh - 52px)" }}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/institutions" element={<InstitutionsPage />} />
@@ -35,7 +35,10 @@ export default function App() {
       ) : (
         <Routes>
           <Route path="/login" element={<LoginPage onLogin={login} />} />
-          <Route path="/register" element={<RegisterPage onRegister={register} />} />
+          <Route
+            path="/register"
+            element={<RegisterPage onRegister={register} />}
+          />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       )}
