@@ -20,17 +20,24 @@ if _ROOT not in sys.path:
 from src.text_utils import reconstruct_abstract, clean_abstract, extract_concept_names
 
 
+_ALLOWED_INSTITUTIONS = [
+    {"openalex_id": "https://openalex.org/I63966007",   "display_name": "Massachusetts Institute of Technology", "country_code": "US"},
+    {"openalex_id": "https://openalex.org/I97018004",   "display_name": "Stanford University",                   "country_code": "US"},
+    {"openalex_id": "https://openalex.org/I136199984",  "display_name": "Harvard University",                    "country_code": "US"},
+    {"openalex_id": "https://openalex.org/I95457486",   "display_name": "University of California, Berkeley",   "country_code": "US"},
+    {"openalex_id": "https://openalex.org/I27837315",   "display_name": "University of Michigan",               "country_code": "US"},
+    {"openalex_id": "https://openalex.org/I1291425158", "display_name": "Google",                               "country_code": "US"},
+    {"openalex_id": "https://openalex.org/I4210090411", "display_name": "Google DeepMind",                      "country_code": "GB"},
+]
+
+
 async def search_institutions(query: str, limit: int = 8) -> list[dict[str, Any]]:
-    from pyalex import Institutions
-    results = list(Institutions().search(query).get(per_page=limit))
-    return [
-        {
-            "openalex_id": r["id"],
-            "display_name": r.get("display_name", ""),
-            "country_code": r.get("country_code"),
-        }
-        for r in results
+    q = query.lower()
+    results = [
+        inst for inst in _ALLOWED_INSTITUTIONS
+        if q in inst["display_name"].lower()
     ]
+    return results[:limit]
 
 
 def fetch_new_papers(institution_id: str, from_date: str, max_papers: int = 200) -> list[dict[str, Any]]:

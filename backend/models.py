@@ -82,6 +82,7 @@ class ResearcherPaper(Base):
     abstract: Mapped[str | None] = mapped_column(Text)
     concepts_text: Mapped[str | None] = mapped_column(Text)
     publication_year: Mapped[int | None] = mapped_column(Integer)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary)  # Qwen individual embedding
 
     researcher: Mapped[Researcher] = relationship("Researcher", back_populates="papers")
 
@@ -95,6 +96,8 @@ class PaperResearcherMatch(Base):
     researcher_id: Mapped[str] = mapped_column(String(50), ForeignKey("researchers.id"), primary_key=True)
     score: Mapped[float] = mapped_column(Float, nullable=False)
     model: Mapped[str] = mapped_column(String(50), nullable=False, default="specter2")
+    matched_paper_ids: Mapped[str | None] = mapped_column(Text)  # JSON: [{"id":..., "score":...}]
+    llm_score: Mapped[float | None] = mapped_column(Float)
 
     paper: Mapped[FetchedPaper] = relationship("FetchedPaper", back_populates="matches")
     researcher: Mapped[Researcher] = relationship("Researcher", back_populates="matches")

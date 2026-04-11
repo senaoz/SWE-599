@@ -39,22 +39,28 @@ def encode_texts(texts: list[str], model_key: str) -> np.ndarray:
     return model.encode(truncated, show_progress_bar=False, convert_to_numpy=True).astype(np.float32)
 
 
-def encode_texts_ollama(texts: list[str], model_key: str, ollama_url: str) -> np.ndarray:
-    """Encode texts via Ollama. Returns (n, dim) float32 array."""
+def encode_texts_ollama(
+    texts: list[str],
+    model_key: str,
+    ollama_url: str,
+    batch_size: int = 32,
+) -> np.ndarray:
+    """Encode texts via Ollama in batches. Returns (n, dim) float32 array."""
     import requests
     ollama_model = OLLAMA_MODEL_MAP.get(model_key)
     if not ollama_model:
         raise ValueError(f"Unknown Ollama model: {model_key}")
 
     embeddings = []
-    for text in texts:
+    for i in range(0, len(texts), batch_size):
+        batch = [t[:2048] if t else "" for t in texts[i : i + batch_size]]
         resp = requests.post(
             f"{ollama_url}/api/embed",
-            json={"model": ollama_model, "input": text[:2048]},
-            timeout=60,
+            json={"model": ollama_model, "input": batch},
+            timeout=120,
         )
         resp.raise_for_status()
-        embeddings.append(resp.json()["embeddings"][0])
+        embeddings.extend(resp.json()["embeddings"])
     return np.array(embeddings, dtype=np.float32)
 
 

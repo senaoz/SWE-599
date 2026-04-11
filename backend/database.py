@@ -22,6 +22,15 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+        # Migrate existing tables to add new columns (idempotent)
+        from sqlalchemy import text
+        for stmt in [
+            "ALTER TABLE researcher_papers ADD COLUMN IF NOT EXISTS embedding BYTEA",
+            "ALTER TABLE paper_researcher_matches ADD COLUMN IF NOT EXISTS matched_paper_ids TEXT",
+            "ALTER TABLE paper_researcher_matches ADD COLUMN IF NOT EXISTS llm_score FLOAT",
+        ]:
+            await conn.execute(text(stmt))
+
     # Seed default system config
     async with SessionLocal() as session:
         from sqlalchemy import text

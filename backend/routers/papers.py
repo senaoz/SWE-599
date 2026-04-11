@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 
 from fastapi import APIRouter, Depends, Query
@@ -8,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth import get_current_user
 from backend.database import get_db
-from backend.models import User, UserFollow, FetchedPaper, PaperResearcherMatch, Researcher
-from backend.schemas import PapersResponse, PaperOut, ResearcherMatch
+from backend.models import User, UserFollow, FetchedPaper, PaperResearcherMatch, Researcher, ResearcherPaper
+from backend.schemas import PapersResponse, PaperOut, ResearcherMatch, MatchedBounPaper
 from backend.config import TOP_K_MATCHES, MATCH_THRESHOLD
 
 router = APIRouter(prefix="/papers", tags=["papers"])
@@ -49,7 +50,7 @@ async def get_papers(
     )
     papers = list(paper_rows)
 
-    # Fetch top researcher matches for each paper
+    # Fetch researcher matches for each paper
     paper_ids = [p.openalex_id for p in papers]
     match_rows = await db.execute(
         select(PaperResearcherMatch, Researcher.display_name)
@@ -60,13 +61,44 @@ async def get_papers(
         )
         .order_by(PaperResearcherMatch.paper_openalex_id, PaperResearcherMatch.score.desc())
     )
+    match_list = list(match_rows)
+
+    # Collect all matched BOUN paper IDs for batch title lookup
+    all_boun_ids: list[str] = []
+    parsed_matches: list[tuple] = []
+    for match, display_name in match_list:
+        items: list[dict] = json.loads(match.matched_paper_ids or "[]")
+        for item in items:
+            all_boun_ids.append(item["id"])
+        parsed_matches.append((match, display_name, items))
+
+    # Batch lookup of BOUN paper titles
+    boun_title_map: dict[str, str | None] = {}
+    if all_boun_ids:
+        title_rows = await db.execute(
+            select(ResearcherPaper.paper_openalex_id, ResearcherPaper.title)
+            .where(ResearcherPaper.paper_openalex_id.in_(all_boun_ids))
+            .distinct()
+        )
+        boun_title_map = {row.paper_openalex_id: row.title for row in title_rows}
 
     # Group matches by paper
     matches_by_paper: dict[str, list[ResearcherMatch]] = {pid: [] for pid in paper_ids}
-    for match, display_name in match_rows:
+    for match, display_name, items in parsed_matches:
         bucket = matches_by_paper[match.paper_openalex_id]
-        if len(bucket) < TOP_K_MATCHES:
-            bucket.append(ResearcherMatch(display_name=display_name, score=round(match.score, 4)))
+        if len(bucket) >= TOP_K_MATCHES:
+            continue
+
+        matched_papers = [
+            MatchedBounPaper(title=boun_title_map.get(item["id"]), score=item["score"])
+            for item in items
+            if boun_title_map.get(item["id"])
+        ]
+        bucket.append(ResearcherMatch(
+            display_name=display_name,
+            score=round(match.score, 4),
+            matched_papers=matched_papers,
+        ))
 
     out = [
         PaperOut(

@@ -4,6 +4,7 @@ sqlalchemy[asyncio]>=2.0
 asyncpg>=0.29
 python-jose[cryptography]>=3.3
 passlib[bcrypt]>=1.7
+bcrypt<4.0
 python-multipart>=0.0.9
 apscheduler>=3.10
 sentence-transformers>=2.0

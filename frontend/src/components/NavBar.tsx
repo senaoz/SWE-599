@@ -10,6 +10,7 @@ interface NavBarProps {
 const navItems = [
   { label: "Dashboard", href: "/" },
   { label: "Institutions", href: "/institutions" },
+  { label: "Researchers", href: "/researchers" },
   { label: "Admin", href: "/admin" },
 ];
 
