@@ -37,6 +37,8 @@ body {
     font-variant-ligatures: contextual;
     -webkit-font-kerning: normal;
     font-kerning: normal;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
 }
 
 /* Hide the default expand arrow on Safari.  */

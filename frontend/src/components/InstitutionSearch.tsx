@@ -78,9 +78,11 @@ export default function InstitutionSearch({
                   </Badge>
                 </div>
               ) : (
-                <Button size="sm" color="primary" onClick={() => onFollow(r)}>
-                  Follow
-                </Button>
+                <div onClick={() => onFollow(r)} className="cursor-pointer">
+                  <Badge color="success" size="sm">
+                    Follow
+                  </Badge>
+                </div>
               )}
             </li>
           ))}

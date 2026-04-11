@@ -35,27 +35,22 @@ export default function InstitutionsPage() {
   };
 
   const unfollow = async (id: string) => {
-    // id = id.replace("https://openalex.org/", "");
-    await client.delete(`/institutions/${encodeURIComponent(id)}`);
+    const shortId = id.replace("https://openalex.org/", "");
+    await client.delete(`/institutions/${shortId}`);
     setFollowed((f) => f.filter((i) => i.institution_openalex_id !== id));
   };
 
   const followedIds = new Set(followed.map((f) => f.institution_openalex_id));
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-8 text-xl font-semibold text-primary">Institutions</h1>
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-tertiary uppercase tracking-wide">
-          Search &amp; Follow
-        </h2>
-        <InstitutionSearch
-          onFollow={follow}
-          followedIds={followedIds}
-          onUnfollow={unfollow}
-        />
-      </section>
+      <InstitutionSearch
+        onFollow={follow}
+        followedIds={followedIds}
+        onUnfollow={unfollow}
+      />
     </div>
   );
 }

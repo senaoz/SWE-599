@@ -46,7 +46,9 @@
       "Bash(docker compose:*)",
       "Bash(curl -s -X POST http://localhost:8001/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"test@boun.edu.tr\",\"password\":\"test123\"}')",
       "Bash(curl -s \"http://localhost:8001/institutions/search?q=\" -H \"Authorization: Bearer test\")",
-      "Bash(curl -s -X POST http://localhost:8001/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@boun.edu.tr\",\"password\":\"test123\"}')"
+      "Bash(curl -s -X POST http://localhost:8001/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@boun.edu.tr\",\"password\":\"test123\"}')",
+      "Bash(npm run:*)",
+      "WebFetch(domain:www.untitledui.com)"
     ]
   }
 }
