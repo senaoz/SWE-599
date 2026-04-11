@@ -37,7 +37,8 @@ MODEL_MAP = {
 
 OLLAMA_MODEL_MAP = {
     'qwen': 'qwen3-embedding:latest',
-    'embeddinggemma': 'embeddinggemma'
+    'nomic': 'nomic-embed-text:v1.5',
+    'embeddinggemma': 'embeddinggemma',
 }
 
 _MODEL_CACHE: dict = {}

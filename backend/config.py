@@ -26,6 +26,13 @@ BOUN_CSV_PATH: str = os.getenv("BOUN_CSV_PATH", "research/data/cleaned/boun.csv"
 
 DEFAULT_MODEL: str = "specter2"
 
+# RAG pipeline
+RETRIEVE_MODEL: str = "nomic"                                          # Stage 1: nomic-embed-text via Ollama
+RAG_RETRIEVE_TOP_K: int = int(os.getenv("RAG_RETRIEVE_TOP_K", "20")) # Stage 1 → top-K researchers
+RAG_LLM_TOP_K: int = int(os.getenv("RAG_LLM_TOP_K", "10"))          # Stage 2 → LLM rerank top-K
+RAG_CONTEXT_PAPERS: int = int(os.getenv("RAG_CONTEXT_PAPERS", "3"))  # BOUN papers in LLM prompt
+LLM_GENERATE_MODEL: str = os.getenv("LLM_GENERATE_MODEL", "llama3.2:3b")  # Stage 2 Ollama model
+
 AVAILABLE_MODELS: list[dict] = [
     {"key": "specter2",      "label": "SPECTER2",           "description": "allenai/specter2_base — best for scientific papers", "requires_ollama": False},
     {"key": "minilm",        "label": "MiniLM",             "description": "all-MiniLM-L6-v2 — fast general-purpose embeddings", "requires_ollama": False},

@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import InstitutionsPage from "./pages/InstitutionsPage";
 import AdminPage from "./pages/AdminPage";
+import ResearchersPage from "./pages/ResearchersPage";
 
 function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
   return (
@@ -15,6 +16,7 @@ function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/institutions" element={<InstitutionsPage />} />
+          <Route path="/researchers" element={<ResearchersPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

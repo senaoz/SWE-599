@@ -32,7 +32,21 @@
       "Bash(timeout 15 uvicorn backend.main:app --port 8001)",
       "Bash(echo \"PID: $!\")",
       "Bash(echo \"started PID $!\")",
-      "Bash(> /tmp/backend.log)"
+      "Bash(> /tmp/backend.log)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker exec swe-599-backend-1:*)",
+      "Bash(curl -s http://localhost:11434/api/ps)",
+      "Bash(time curl:*)",
+      "Bash(kill %1)",
+      "Bash(docker compose:*)",
+      "Bash(curl -s -X POST http://localhost:8001/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"test@boun.edu.tr\",\"password\":\"test123\"}')",
+      "Bash(curl -s \"http://localhost:8001/institutions/search?q=\" -H \"Authorization: Bearer test\")",
+      "Bash(curl -s -X POST http://localhost:8001/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@boun.edu.tr\",\"password\":\"test123\"}')"
     ]
   }
 }

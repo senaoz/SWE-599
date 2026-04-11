@@ -1,34 +1,39 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import date, datetime, timezone
 
 import numpy as np
 
-from backend.config import MATCH_THRESHOLD, OLLAMA_URL
+from backend.config import (
+    MATCH_THRESHOLD,
+    OLLAMA_URL,
+    RETRIEVE_MODEL,
+    RAG_RETRIEVE_TOP_K,
+    RAG_LLM_TOP_K,
+    RAG_CONTEXT_PAPERS,
+    LLM_GENERATE_MODEL,
+)
 
 log = logging.getLogger(__name__)
 
 
 async def run_matching_job() -> None:
-    """Main background job: fetch new papers → embed → score → store matches."""
+    """2-stage RAG matching: Stage 1 Qwen retrieve → Stage 2 Llama generate."""
     from backend.database import SessionLocal
-    from backend.models import UserFollow, FetchCursor, FetchedPaper, Researcher, PaperResearcherMatch, SystemConfig
-    from backend.services.openalex import fetch_new_papers
-    from backend.services.embedding import (
-        encode_texts, encode_texts_ollama, batch_score, emb_to_bytes, bytes_to_emb
+    from backend.models import (
+        UserFollow, FetchCursor, FetchedPaper,
+        ResearcherPaper, PaperResearcherMatch,
     )
+    from backend.services.openalex import fetch_new_papers
+    from backend.services.embedding import encode_texts_ollama, batch_score, emb_to_bytes, bytes_to_emb
     from sqlalchemy import select
 
-    log.info("Matching job started.")
+    log.info("RAG matching job started.")
 
+    # --- Get followed institutions ---
     async with SessionLocal() as db:
-        # Read active model
-        active_model = await db.scalar(
-            select(SystemConfig.value).where(SystemConfig.key == "active_model")
-        ) or "specter2"
-
-        # Get all active institution IDs
         inst_ids = list(await db.scalars(
             select(UserFollow.institution_openalex_id).distinct()
         ))
@@ -37,14 +42,12 @@ async def run_matching_job() -> None:
         log.info("No followed institutions, nothing to do.")
         return
 
-    log.info("Active model: %s | Institutions: %d", active_model, len(inst_ids))
-
-    # Fetch new papers per institution
+    # --- Fetch new papers ---
     all_new_papers: list[dict] = []
     async with SessionLocal() as db:
         for inst_id in inst_ids:
             cursor = await db.get(FetchCursor, inst_id)
-            from_date = cursor.last_fetched_date.isoformat() if cursor else (date.today().isoformat())
+            from_date = cursor.last_fetched_date.isoformat() if cursor else date.today().isoformat()
 
             log.info("Fetching papers from %s since %s", inst_id, from_date)
             papers = fetch_new_papers(inst_id, from_date)
@@ -52,11 +55,9 @@ async def run_matching_job() -> None:
             for p in papers:
                 existing = await db.get(FetchedPaper, p["openalex_id"])
                 if not existing:
-                    fp = FetchedPaper(source_institution_id=inst_id, **p)
-                    db.add(fp)
+                    db.add(FetchedPaper(source_institution_id=inst_id, **p))
                     all_new_papers.append(p)
 
-            # Update cursor
             if cursor:
                 cursor.last_fetched_date = date.today()
                 cursor.last_run_at = datetime.now(timezone.utc)
@@ -65,127 +66,167 @@ async def run_matching_job() -> None:
                     institution_openalex_id=inst_id,
                     last_fetched_date=date.today(),
                 ))
-
         await db.commit()
 
     if not all_new_papers:
         log.info("No new papers found.")
         return
 
-    log.info("Encoding %d new papers with model '%s' …", len(all_new_papers), active_model)
-
-    # Build texts for new papers
+    # --- STAGE 1: RETRIEVE (Qwen embeddings) ---
     paper_texts = [
         f"{p.get('title') or ''} {p.get('abstract') or ''} {p.get('concepts_text') or ''}".strip()
         for p in all_new_papers
     ]
 
-    # Compute paper embeddings based on active model
-    paper_embs = _compute_embeddings(paper_texts, active_model)
-
-    if paper_embs is None:
-        log.warning("Could not compute embeddings for model '%s', aborting.", active_model)
+    log.info("Encoding %d new papers with Qwen …", len(paper_texts))
+    try:
+        import asyncio
+        new_paper_embs = await asyncio.to_thread(
+            encode_texts_ollama, paper_texts, RETRIEVE_MODEL, OLLAMA_URL
+        )
+    except Exception as e:
+        log.error("Qwen encoding failed: %s — aborting job.", e)
         return
 
-    # Load all researcher profile embeddings
+    # Load all individual BOUN paper embeddings
     async with SessionLocal() as db:
         rows = await db.execute(
-            select(Researcher.id, Researcher.profile_embedding).where(
-                Researcher.profile_embedding.isnot(None)
-            )
+            select(
+                ResearcherPaper.researcher_id,
+                ResearcherPaper.paper_openalex_id,
+                ResearcherPaper.title,
+                ResearcherPaper.abstract,
+                ResearcherPaper.embedding,
+            ).where(ResearcherPaper.embedding.isnot(None))
         )
-        researcher_data = [(r_id, blob) for r_id, blob in rows]
+        boun_papers = list(rows)
 
-    if not researcher_data:
-        log.warning("No researcher profile embeddings found. Run seeder first.")
+    if not boun_papers:
+        log.warning("No individual BOUN paper embeddings found. Wait for seeder to finish.")
         return
 
-    log.info("Scoring %d papers × %d researchers …", len(all_new_papers), len(researcher_data))
+    log.info("Loaded %d BOUN paper embeddings.", len(boun_papers))
+    boun_embs = np.vstack([bytes_to_emb(row.embedding) for row in boun_papers])
 
-    researcher_ids = [r[0] for r in researcher_data]
-    researcher_embs = np.vstack([bytes_to_emb(r[1]) for r in researcher_data])
+    # Cosine similarity: (N_new_papers, N_boun_papers)
+    scores_matrix = batch_score(new_paper_embs, boun_embs)
 
-    # Handle non-embedding models (BM25, TF-IDF)
-    if active_model in ("bm25", "tfidf"):
-        scores_matrix = _sparse_scores(paper_texts, active_model, researcher_ids, db)
-    else:
-        scores_matrix = batch_score(paper_embs, researcher_embs)  # (n_papers, n_researchers)
-
-    # Store top matches
+    # --- STAGE 2: GENERATE + STORE ---
     async with SessionLocal() as db:
-        for i, paper in enumerate(all_new_papers):
+        for i, new_paper in enumerate(all_new_papers):
             paper_scores = scores_matrix[i]
-            for j, score in enumerate(paper_scores):
-                if float(score) >= MATCH_THRESHOLD:
-                    match = PaperResearcherMatch(
-                        paper_openalex_id=paper["openalex_id"],
-                        researcher_id=researcher_ids[j],
-                        score=float(score),
-                        model=active_model,
+
+            # Group BOUN papers by researcher, keep only above threshold
+            researcher_hits: dict[str, list[tuple[float, object]]] = {}
+            for j, boun_row in enumerate(boun_papers):
+                score = float(paper_scores[j])
+                if score < MATCH_THRESHOLD:
+                    continue
+                r_id = boun_row.researcher_id
+                researcher_hits.setdefault(r_id, []).append((score, boun_row))
+
+            if not researcher_hits:
+                continue
+
+            # Sort each researcher's hits by score, get max
+            researcher_ranked: dict[str, tuple[float, list]] = {}
+            for r_id, hits in researcher_hits.items():
+                hits_sorted = sorted(hits, key=lambda x: x[0], reverse=True)
+                researcher_ranked[r_id] = (hits_sorted[0][0], hits_sorted)
+
+            # Top-K researchers for LLM rerank
+            top_researchers = sorted(
+                researcher_ranked.items(),
+                key=lambda x: x[1][0],
+                reverse=True,
+            )[:RAG_RETRIEVE_TOP_K]
+
+            # Stage 2: Llama generate for top LLM_TOP_K
+            final_scores: dict[str, tuple[float, list, float | None]] = {}
+
+            for r_id, (emb_score, hits) in top_researchers:
+                llm_score: float | None = None
+                if len(final_scores) < RAG_LLM_TOP_K:
+                    import asyncio
+                    llm_score = await asyncio.to_thread(
+                        _llm_generate, new_paper, hits[:RAG_CONTEXT_PAPERS]
                     )
-                    db.add(match)
+                    if llm_score == 0.0:
+                        # LLM said IRRELEVANT — skip
+                        continue
+                    if llm_score is not None:
+                        final_score = llm_score
+                    else:
+                        final_score = emb_score  # Ollama unavailable, fallback
+                else:
+                    final_score = emb_score  # beyond LLM quota, use Stage 1 score
+
+                if final_score >= MATCH_THRESHOLD:
+                    final_scores[r_id] = (final_score, hits, llm_score)
+
+            # Persist matches
+            for r_id, (final_score, hits, llm_score) in final_scores.items():
+                matched_ids_json = json.dumps([
+                    {"id": row.paper_openalex_id, "score": round(float(score), 4)}
+                    for score, row in hits[:RAG_CONTEXT_PAPERS]
+                ])
+                db.add(PaperResearcherMatch(
+                    paper_openalex_id=new_paper["openalex_id"],
+                    researcher_id=r_id,
+                    score=round(final_score, 4),
+                    model="qwen+llama",
+                    matched_paper_ids=matched_ids_json,
+                    llm_score=round(llm_score, 4) if llm_score is not None else None,
+                ))
+
         await db.commit()
 
-    log.info("Matching job complete. Stored matches above threshold %.2f.", MATCH_THRESHOLD)
+    log.info("RAG matching job complete.")
 
 
-def _compute_embeddings(texts: list[str], model_key: str) -> np.ndarray | None:
-    """Return embedding matrix for texts using the given model key."""
-    from backend.services.embedding import encode_texts, encode_texts_ollama
-    from src.similarity import MODEL_MAP, OLLAMA_MODEL_MAP
+def _llm_generate(new_paper: dict, context_papers: list[tuple[float, object]]) -> float | None:
+    """
+    Ask Ollama Llama whether the researcher is relevant to a new paper.
+    Returns score 0.0-1.0, or None if Ollama is unavailable.
+    Returns 0.0 if LLM says IRRELEVANT.
+    """
+    import requests
 
-    if model_key in MODEL_MAP:
-        return encode_texts(texts, model_key)
+    papers_text = "\n".join(
+        f"- {row.title or 'Untitled'}: {(row.abstract or '')[:200]}"
+        for _, row in context_papers
+    )
 
-    if model_key in OLLAMA_MODEL_MAP:
-        try:
-            return encode_texts_ollama(texts, model_key, OLLAMA_URL)
-        except Exception as e:
-            log.error("Ollama embedding failed: %s", e)
-            return None
+    prompt = (
+        "Decide if a researcher should receive a recommendation for this new paper.\n\n"
+        f"NEW PAPER:\n"
+        f"Title: {new_paper.get('title', '')}\n"
+        f"Abstract: {(new_paper.get('abstract') or '')[:400]}\n\n"
+        f"RESEARCHER'S RELATED PAPERS:\n{papers_text}\n\n"
+        "Answer with ONLY: RELEVANT <score> or IRRELEVANT <score> (score: 0.0-1.0)\n"
+        "Example: RELEVANT 0.85"
+    )
 
-    if model_key == "llama+minilm":
-        try:
-            from backend.services.embedding import encode_texts, encode_texts_ollama, emb_to_bytes
-            from sklearn.preprocessing import normalize
-            st_embs = encode_texts(texts, "minilm")
-            ol_embs = encode_texts_ollama(texts, "llama", OLLAMA_URL)
-            return np.hstack([normalize(st_embs), normalize(ol_embs)])
-        except Exception as e:
-            log.error("Combined embedding failed: %s", e)
-            return None
+    try:
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={"model": LLM_GENERATE_MODEL, "prompt": prompt, "stream": False},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        text = resp.json().get("response", "").strip().upper()
 
-    if model_key == "qwen+minilm":
-        try:
-            from backend.services.embedding import encode_texts, encode_texts_ollama
-            from sklearn.preprocessing import normalize
-            st_embs = encode_texts(texts, "minilm")
-            ol_embs = encode_texts_ollama(texts, "qwen", OLLAMA_URL)
-            return np.hstack([normalize(st_embs), normalize(ol_embs)])
-        except Exception as e:
-            log.error("Combined embedding failed: %s", e)
-            return None
+        parts = text.split()
+        verdict = parts[0] if parts else ""
+        score = 0.5
+        if len(parts) > 1:
+            try:
+                score = max(0.0, min(1.0, float(parts[1])))
+            except ValueError:
+                pass
 
-    return None
+        return score if verdict == "RELEVANT" else 0.0
 
-
-def _sparse_scores(
-    paper_texts: list[str],
-    model_key: str,
-    researcher_ids: list[str],
-    db,
-) -> np.ndarray:
-    """Compute BM25 or TF-IDF scores: paper texts vs researcher corpus texts."""
-    import asyncio
-    from sqlalchemy import select
-    from backend.models import ResearcherPaper
-
-    # This is called from an async context but needs sync similarity funcs
-    # Build researcher corpus synchronously
-    from src.similarity import bm25_similarity, tfidf_similarity
-
-    # We can't await inside here — build a sync version
-    # Return zeros matrix as fallback (proper impl requires restructuring)
-    n_papers = len(paper_texts)
-    n_researchers = len(researcher_ids)
-    return np.zeros((n_papers, n_researchers), dtype=np.float32)
+    except Exception as e:
+        log.warning("Llama generate step failed (%s) — using Stage 1 score.", e)
+        return None

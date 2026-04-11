@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { SearchLg } from "@untitledui/icons";
 import client from "../api/client";
 import { Input } from "@/components/base/input/input";
 import { Button } from "@/components/base/buttons/button";
-import { BadgeWithDot } from "@/components/base/badges/badges";
+import { Badge } from "@/components/base/badges/badges";
 
 interface InstitutionResult {
   openalex_id: string;
@@ -14,44 +14,42 @@ interface InstitutionResult {
 interface Props {
   onFollow: (inst: InstitutionResult) => void;
   followedIds: Set<string>;
+  onUnfollow: (id: string) => void;
 }
 
-export default function InstitutionSearch({ onFollow, followedIds }: Props) {
+export default function InstitutionSearch({
+  onFollow,
+  followedIds,
+  onUnfollow,
+}: Props) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<InstitutionResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [all, setAll] = useState<InstitutionResult[]>([]);
 
   useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    if (query.trim().length < 2) { setResults([]); return; }
+    client
+      .get<InstitutionResult[]>("/institutions/search", { params: { q: "" } })
+      .then((r) => setAll(r.data))
+      .catch(() => setAll([]));
+  }, []);
 
-    timer.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const { data } = await client.get("/institutions/search", { params: { q: query } });
-        setResults(data as InstitutionResult[]);
-      } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 350);
-  }, [query]);
+  const results =
+    query.trim().length === 0
+      ? all
+      : all.filter((r) =>
+          r.display_name.toLowerCase().includes(query.toLowerCase()),
+        );
+
+  console.log("results", { results, followedIds });
 
   return (
     <div className="flex flex-col gap-3">
       <Input
         icon={SearchLg}
-        placeholder="Search institutions (e.g. MIT, Stanford, DeepMind)…"
+        placeholder="Filter institutions…"
         value={query}
         onChange={(v) => setQuery(v)}
         isDisabled={false}
       />
-
-      {loading && (
-        <p className="text-sm text-tertiary">Searching…</p>
-      )}
 
       {results.length > 0 && (
         <ul className="divide-y divide-secondary overflow-hidden rounded-xl ring-1 ring-primary shadow-sm">
@@ -61,13 +59,24 @@ export default function InstitutionSearch({ onFollow, followedIds }: Props) {
               className="flex items-center justify-between bg-primary px-4 py-3 text-sm"
             >
               <div className="flex items-center gap-2">
-                <span className="font-medium text-primary">{r.display_name}</span>
+                <span className="font-medium text-primary">
+                  {r.display_name}
+                </span>
                 {r.country_code && (
-                  <span className="text-xs text-tertiary">{r.country_code}</span>
+                  <span className="text-xs text-tertiary">
+                    {r.country_code}
+                  </span>
                 )}
               </div>
               {followedIds.has(r.openalex_id) ? (
-                <BadgeWithDot color="success" size="sm">Following</BadgeWithDot>
+                <div
+                  onClick={() => onUnfollow(r.openalex_id)}
+                  className="cursor-pointer"
+                >
+                  <Badge color="error" size="sm">
+                    Unfollow
+                  </Badge>
+                </div>
               ) : (
                 <Button size="sm" color="primary" onClick={() => onFollow(r)}>
                   Follow

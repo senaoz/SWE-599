@@ -41,9 +41,14 @@ class FollowedInstitution(BaseModel):
 
 # ── Papers ────────────────────────────────────────────────────────────────────
 
+class MatchedBounPaper(BaseModel):
+    title: str | None
+    score: float
+
 class ResearcherMatch(BaseModel):
     display_name: str
     score: float
+    matched_papers: list[MatchedBounPaper] = []
 
 class PaperOut(BaseModel):
     openalex_id: str
@@ -60,20 +65,28 @@ class PapersResponse(BaseModel):
     pages: int
 
 
+# ── Researchers ───────────────────────────────────────────────────────────────
+
+class ResearcherOut(BaseModel):
+    id: str
+    openalex_id: str
+    display_name: str
+    paper_count: int
+
+    class Config:
+        from_attributes = True
+
+class ResearchersResponse(BaseModel):
+    researchers: list[ResearcherOut]
+    total: int
+    page: int
+    pages: int
+
+
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
-class ModelInfo(BaseModel):
-    key: str
-    label: str
-    description: str
-    requires_ollama: bool
-
 class AdminStatus(BaseModel):
-    active_model: str
     paper_count: int
     match_count: int
     researcher_count: int
     last_run_at: datetime | None
-
-class SetModelRequest(BaseModel):
-    model: str

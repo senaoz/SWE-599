@@ -2,42 +2,22 @@ import { useState, useEffect } from "react";
 import { Lightning01, Settings01 } from "@untitledui/icons";
 import client from "../api/client";
 import { Button } from "@/components/base/buttons/button";
-import { Badge } from "@/components/base/badges/badges";
 
 interface Status {
-  active_model: string; paper_count: number; match_count: number;
-  researcher_count: number; last_run_at: string | null;
+  paper_count: number;
+  match_count: number;
+  researcher_count: number;
+  last_run_at: string | null;
 }
-interface ModelInfo { key: string; label: string; description: string; requires_ollama: boolean; }
 
 export default function AdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
-  const [models, setModels] = useState<ModelInfo[]>([]);
-  const [selectedModel, setSelectedModel] = useState("");
   const [triggering, setTriggering] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const load = () => {
-    Promise.all([
-      client.get<Status>("/admin/status"),
-      client.get<ModelInfo[]>("/admin/models"),
-    ]).then(([s, m]) => {
-      setStatus(s.data);
-      setModels(m.data);
-      setSelectedModel(s.data.active_model);
-    });
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const saveModel = async () => {
-    setSaving(true);
-    await client.put("/admin/models/active", { model: selectedModel });
-    setSaving(false);
-    setMsg("Model updated.");
-    load();
-  };
+  useEffect(() => {
+    client.get<Status>("/admin/status").then(r => setStatus(r.data));
+  }, []);
 
   const trigger = async () => {
     setTriggering(true);
@@ -92,52 +72,6 @@ export default function AdminPage() {
           Last job run: {new Date(status.last_run_at).toLocaleString()}
         </p>
       )}
-
-      {/* Model selection */}
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-tertiary uppercase tracking-wide">
-          Active Similarity Model
-        </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-4">
-          {models.map(m => (
-            <label
-              key={m.key}
-              className={[
-                "flex cursor-pointer flex-col gap-2 rounded-xl p-4 ring-2 transition-all",
-                selectedModel === m.key
-                  ? "bg-brand-section ring-brand"
-                  : "bg-primary ring-primary hover:ring-secondary",
-              ].join(" ")}
-            >
-              <input
-                type="radio"
-                name="model"
-                value={m.key}
-                checked={selectedModel === m.key}
-                onChange={() => setSelectedModel(m.key)}
-                className="sr-only"
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-primary">{m.label}</span>
-                {m.requires_ollama && (
-                  <Badge type="color" color="warning" size="sm">Ollama</Badge>
-                )}
-              </div>
-              <p className="text-xs text-tertiary">{m.description}</p>
-            </label>
-          ))}
-        </div>
-        <Button
-          color="primary"
-          size="md"
-          iconLeading={Settings01}
-          isLoading={saving}
-          isDisabled={saving || selectedModel === status.active_model}
-          onClick={saveModel}
-        >
-          Save model
-        </Button>
-      </section>
 
       {/* Manual trigger */}
       <section>
