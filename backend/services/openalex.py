@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import date as date_type
 from typing import Any
 
 import pyalex
@@ -40,8 +41,16 @@ async def search_institutions(query: str, limit: int = 8) -> list[dict[str, Any]
     return results[:limit]
 
 
-def fetch_new_papers(institution_id: str, from_date: str, max_papers: int = 200) -> list[dict[str, Any]]:
+def fetch_new_papers(
+    institution_id: str,
+    from_date: str,
+    institution_name: str | None = None,
+    max_papers: int = 200,
+) -> list[dict[str, Any]]:
     """Fetch papers from OpenAlex for an institution since from_date."""
+    import logging
+    log = logging.getLogger(__name__)
+
     from pyalex import Works
 
     filters: dict[str, Any] = {
@@ -49,31 +58,41 @@ def fetch_new_papers(institution_id: str, from_date: str, max_papers: int = 200)
         "from_publication_date": from_date,
     }
 
+    log.info("[OpenAlex] Fetching papers for %s since %s", institution_name or institution_id, from_date)
+
     papers = []
-    for work in Works().filter(**filters).paginate(per_page=25):
-        abstract = None
-        inv_index = work.get("abstract_inverted_index")
-        if inv_index:
-            raw = reconstruct_abstract(inv_index)
-            if raw:
-                abstract = clean_abstract(raw)
-
-        concepts = work.get("concepts") or []
-        concepts_text = " ".join(
-            c.get("display_name", "") for c in concepts if c.get("display_name")
-        )
-
-        pub_date = work.get("publication_date")
-
-        papers.append({
-            "openalex_id": work["id"],
-            "title": work.get("title"),
-            "abstract": abstract,
-            "concepts_text": concepts_text,
-            "publication_date": pub_date,
-        })
-
-        if len(papers) >= max_papers:
+    done = False
+    for page in Works().filter(**filters).paginate(per_page=25):
+        if done:
             break
+        for work in page:
+            abstract = None
+            inv_index = work.get("abstract_inverted_index")
+            if inv_index:
+                raw = reconstruct_abstract(inv_index)
+                if raw:
+                    abstract = clean_abstract(raw)
 
+            concepts = work.get("concepts") or []
+            concepts_text = " ".join(
+                c.get("display_name", "") for c in concepts if c.get("display_name")
+            )
+
+            pub_date_str = work.get("publication_date")
+            pub_date = date_type.fromisoformat(pub_date_str) if pub_date_str else None
+
+            papers.append({
+                "openalex_id": work["id"],
+                "title": work.get("title"),
+                "abstract": abstract,
+                "concepts_text": concepts_text,
+                "publication_date": pub_date,
+                "source_institution_name": institution_name,
+            })
+
+            if len(papers) >= max_papers:
+                done = True
+                break
+
+    log.info("[OpenAlex] Fetched %d papers for %s", len(papers), institution_name or institution_id)
     return papers

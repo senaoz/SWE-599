@@ -42,6 +42,14 @@ class FetchCursor(Base):
     last_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class UserPaperView(Base):
+    __tablename__ = "user_paper_views"
+
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    paper_openalex_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    viewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class FetchedPaper(Base):
     __tablename__ = "fetched_papers"
 
@@ -107,8 +115,16 @@ class PaperResearcherMatch(Base):
     )
 
 
-class SystemConfig(Base):
-    __tablename__ = "system_config"
+class PaperFeedback(Base):
+    __tablename__ = "paper_feedback"
 
-    key: Mapped[str] = mapped_column(String(100), primary_key=True)
-    value: Mapped[str] = mapped_column(Text, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    paper_openalex_id: Mapped[str] = mapped_column(String(100), ForeignKey("fetched_papers.openalex_id", ondelete="CASCADE"), nullable=False)
+    researcher_id: Mapped[str] = mapped_column(String(50), ForeignKey("researchers.id", ondelete="CASCADE"), nullable=False)
+    is_relevant: Mapped[bool] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "paper_openalex_id", "researcher_id"),)
+
+
