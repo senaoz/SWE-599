@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { SearchLg, User01, ChevronLeft, ChevronRight } from "@untitledui/icons";
 import client from "../api/client";
 import { Input } from "@/components/base/input/input";
+import ResearcherModal from "../components/ResearcherModal";
 
 interface Researcher {
   id: string;
@@ -18,10 +20,12 @@ interface ResearchersResponse {
 }
 
 export default function ResearchersPage() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [data, setData] = useState<ResearchersResponse | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [selectedName, setSelectedName] = useState<string | null>(() => searchParams.get('researcher'));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = (q: string, p: number) => {
@@ -80,20 +84,25 @@ export default function ResearchersPage() {
           <p className="py-8 text-center text-sm text-tertiary">No researchers found.</p>
         )}
 
-        {data && data.researchers.length > 0 && (
-          <>
+        {data && data.researchers.length > 0 && (() => {
+          const grouped = data.researchers.reduce<Record<string, { paper_count: number }>>((acc, r) => {
+            if (!acc[r.display_name]) acc[r.display_name] = { paper_count: 0 };
+            acc[r.display_name].paper_count += r.paper_count;
+            return acc;
+          }, {});
+          const entries = Object.entries(grouped);
+          return (
+            <>
             <ul className="divide-y divide-secondary overflow-hidden rounded-xl ring-1 ring-primary shadow-sm">
-              {data.researchers.map(r => (
-                <li key={r.id} className="flex items-center justify-between bg-primary px-4 py-3">
-                  <a
-                    href={r.openalex_id}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-medium text-primary hover:text-brand-secondary transition-colors"
+              {entries.map(([name, info]) => (
+                <li key={name} className="flex items-center justify-between bg-primary px-4 py-3">
+                  <button
+                    onClick={() => setSelectedName(name)}
+                    className="text-sm font-medium text-primary hover:text-brand-secondary transition-colors text-left"
                   >
-                    {r.display_name}
-                  </a>
-                  <span className="text-xs text-tertiary">{r.paper_count} papers</span>
+                    {name}
+                  </button>
+                  <span className="text-xs text-tertiary">{info.paper_count} papers</span>
                 </li>
               ))}
             </ul>
@@ -118,8 +127,13 @@ export default function ResearchersPage() {
               </div>
             )}
           </>
-        )}
+          );
+        })()}
       </div>
+
+      {selectedName && (
+        <ResearcherModal name={selectedName} onClose={() => setSelectedName(null)} />
+      )}
     </div>
   );
 }

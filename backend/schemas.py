@@ -46,6 +46,7 @@ class MatchedBounPaper(BaseModel):
     score: float
 
 class ResearcherMatch(BaseModel):
+    researcher_id: str
     display_name: str
     score: float
     matched_papers: list[MatchedBounPaper] = []
@@ -57,6 +58,7 @@ class PaperOut(BaseModel):
     publication_date: date | None
     source_institution_name: str | None
     top_researchers: list[ResearcherMatch]
+    is_seen: bool = False
 
 class PapersResponse(BaseModel):
     papers: list[PaperOut]
@@ -81,6 +83,57 @@ class ResearchersResponse(BaseModel):
     total: int
     page: int
     pages: int
+
+
+# ── Paper Detail ─────────────────────────────────────────────────────────────
+
+class PaperDetailOut(BaseModel):
+    openalex_id: str
+    title: str | None
+    abstract: str | None
+    publication_date: date | None
+    source_institution_name: str | None
+    all_researchers: list[ResearcherMatch]
+
+
+# ── Researcher Detail ─────────────────────────────────────────────────────────
+
+class MatchedPaperForResearcher(BaseModel):
+    openalex_id: str
+    title: str | None
+    publication_date: date | None
+    source_institution_name: str | None
+    score: float
+
+class ResearcherDetailOut(BaseModel):
+    id: str
+    openalex_id: str
+    display_name: str
+    paper_count: int
+    matched_papers: list[MatchedPaperForResearcher]
+    total_matches: int
+    page: int
+    pages: int
+
+    class Config:
+        from_attributes = True
+
+
+class ResearcherMergedOut(BaseModel):
+    display_name: str
+    ids: list[str]
+    openalex_urls: list[str]
+    total_papers: int
+    matched_papers: list[MatchedPaperForResearcher]
+    total_matches: int
+
+
+# ── Feedback ──────────────────────────────────────────────────────────────────
+
+class FeedbackRequest(BaseModel):
+    paper_openalex_id: str
+    researcher_id: str
+    is_relevant: bool
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────

@@ -22,8 +22,6 @@ export default function InstitutionsPage() {
 
   useEffect(() => {
     load();
-
-    console.log("followed", followed);
   }, []);
 
   const follow = async (inst: SearchResult) => {

@@ -7,6 +7,7 @@ import DashboardPage from "./pages/DashboardPage";
 import InstitutionsPage from "./pages/InstitutionsPage";
 import AdminPage from "./pages/AdminPage";
 import ResearchersPage from "./pages/ResearchersPage";
+import ResearcherDetailPage from "./pages/ResearcherDetailPage";
 
 function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
   return (
@@ -17,6 +18,7 @@ function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/institutions" element={<InstitutionsPage />} />
           <Route path="/researchers" element={<ResearchersPage />} />
+          <Route path="/researchers/:id" element={<ResearcherDetailPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

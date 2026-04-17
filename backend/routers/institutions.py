@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
+
+log = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, delete
@@ -48,14 +51,18 @@ async def follow_institution(
     )
     db.add(follow)
 
-    # Ensure a fetch cursor exists for this institution (backfill 7 days)
+    # Ensure a fetch cursor exists for this institution (backfill 14 days)
     cursor = await db.get(FetchCursor, body.institution_openalex_id)
     if not cursor:
+        backfill_date = date.today() - timedelta(days=14)
         cursor = FetchCursor(
             institution_openalex_id=body.institution_openalex_id,
-            last_fetched_date=date.today() - timedelta(days=7),
+            last_fetched_date=backfill_date,
         )
         db.add(cursor)
+        log.info("New cursor for %s — backfill from %s", body.institution_name, backfill_date)
+    else:
+        log.info("Cursor already exists for %s (last fetched: %s)", body.institution_name, cursor.last_fetched_date)
 
     await db.commit()
     await db.refresh(follow)
