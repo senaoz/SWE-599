@@ -54,6 +54,7 @@ async def seed_if_empty() -> None:
 
     async with SessionLocal() as db:
         researcher_count = await db.scalar(select(func.count(Researcher.id)))
+        total_papers = await db.scalar(select(func.count(ResearcherPaper.id)))
         paper_emb_count = await db.scalar(
             select(func.count(ResearcherPaper.id)).where(
                 ResearcherPaper.embedding.isnot(None)
@@ -62,11 +63,11 @@ async def seed_if_empty() -> None:
 
     if researcher_count and researcher_count > 0:
         log.info("Researchers already seeded (%d rows).", researcher_count)
-        if not paper_emb_count:
-            log.info("Paper embeddings missing — starting background computation …")
-            asyncio.create_task(_compute_missing_paper_embeddings())
-        else:
+        if paper_emb_count and paper_emb_count >= (total_papers or 0):
             log.info("Paper embeddings present (%d rows), skipping.", paper_emb_count)
+        else:
+            log.info("Paper embeddings incomplete (%d/%d) — resuming computation …", paper_emb_count or 0, total_papers or 0)
+            asyncio.create_task(_compute_missing_paper_embeddings())
         return
 
     log.info("Seeding researchers from %s …", BOUN_CSV_PATH)
@@ -137,6 +138,9 @@ async def _do_seed() -> None:
     log.info("Seeding complete — embeddings computing in background.")
 
 
+CACHE_PATH = os.path.join(_ROOT, "research", "data", "embeddings_cache", "boun_qwen_papers.npz")
+
+
 async def _compute_profile_embeddings(researchers: dict) -> None:
     """Encode all BOUN papers with Qwen, store individual + mean profile embeddings."""
     from backend.database import SessionLocal
@@ -166,92 +170,168 @@ async def _compute_profile_embeddings(researchers: dict) -> None:
     if not all_texts:
         return
 
-    log.info("Encoding %d paper texts with Qwen (Ollama) …", len(all_texts))
-    try:
+    # Load from cache if available
+    if os.path.exists(CACHE_PATH):
+        log.info("Loading paper embeddings from cache: %s", CACHE_PATH)
+        cache = np.load(CACHE_PATH, allow_pickle=True)
+        embs = cache["embeddings"]
+        cached_tracking = list(zip(cache["researcher_ids"].tolist(), cache["paper_ids"].tolist()))
+        if len(embs) == len(all_texts) and cached_tracking == paper_tracking:
+            log.info("Cache hit — %d embeddings loaded.", len(embs))
+        else:
+            log.warning("Cache mismatch (size or order changed) — recomputing.")
+            os.remove(CACHE_PATH)
+            embs = None
+    else:
+        embs = None
+
+    PARTIAL_PATH = CACHE_PATH + ".partial.npz"
+
+    if embs is None:
+        # Check for partial progress from a previous interrupted run
+        resume_from = 0
+        partial_embs: list = []
+        if os.path.exists(PARTIAL_PATH):
+            try:
+                partial = np.load(PARTIAL_PATH, allow_pickle=True)
+                partial_embs = [partial["embeddings"]]
+                resume_from = int(partial["done"])
+                log.info("Resuming from chunk %d/%d (partial cache found).", resume_from, len(all_texts))
+            except Exception:
+                log.warning("Partial cache corrupt — starting from scratch.")
+
+        CHUNK = 200
         import asyncio
-        embs = await asyncio.to_thread(encode_texts_ollama, all_texts, RETRIEVE_MODEL, OLLAMA_URL)
-    except Exception as e:
-        log.error("Qwen embedding failed: %s — skipping embedding step.", e)
-        return
+        for chunk_start in range(resume_from, len(all_texts), CHUNK):
+            chunk = all_texts[chunk_start:chunk_start + CHUNK]
+            try:
+                chunk_embs = await asyncio.to_thread(encode_texts_ollama, chunk, RETRIEVE_MODEL, OLLAMA_URL)
+                partial_embs.append(chunk_embs)
+            except Exception as e:
+                log.error("Qwen embedding failed at chunk %d: %s — saving partial progress.", chunk_start, e)
+                os.makedirs(os.path.dirname(PARTIAL_PATH), exist_ok=True)
+                np.savez_compressed(
+                    PARTIAL_PATH,
+                    embeddings=np.vstack(partial_embs) if partial_embs else np.array([]),
+                    done=chunk_start,
+                )
+                return
+            done = min(chunk_start + CHUNK, len(all_texts))
+            log.info("Paper embeddings: %d/%d encoded.", done, len(all_texts))
+            # Save partial progress after each chunk
+            os.makedirs(os.path.dirname(PARTIAL_PATH), exist_ok=True)
+            np.savez_compressed(
+                PARTIAL_PATH,
+                embeddings=np.vstack(partial_embs),
+                done=done,
+            )
 
-    async with SessionLocal() as db:
-        # Store mean profile embedding per researcher
-        for r_id, start, end in researcher_slices:
-            mean_emb = embs[start:end].mean(axis=0)
-            researcher = await db.get(Researcher, r_id)
-            if researcher:
-                researcher.profile_embedding = emb_to_bytes(mean_emb)
-                researcher.profile_updated_at = datetime.now(timezone.utc)
+        embs = np.vstack(partial_embs)
 
-        # Batch-load all researcher papers, then update individual embeddings
-        all_r_ids = [r_id for r_id, _, _ in researcher_slices]
-        result = await db.scalars(
-            select(ResearcherPaper).where(ResearcherPaper.researcher_id.in_(all_r_ids))
+        # Save final cache and remove partial
+        os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
+        np.savez_compressed(
+            CACHE_PATH,
+            embeddings=embs,
+            researcher_ids=np.array([t[0] for t in paper_tracking]),
+            paper_ids=np.array([t[1] for t in paper_tracking]),
         )
-        paper_map: dict[tuple[str, str], ResearcherPaper] = {
-            (p.researcher_id, p.paper_openalex_id): p for p in result
-        }
+        if os.path.exists(PARTIAL_PATH):
+            os.remove(PARTIAL_PATH)
+        log.info("Paper embeddings cached to %s", CACHE_PATH)
 
-        for idx, (r_id, paper_id) in enumerate(paper_tracking):
-            paper = paper_map.get((r_id, paper_id))
-            if paper:
-                paper.embedding = emb_to_bytes(embs[idx])
+    from sqlalchemy import text as sa_text
 
-        await db.commit()
+    COMMIT_EVERY = 50  # researchers per commit
+    for batch_start in range(0, len(researcher_slices), COMMIT_EVERY):
+        batch = researcher_slices[batch_start:batch_start + COMMIT_EVERY]
+        async with SessionLocal() as db:
+            for r_id, start, end in batch:
+                mean_emb = embs[start:end].mean(axis=0)
+                await db.execute(
+                    sa_text(
+                        "UPDATE researchers SET profile_embedding=:emb, profile_updated_at=:ts "
+                        "WHERE id=:id"
+                    ),
+                    {"emb": emb_to_bytes(mean_emb), "ts": datetime.now(timezone.utc), "id": r_id},
+                )
+                for idx in range(start, end):
+                    _, paper_id = paper_tracking[idx]
+                    await db.execute(
+                        sa_text(
+                            "UPDATE researcher_papers SET embedding=:emb "
+                            "WHERE researcher_id=:r_id AND paper_openalex_id=:p_id"
+                        ),
+                        {"emb": emb_to_bytes(embs[idx]), "r_id": r_id, "p_id": paper_id},
+                    )
+            await db.commit()
+        done = min(batch_start + COMMIT_EVERY, len(researcher_slices))
+        log.info("Profile embeddings: %d/%d researchers committed.", done, len(researcher_slices))
 
     log.info("Profile embeddings and individual paper embeddings stored.")
 
 
 async def _compute_missing_paper_embeddings() -> None:
-    """Compute per-paper Qwen embeddings for already-seeded researchers (upgrade path)."""
+    """Compute per-paper Qwen embeddings for already-seeded researchers (resume-safe)."""
     import asyncio
     from backend.database import SessionLocal
-    from backend.models import ResearcherPaper, Researcher
+    from backend.models import ResearcherPaper
     from backend.services.embedding import encode_texts_ollama, emb_to_bytes
-    from sqlalchemy import select
+    from sqlalchemy import select, text as sa_text
 
     async with SessionLocal() as db:
-        papers = list(await db.scalars(select(ResearcherPaper)))
+        rows = list(await db.execute(
+            select(ResearcherPaper.id, ResearcherPaper.researcher_id,
+                   ResearcherPaper.paper_openalex_id, ResearcherPaper.title,
+                   ResearcherPaper.abstract, ResearcherPaper.concepts_text)
+            .where(ResearcherPaper.embedding.is_(None))
+            .order_by(ResearcherPaper.researcher_id, ResearcherPaper.paper_openalex_id)
+        ))
 
-    log.info("Computing Qwen embeddings for %d researcher papers …", len(papers))
+    if not rows:
+        log.info("All paper embeddings already present — skipping.")
+        return
 
-    CHUNK = 500
-    r_paper_embs: dict[str, list[np.ndarray]] = {}
+    texts = [f"{r.title or ''} {r.abstract or ''} {r.concepts_text or ''}".strip() for r in rows]
+    log.info("Computing Qwen embeddings for %d remaining papers …", len(texts))
 
-    for chunk_start in range(0, len(papers), CHUNK):
-        chunk = papers[chunk_start:chunk_start + CHUNK]
-        texts = [
-            f"{p.title or ''} {p.abstract or ''} {p.concepts_text or ''}".strip()
-            for p in chunk
-        ]
-
+    CHUNK = 200
+    for chunk_start in range(0, len(texts), CHUNK):
+        chunk_texts = texts[chunk_start:chunk_start + CHUNK]
+        chunk_rows = rows[chunk_start:chunk_start + CHUNK]
         try:
-            embs = await asyncio.to_thread(encode_texts_ollama, texts, RETRIEVE_MODEL, OLLAMA_URL)
+            chunk_embs = await asyncio.to_thread(encode_texts_ollama, chunk_texts, RETRIEVE_MODEL, OLLAMA_URL)
         except Exception as e:
-            log.error("Qwen embedding failed at chunk %d: %s — aborting.", chunk_start, e)
+            log.error("Qwen embedding failed at chunk %d: %s — will resume on next restart.", chunk_start, e)
             return
 
         async with SessionLocal() as db:
-            for paper, emb in zip(chunk, embs):
-                p_obj = await db.get(ResearcherPaper, paper.id)
-                if p_obj:
-                    p_obj.embedding = emb_to_bytes(emb)
+            for row, emb in zip(chunk_rows, chunk_embs):
+                await db.execute(
+                    sa_text("UPDATE researcher_papers SET embedding=:emb WHERE id=:id"),
+                    {"emb": emb_to_bytes(emb), "id": row.id},
+                )
             await db.commit()
+        log.info("Paper embeddings: %d/%d committed.", min(chunk_start + CHUNK, len(texts)), len(texts))
 
-        for paper, emb in zip(chunk, embs):
-            r_paper_embs.setdefault(paper.researcher_id, []).append(emb)
-
-        done = min(chunk_start + CHUNK, len(papers))
-        log.info("Paper embeddings: %d/%d committed.", done, len(papers))
-
-    # Update researcher mean profile embeddings
+    # Recompute profile embeddings from all papers now in DB
     async with SessionLocal() as db:
-        for r_id, emb_list in r_paper_embs.items():
-            researcher = await db.get(Researcher, r_id)
-            if researcher:
-                mean_emb = np.mean(emb_list, axis=0)
-                researcher.profile_embedding = emb_to_bytes(mean_emb)
-                researcher.profile_updated_at = datetime.now(timezone.utc)
+        all_rows = list(await db.execute(
+            select(ResearcherPaper.researcher_id, ResearcherPaper.embedding)
+            .where(ResearcherPaper.embedding.isnot(None))
+        ))
+    r_embs: dict[str, list[np.ndarray]] = {}
+    for row in all_rows:
+        r_embs.setdefault(row.researcher_id, []).append(
+            np.frombuffer(row.embedding, dtype=np.float32)
+        )
+    async with SessionLocal() as db:
+        for r_id, emb_list in r_embs.items():
+            mean_emb = np.mean(emb_list, axis=0)
+            await db.execute(
+                sa_text("UPDATE researchers SET profile_embedding=:emb, profile_updated_at=:ts WHERE id=:id"),
+                {"emb": emb_to_bytes(mean_emb), "ts": datetime.now(timezone.utc), "id": r_id},
+            )
         await db.commit()
 
     log.info("Missing paper embeddings computed and stored.")

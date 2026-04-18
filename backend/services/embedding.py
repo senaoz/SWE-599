@@ -57,7 +57,7 @@ def encode_texts_ollama(
         resp = requests.post(
             f"{ollama_url}/api/embed",
             json={"model": ollama_model, "input": batch},
-            timeout=120,
+            timeout=300,
         )
         resp.raise_for_status()
         embeddings.extend(resp.json()["embeddings"])
