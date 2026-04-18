@@ -246,6 +246,10 @@ async def run_matching_job() -> None:
     )
     log.info("=" * 60)
 
+    import asyncio
+    from backend.services.seeder import export_fetched_paper_embeddings
+    asyncio.create_task(export_fetched_paper_embeddings())
+
 
 def _llm_generate(new_paper: dict, context_papers: list[tuple[float, object]]) -> float | None:
     """
