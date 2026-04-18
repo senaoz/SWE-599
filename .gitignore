@@ -8,3 +8,6 @@ __pycache__/
 .claude
 CLAUDE.md
 docs/
+research/data/
+.vscode/
+.vscode/*
