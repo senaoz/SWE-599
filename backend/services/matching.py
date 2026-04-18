@@ -122,6 +122,17 @@ async def run_matching_job() -> None:
         log.error("STAGE 1 — Encoding failed (%s) — aborting job. Is Ollama running at %s?", e, OLLAMA_URL)
         return
 
+    # Save embeddings back to fetched_papers
+    async with SessionLocal() as db:
+        from sqlalchemy import text as sa_text
+        for paper, emb in zip(all_new_papers, new_paper_embs):
+            await db.execute(
+                sa_text("UPDATE fetched_papers SET embedding=:emb WHERE openalex_id=:id"),
+                {"emb": emb_to_bytes(emb), "id": paper["openalex_id"]},
+            )
+        await db.commit()
+    log.info("STAGE 1 — Stored %d paper embeddings to DB", len(all_new_papers))
+
     # Load all BOUN paper embeddings
     async with SessionLocal() as db:
         rows = await db.execute(
