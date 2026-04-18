@@ -57,7 +57,7 @@ The immediate goal is to establish a benchmark dataset to evaluate different vec
 
 ---
 
-## Week 2: Dataset for Performance Evaluation & Embedding Comparison
+## Week 2-3: Dataset for Performance Evaluation & Embedding Comparison
 
 Since the project relies on finding "similar" content, selecting the most accurate embedding model is critical. This week focuses on building the similarity pipeline and evaluating it across different methods and scopes.
 
@@ -114,7 +114,7 @@ These tasks validate that the similarity pipeline ranks known-relevant papers hi
 
 --------
 
-## Week 3: Detailed Cited Paper Ranking Dataset for Method Evaluation
+## Week 4-5: Detailed Cited Paper Ranking Dataset for Method Evaluation
 ![IMG_2572](https://github.com/user-attachments/assets/5260e0c9-7734-40c7-b189-322c502f0a70)
 
 Week 3 constructs a cited paper ranking dataset using papers from `research/data/cleaned/priority_followed.csv` (followed institutions) to test how embedding methods prioritize true references over random distractors from the followed corpus.
@@ -163,4 +163,38 @@ Gemini returns a JSON array of candidate numbers ordered by relevance, e.g. `[7,
 **Implementation:** `gemini_rank_candidates(query_text, candidates)` in `research/src/similarity.py`.
 
 --------
+
+## Week 6-10: Full-Stack Application
+
+Built a production-ready recommendation system on top of the Week 1–3 research pipeline.
+
+**See [README_APP.md](README_APP.md) for setup and run instructions.**
+
+### Features
+
+- **Auth** — JWT register/login; all routes protected
+- **Institution follow** — search OpenAlex, follow/unfollow institutions; papers fetched automatically
+- **Paper recommendations** — paginated dashboard; top-5 matching BOUN researchers per paper with modal detail view
+- **Researcher profiles** — searchable list of 2671 BOUN researchers with publication history and detail pages
+- **Feedback** — thumbs up/down on paper–researcher matches to collect relevance signal
+- **Admin panel** — switch active embedding model, manually trigger matching job, view system stats
+- **Dark mode** — full UI theming with system preference detection
+
+### 2-Stage RAG Matching Pipeline
+
+Every 6 hours (or on manual trigger via Admin):
+
+1. **Fetch** — new papers from followed institutions via OpenAlex API
+2. **Stage 1 — Retrieve** — embed papers with nomic-embed-text; cosine similarity against ~7800 individual BOUN paper embeddings; top-20 researchers by max score
+3. **Stage 2 — Rerank** — top-10 researchers sent to Llama 3.2 with context (new paper + top-3 matching BOUN papers); LLM returns a relevance score used as final score
+4. **Store** — `PaperResearcherMatch` rows persisted (only if score ≥ 0.3)
+
+### Stack
+
+| Layer | Tech |
+|---|---|
+| Backend | FastAPI + SQLAlchemy (async) + PostgreSQL 16 |
+| Embeddings | Ollama (nomic-embed-text, llama3.2) / SentenceTransformer |
+| Frontend | React 19 + TypeScript + Vite + Tailwind CSS |
+| Infra | Docker Compose |
 
