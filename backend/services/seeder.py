@@ -139,6 +139,7 @@ async def _do_seed() -> None:
 
 
 CACHE_PATH = os.path.join(_ROOT, "research", "data", "embeddings_cache", "boun_qwen_papers.npz")
+FETCHED_CACHE_PATH = os.path.join(_ROOT, "research", "data", "embeddings_cache", "fetched_papers_qwen.npz")
 
 
 async def _compute_profile_embeddings(researchers: dict) -> None:
@@ -335,3 +336,36 @@ async def _compute_missing_paper_embeddings() -> None:
         await db.commit()
 
     log.info("Missing paper embeddings computed and stored.")
+
+
+async def export_fetched_paper_embeddings() -> None:
+    """Dump all fetched_papers embeddings to an .npz cache for offline research use."""
+    from backend.database import SessionLocal
+    from backend.models import FetchedPaper
+    from sqlalchemy import select
+
+    async with SessionLocal() as db:
+        rows = list(await db.execute(
+            select(
+                FetchedPaper.openalex_id,
+                FetchedPaper.source_institution_id,
+                FetchedPaper.source_institution_name,
+                FetchedPaper.embedding,
+            ).where(FetchedPaper.embedding.isnot(None))
+            .order_by(FetchedPaper.openalex_id)
+        ))
+
+    if not rows:
+        log.info("No fetched paper embeddings to export.")
+        return
+
+    embs = np.vstack([np.frombuffer(row.embedding, dtype=np.float32) for row in rows])
+    os.makedirs(os.path.dirname(FETCHED_CACHE_PATH), exist_ok=True)
+    np.savez_compressed(
+        FETCHED_CACHE_PATH,
+        embeddings=embs,
+        paper_ids=np.array([row.openalex_id for row in rows]),
+        institution_ids=np.array([row.source_institution_id or "" for row in rows]),
+        institution_names=np.array([row.source_institution_name or "" for row in rows]),
+    )
+    log.info("Exported %d fetched paper embeddings → %s", len(rows), FETCHED_CACHE_PATH)
