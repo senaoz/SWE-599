@@ -26,7 +26,7 @@ async def run_matching_job() -> None:
         ResearcherPaper, PaperResearcherMatch,
     )
     from backend.services.openalex import fetch_new_papers
-    from backend.services.embedding import encode_texts_ollama, batch_score, emb_to_bytes, bytes_to_emb
+    from backend.services.embedding import encode_texts_ollama, batch_score, emb_to_list, row_to_emb
     from sqlalchemy import select, func
 
     log.info("=" * 60)
@@ -124,11 +124,12 @@ async def run_matching_job() -> None:
 
     # Save embeddings back to fetched_papers
     async with SessionLocal() as db:
-        from sqlalchemy import text as sa_text
+        from sqlalchemy import update as sa_update
         for paper, emb in zip(all_new_papers, new_paper_embs):
             await db.execute(
-                sa_text("UPDATE fetched_papers SET embedding=:emb WHERE openalex_id=:id"),
-                {"emb": emb_to_bytes(emb), "id": paper["openalex_id"]},
+                sa_update(FetchedPaper)
+                .where(FetchedPaper.openalex_id == paper["openalex_id"])
+                .values(embedding=emb_to_list(emb))
             )
         await db.commit()
     log.info("STAGE 1 — Stored %d paper embeddings to DB", len(all_new_papers))
@@ -151,7 +152,7 @@ async def run_matching_job() -> None:
         return
 
     log.info("STAGE 1 — Loaded %d BOUN paper embeddings", len(boun_papers))
-    boun_embs = np.vstack([bytes_to_emb(row.embedding) for row in boun_papers])
+    boun_embs = np.vstack([row_to_emb(row.embedding) for row in boun_papers])
 
     # Cosine similarity matrix: (N_new, N_boun)
     scores_matrix = batch_score(new_paper_embs, boun_embs)

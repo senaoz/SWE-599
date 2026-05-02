@@ -146,8 +146,8 @@ async def _compute_profile_embeddings(researchers: dict) -> None:
     """Encode all BOUN papers with Qwen, store individual + mean profile embeddings."""
     from backend.database import SessionLocal
     from backend.models import Researcher, ResearcherPaper
-    from backend.services.embedding import encode_texts_ollama, emb_to_bytes
-    from sqlalchemy import select, update
+    from backend.services.embedding import encode_texts_ollama, emb_to_list
+    from sqlalchemy import select, update as sa_update
 
     # Build flat list: all paper texts with (researcher_id, paper_openalex_id) tracking
     all_texts: list[str] = []
@@ -241,7 +241,7 @@ async def _compute_profile_embeddings(researchers: dict) -> None:
             os.remove(PARTIAL_PATH)
         log.info("Paper embeddings cached to %s", CACHE_PATH)
 
-    from sqlalchemy import text as sa_text
+    from sqlalchemy import update as sa_update
 
     COMMIT_EVERY = 50  # researchers per commit
     for batch_start in range(0, len(researcher_slices), COMMIT_EVERY):
@@ -250,20 +250,17 @@ async def _compute_profile_embeddings(researchers: dict) -> None:
             for r_id, start, end in batch:
                 mean_emb = embs[start:end].mean(axis=0)
                 await db.execute(
-                    sa_text(
-                        "UPDATE researchers SET profile_embedding=:emb, profile_updated_at=:ts "
-                        "WHERE id=:id"
-                    ),
-                    {"emb": emb_to_bytes(mean_emb), "ts": datetime.now(timezone.utc), "id": r_id},
+                    sa_update(Researcher)
+                    .where(Researcher.id == r_id)
+                    .values(profile_embedding=emb_to_list(mean_emb), profile_updated_at=datetime.now(timezone.utc))
                 )
                 for idx in range(start, end):
                     _, paper_id = paper_tracking[idx]
                     await db.execute(
-                        sa_text(
-                            "UPDATE researcher_papers SET embedding=:emb "
-                            "WHERE researcher_id=:r_id AND paper_openalex_id=:p_id"
-                        ),
-                        {"emb": emb_to_bytes(embs[idx]), "r_id": r_id, "p_id": paper_id},
+                        sa_update(ResearcherPaper)
+                        .where(ResearcherPaper.researcher_id == r_id)
+                        .where(ResearcherPaper.paper_openalex_id == paper_id)
+                        .values(embedding=emb_to_list(embs[idx]))
                     )
             await db.commit()
         done = min(batch_start + COMMIT_EVERY, len(researcher_slices))
@@ -276,9 +273,9 @@ async def _compute_missing_paper_embeddings() -> None:
     """Compute per-paper Qwen embeddings for already-seeded researchers (resume-safe)."""
     import asyncio
     from backend.database import SessionLocal
-    from backend.models import ResearcherPaper
-    from backend.services.embedding import encode_texts_ollama, emb_to_bytes
-    from sqlalchemy import select, text as sa_text
+    from backend.models import Researcher, ResearcherPaper
+    from backend.services.embedding import encode_texts_ollama, emb_to_list
+    from sqlalchemy import select, update as sa_update
 
     async with SessionLocal() as db:
         rows = list(await db.execute(
@@ -309,8 +306,9 @@ async def _compute_missing_paper_embeddings() -> None:
         async with SessionLocal() as db:
             for row, emb in zip(chunk_rows, chunk_embs):
                 await db.execute(
-                    sa_text("UPDATE researcher_papers SET embedding=:emb WHERE id=:id"),
-                    {"emb": emb_to_bytes(emb), "id": row.id},
+                    sa_update(ResearcherPaper)
+                    .where(ResearcherPaper.id == row.id)
+                    .values(embedding=emb_to_list(emb))
                 )
             await db.commit()
         log.info("Paper embeddings: %d/%d committed.", min(chunk_start + CHUNK, len(texts)), len(texts))
@@ -324,14 +322,15 @@ async def _compute_missing_paper_embeddings() -> None:
     r_embs: dict[str, list[np.ndarray]] = {}
     for row in all_rows:
         r_embs.setdefault(row.researcher_id, []).append(
-            np.frombuffer(row.embedding, dtype=np.float32)
+            np.array(row.embedding, dtype=np.float32)
         )
     async with SessionLocal() as db:
         for r_id, emb_list in r_embs.items():
             mean_emb = np.mean(emb_list, axis=0)
             await db.execute(
-                sa_text("UPDATE researchers SET profile_embedding=:emb, profile_updated_at=:ts WHERE id=:id"),
-                {"emb": emb_to_bytes(mean_emb), "ts": datetime.now(timezone.utc), "id": r_id},
+                sa_update(Researcher)
+                .where(Researcher.id == r_id)
+                .values(profile_embedding=emb_to_list(mean_emb), profile_updated_at=datetime.now(timezone.utc))
             )
         await db.commit()
 
@@ -359,7 +358,7 @@ async def export_fetched_paper_embeddings() -> None:
         log.info("No fetched paper embeddings to export.")
         return
 
-    embs = np.vstack([np.frombuffer(row.embedding, dtype=np.float32) for row in rows])
+    embs = np.vstack([np.array(row.embedding, dtype=np.float32) for row in rows])
     os.makedirs(os.path.dirname(FETCHED_CACHE_PATH), exist_ok=True)
     np.savez_compressed(
         FETCHED_CACHE_PATH,

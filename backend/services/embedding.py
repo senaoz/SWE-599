@@ -69,10 +69,11 @@ def batch_score(paper_embs: np.ndarray, researcher_embs: np.ndarray) -> np.ndarr
     return cosine_similarity(paper_embs, researcher_embs).astype(np.float32)
 
 
-def emb_to_bytes(emb: np.ndarray) -> bytes:
-    return emb.astype(np.float32).tobytes()
+def emb_to_list(emb: np.ndarray) -> list:
+    """Convert embedding array to list for pgvector storage."""
+    return emb.astype(np.float32).tolist()
 
 
-def bytes_to_emb(blob: bytes, dim: int = 768) -> np.ndarray:
-    arr = np.frombuffer(blob, dtype=np.float32)
-    return arr.reshape(1, -1) if arr.ndim == 1 else arr
+def row_to_emb(vec) -> np.ndarray:
+    """Convert pgvector column value to numpy array."""
+    return np.array(vec, dtype=np.float32)

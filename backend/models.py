@@ -3,13 +3,16 @@ from __future__ import annotations
 from datetime import datetime, date
 
 from sqlalchemy import (
-    Integer, String, Text, Float, LargeBinary,
+    Integer, String, Text, Float,
     DateTime, Date, ForeignKey, UniqueConstraint, Index,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from backend.database import Base
+
+EMBEDDING_DIM = 4096
 
 
 class User(Base):
@@ -61,7 +64,7 @@ class FetchedPaper(Base):
     source_institution_id: Mapped[str | None] = mapped_column(String(100))
     source_institution_name: Mapped[str | None] = mapped_column(String(255))
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    embedding: Mapped[bytes | None] = mapped_column(LargeBinary)
+    embedding: Mapped[list | None] = mapped_column(Vector(EMBEDDING_DIM))
 
     matches: Mapped[list[PaperResearcherMatch]] = relationship("PaperResearcherMatch", back_populates="paper", cascade="all, delete-orphan")
 
@@ -73,7 +76,7 @@ class Researcher(Base):
     openalex_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     paper_count: Mapped[int] = mapped_column(Integer, default=0)
-    profile_embedding: Mapped[bytes | None] = mapped_column(LargeBinary)
+    profile_embedding: Mapped[list | None] = mapped_column(Vector(EMBEDDING_DIM))
     profile_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     papers: Mapped[list[ResearcherPaper]] = relationship("ResearcherPaper", back_populates="researcher", cascade="all, delete-orphan")
@@ -90,7 +93,7 @@ class ResearcherPaper(Base):
     abstract: Mapped[str | None] = mapped_column(Text)
     concepts_text: Mapped[str | None] = mapped_column(Text)
     publication_year: Mapped[int | None] = mapped_column(Integer)
-    embedding: Mapped[bytes | None] = mapped_column(LargeBinary)  # Qwen individual embedding
+    embedding: Mapped[list | None] = mapped_column(Vector(EMBEDDING_DIM))
 
     researcher: Mapped[Researcher] = relationship("Researcher", back_populates="papers")
 

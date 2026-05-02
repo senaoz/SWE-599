@@ -290,6 +290,7 @@ def ollama_rank_candidates(query_text, candidates, model_name='llama3.2:3b',
     try:
         resp = requests.post(
             f'{ollama_url}/api/chat',
+            headers={'Origin': ollama_url},
             json={
                 'model': model_name,
                 'messages': [{'role': 'user', 'content': prompt}],
