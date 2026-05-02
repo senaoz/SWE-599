@@ -9,7 +9,9 @@ __pycache__/
 .claude
 CLAUDE.md
 docs/
-research/data/
+research/data/*
+!research/data/cleaned
+research/data/cleaned/*
+!research/data/cleaned/boun.csv
 .vscode/
 .vscode/*
-!research/data/cleaned/boun.csv
