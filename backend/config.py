@@ -24,6 +24,10 @@ OPENALEX_EMAIL: str | None = os.getenv("OPENALEX_EMAIL")
 BOUN_OPENALEX_ID: str = "https://openalex.org/I4405392"
 BOUN_CSV_PATH: str = os.getenv("BOUN_CSV_PATH", "research/data/cleaned/boun.csv")
 
+# Embedding fallback (used when local Ollama is unavailable)
+OLLAMA_CLOUD_API_KEY: str | None = os.getenv("OLLAMA_CLOUD_API_KEY")
+OLLAMA_CLOUD_MODEL: str = os.getenv("OLLAMA_CLOUD_MODEL", "qwen3:embedding")
+
 # RAG pipeline
 RETRIEVE_MODEL: str = "qwen"                                           # Stage 1: qwen3-embedding via Ollama
 RAG_RETRIEVE_TOP_K: int = int(os.getenv("RAG_RETRIEVE_TOP_K", "10"))  # Stage 1 → top-K researchers

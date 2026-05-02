@@ -64,6 +64,71 @@ def encode_texts_ollama(
     return np.array(embeddings, dtype=np.float32)
 
 
+def encode_texts_ollama_cloud(
+    texts: list[str],
+    api_key: str,
+    model: str = "qwen3:embedding",
+    batch_size: int = 32,
+) -> np.ndarray:
+    """Encode texts via Ollama Cloud API."""
+    import requests
+    embeddings = []
+    for i in range(0, len(texts), batch_size):
+        batch = [t[:2048] if t else "" for t in texts[i : i + batch_size]]
+        resp = requests.post(
+            "https://ollama.com/api/embed",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"model": model, "input": batch},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        embeddings.extend(resp.json()["embeddings"])
+    return np.array(embeddings, dtype=np.float32)
+
+
+def encode_with_fallback(
+    texts: list[str],
+    model_key: str,
+    ollama_url: str,
+    expected_dim: int = 4096,
+) -> np.ndarray:
+    """Encode texts with automatic fallback: local Ollama → Ollama Cloud."""
+    import logging
+    from backend.config import OLLAMA_CLOUD_API_KEY, OLLAMA_CLOUD_MODEL
+
+    log = logging.getLogger(__name__)
+
+    def _check_dim(embs: np.ndarray, provider: str) -> np.ndarray:
+        if embs.shape[1] != expected_dim:
+            raise ValueError(
+                f"{provider} returned dim={embs.shape[1]}, expected {expected_dim}. "
+                f"Check model configuration."
+            )
+        return embs
+
+    # 1. Local Ollama
+    try:
+        embs = encode_texts_ollama(texts, model_key, ollama_url)
+        return _check_dim(embs, "Ollama")
+    except Exception as e:
+        log.warning("Local Ollama unavailable (%s) — trying Ollama Cloud …", e)
+
+    # 2. Ollama Cloud
+    if OLLAMA_CLOUD_API_KEY:
+        try:
+            embs = encode_texts_ollama_cloud(texts, OLLAMA_CLOUD_API_KEY, OLLAMA_CLOUD_MODEL)
+            return _check_dim(embs, "Ollama Cloud")
+        except Exception as e:
+            log.error("Ollama Cloud failed (%s).", e)
+    else:
+        log.warning("OLLAMA_CLOUD_API_KEY not set — skipping.")
+
+    raise RuntimeError(
+        "All embedding providers failed. "
+        "Ensure local Ollama is running or set OLLAMA_CLOUD_API_KEY."
+    )
+
+
 def batch_score(paper_embs: np.ndarray, researcher_embs: np.ndarray) -> np.ndarray:
     """Cosine similarity matrix: (n_papers, n_researchers)."""
     return cosine_similarity(paper_embs, researcher_embs).astype(np.float32)

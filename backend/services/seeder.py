@@ -146,7 +146,7 @@ async def _compute_profile_embeddings(researchers: dict) -> None:
     """Encode all BOUN papers with Qwen, store individual + mean profile embeddings."""
     from backend.database import SessionLocal
     from backend.models import Researcher, ResearcherPaper
-    from backend.services.embedding import encode_texts_ollama, emb_to_list
+    from backend.services.embedding import encode_with_fallback, emb_to_list
     from sqlalchemy import select, update as sa_update
 
     # Build flat list: all paper texts with (researcher_id, paper_openalex_id) tracking
@@ -206,7 +206,7 @@ async def _compute_profile_embeddings(researchers: dict) -> None:
         for chunk_start in range(resume_from, len(all_texts), CHUNK):
             chunk = all_texts[chunk_start:chunk_start + CHUNK]
             try:
-                chunk_embs = await asyncio.to_thread(encode_texts_ollama, chunk, RETRIEVE_MODEL, OLLAMA_URL)
+                chunk_embs = await asyncio.to_thread(encode_with_fallback, chunk, RETRIEVE_MODEL, OLLAMA_URL)
                 partial_embs.append(chunk_embs)
             except Exception as e:
                 log.error("Qwen embedding failed at chunk %d: %s — saving partial progress.", chunk_start, e)
@@ -274,7 +274,7 @@ async def _compute_missing_paper_embeddings() -> None:
     import asyncio
     from backend.database import SessionLocal
     from backend.models import Researcher, ResearcherPaper
-    from backend.services.embedding import encode_texts_ollama, emb_to_list
+    from backend.services.embedding import encode_with_fallback, emb_to_list
     from sqlalchemy import select, update as sa_update
 
     async with SessionLocal() as db:
@@ -298,7 +298,7 @@ async def _compute_missing_paper_embeddings() -> None:
         chunk_texts = texts[chunk_start:chunk_start + CHUNK]
         chunk_rows = rows[chunk_start:chunk_start + CHUNK]
         try:
-            chunk_embs = await asyncio.to_thread(encode_texts_ollama, chunk_texts, RETRIEVE_MODEL, OLLAMA_URL)
+            chunk_embs = await asyncio.to_thread(encode_with_fallback, chunk_texts, RETRIEVE_MODEL, OLLAMA_URL)
         except Exception as e:
             log.error("Qwen embedding failed at chunk %d: %s — will resume on next restart.", chunk_start, e)
             return

@@ -26,7 +26,7 @@ async def run_matching_job() -> None:
         ResearcherPaper, PaperResearcherMatch,
     )
     from backend.services.openalex import fetch_new_papers
-    from backend.services.embedding import encode_texts_ollama, batch_score, emb_to_list, row_to_emb
+    from backend.services.embedding import encode_with_fallback, batch_score, emb_to_list, row_to_emb
     from sqlalchemy import select, func
 
     log.info("=" * 60)
@@ -115,7 +115,7 @@ async def run_matching_job() -> None:
     try:
         import asyncio
         new_paper_embs = await asyncio.to_thread(
-            encode_texts_ollama, paper_texts, RETRIEVE_MODEL, OLLAMA_URL
+            encode_with_fallback, paper_texts, RETRIEVE_MODEL, OLLAMA_URL
         )
         log.info("STAGE 1 — Encoded %d papers → shape %s", len(paper_texts), new_paper_embs.shape)
     except Exception as e:

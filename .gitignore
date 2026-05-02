@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .env
+!.env.example
 .DS_Store
 /data
 .idea
@@ -11,3 +12,4 @@ docs/
 research/data/
 .vscode/
 .vscode/*
+!research/data/cleaned/boun.csv
