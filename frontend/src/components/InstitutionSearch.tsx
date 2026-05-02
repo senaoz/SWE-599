@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { SearchLg } from "@untitledui/icons";
 import client from "../api/client";
 import { Input } from "@/components/base/input/input";
-import { Button } from "@/components/base/buttons/button";
 import { Badge } from "@/components/base/badges/badges";
 
 interface InstitutionResult {
