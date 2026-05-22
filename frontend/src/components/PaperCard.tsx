@@ -21,10 +21,17 @@ interface PaperCardProps {
 }
 
 export default function PaperCard({
-  openalex_id, title, abstract, publication_date,
-  source_institution_name, top_researchers, is_seen = false,
+  openalex_id,
+  title,
+  abstract,
+  publication_date,
+  source_institution_name,
+  top_researchers,
+  is_seen = false,
 }: PaperCardProps) {
-  const snippet = abstract ? abstract.slice(0, 280) + (abstract.length > 280 ? "…" : "") : null;
+  const snippet = abstract
+    ? abstract.slice(0, 280) + (abstract.length > 280 ? "…" : "")
+    : null;
   const [feedback, setFeedback] = useState<Record<string, boolean | null>>({});
   const [seen, setSeen] = useState(is_seen);
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,28 +40,41 @@ export default function PaperCard({
     setModalOpen(true);
     if (!seen) {
       setSeen(true);
-      client.post(`/papers/${openalex_id.replace('https://openalex.org/', '')}/seen`).catch(() => {});
+      client
+        .post(
+          `/papers/${openalex_id.replace("https://openalex.org/", "")}/seen`,
+        )
+        .catch(() => {});
     }
   };
 
-  const handleFeedback = async (researcher_id: string, is_relevant: boolean) => {
+  const handleFeedback = async (
+    researcher_id: string,
+    is_relevant: boolean,
+  ) => {
     const prev = feedback[researcher_id];
     const next = prev === is_relevant ? null : is_relevant;
-    setFeedback(f => ({ ...f, [researcher_id]: next }));
+    setFeedback((f) => ({ ...f, [researcher_id]: next }));
 
     if (next !== null) {
-      await client.post("/feedback", {
-        paper_openalex_id: openalex_id,
-        researcher_id,
-        is_relevant: next,
-      }).catch(() => {
-        setFeedback(f => ({ ...f, [researcher_id]: prev ?? null }));
-      });
+      await client
+        .post("/feedback", {
+          paper_openalex_id: openalex_id,
+          researcher_id,
+          is_relevant: next,
+        })
+        .catch(() => {
+          setFeedback((f) => ({ ...f, [researcher_id]: prev ?? null }));
+        });
     }
   };
 
   return (
-    <div className={`rounded-xl bg-primary p-5 shadow-sm ring-1 mb-4 transition-colors ${seen ? "ring-secondary opacity-75" : "ring-primary"}`}>
+    <>
+    <div
+      className={`cursor-pointer rounded-xl bg-primary p-5 shadow-sm ring-1 mb-4 transition-colors ${seen ? "ring-secondary opacity-75" : "ring-primary"}`}
+      onClick={openModal}
+    >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {source_institution_name && (
           <Badge type="color" color="blue" size="sm">
@@ -87,7 +107,9 @@ export default function PaperCard({
               name={r.display_name}
               score={r.score}
               feedback={feedback[r.researcher_id] ?? null}
-              onFeedback={(isRelevant) => handleFeedback(r.researcher_id, isRelevant)}
+              onFeedback={(isRelevant) =>
+                handleFeedback(r.researcher_id, isRelevant)
+              }
             />
           ))}
         </div>
@@ -102,9 +124,15 @@ export default function PaperCard({
         </button>
       )}
 
-      {modalOpen && (
-        <PaperModal paperId={openalex_id} title={title} onClose={() => setModalOpen(false)} />
-      )}
     </div>
+
+      {modalOpen && (
+        <PaperModal
+          paperId={openalex_id}
+          title={title}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </>
   );
 }

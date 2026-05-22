@@ -17,7 +17,13 @@ export default function ResearcherChip({ id: _id, name, score, feedback, onFeedb
 
   return (
     <div className="flex items-center gap-1">
-      <button onClick={() => setModalOpen(true)} className="focus:outline-none">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setModalOpen(true);
+        }}
+        className="focus:outline-none"
+      >
         <BadgeWithDot color={color} size="sm">
           {name} · {pct}%
         </BadgeWithDot>
@@ -27,7 +33,10 @@ export default function ResearcherChip({ id: _id, name, score, feedback, onFeedb
         <div className="flex gap-0.5">
           <button
             title="Relevant"
-            onClick={() => onFeedback(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFeedback(true);
+            }}
             className={`rounded p-0.5 transition-colors ${feedback === true ? "text-success-600" : "text-quaternary hover:text-success-600"}`}
           >
             <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -37,7 +46,10 @@ export default function ResearcherChip({ id: _id, name, score, feedback, onFeedb
           </button>
           <button
             title="Not relevant"
-            onClick={() => onFeedback(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFeedback(false);
+            }}
             className={`rounded p-0.5 transition-colors ${feedback === false ? "text-error-600" : "text-quaternary hover:text-error-600"}`}
           >
             <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

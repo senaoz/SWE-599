@@ -63,10 +63,14 @@ export default function ResearcherModal({ name, onClose }: Props) {
   }, [name]);
 
   return (
-    <ModalOverlay isOpen onOpenChange={onClose}>
+    <ModalOverlay
+      isOpen
+      isDismissable
+      onOpenChange={(open) => !open && onClose()}
+    >
       <Modal className="max-w-2xl">
-        <Dialog>
-          {({ close }) => (
+        <Dialog aria-label={name}>
+          {() => (
             <div className="w-full max-w-2xl rounded-2xl bg-primary ring-1 ring-primary shadow-xl overflow-hidden">
               {/* Header */}
               <div className="flex items-start justify-between gap-4 border-b border-secondary px-6 py-4">
@@ -80,7 +84,9 @@ export default function ResearcherModal({ name, onClose }: Props) {
                   )}
                 </div>
                 <button
-                  onClick={close}
+                  type="button"
+                  aria-label="Close"
+                  onClick={onClose}
                   className="shrink-0 text-quaternary hover:text-primary transition-colors text-lg leading-none cursor-pointer"
                 >
                   ✕
