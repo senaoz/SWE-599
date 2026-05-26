@@ -227,8 +227,13 @@ async def mark_seen(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from sqlalchemy import text as sa_text
     full_id = f"https://openalex.org/{paper_id}"
-    existing = await db.get(UserPaperView, (current_user.id, full_id))
-    if not existing:
-        db.add(UserPaperView(user_id=current_user.id, paper_openalex_id=full_id))
-        await db.commit()
+    await db.execute(
+        sa_text(
+            "INSERT INTO user_paper_views (user_id, paper_openalex_id) "
+            "VALUES (:uid, :pid) ON CONFLICT DO NOTHING"
+        ),
+        {"uid": current_user.id, "pid": full_id},
+    )
+    await db.commit()

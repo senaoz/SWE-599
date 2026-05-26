@@ -27,7 +27,7 @@ async def run_matching_job() -> None:
     )
     from backend.services.openalex import fetch_new_papers
     from backend.services.embedding import encode_with_fallback, batch_score, emb_to_list, row_to_emb
-    from sqlalchemy import select, func
+    from sqlalchemy import select, func, text as sa_text
 
     log.info("=" * 60)
     log.info("MATCHING JOB STARTED — %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"))
@@ -79,9 +79,25 @@ async def run_matching_job() -> None:
                     seen_this_batch.add(title_key)
                     existing_titles.add(title_key)
 
-                existing = await db.get(FetchedPaper, p["openalex_id"])
-                if not existing:
-                    db.add(FetchedPaper(source_institution_id=inst_id, **p))
+                result = await db.execute(
+                    sa_text(
+                        "INSERT INTO fetched_papers "
+                        "(openalex_id, title, abstract, concepts_text, publication_date, "
+                        "source_institution_id, source_institution_name) "
+                        "VALUES (:oid, :title, :abstract, :concepts, :pub_date, :inst_id, :inst_name) "
+                        "ON CONFLICT (openalex_id) DO NOTHING"
+                    ),
+                    {
+                        "oid": p["openalex_id"],
+                        "title": p.get("title"),
+                        "abstract": p.get("abstract"),
+                        "concepts": p.get("concepts_text"),
+                        "pub_date": p.get("publication_date"),
+                        "inst_id": inst_id,
+                        "inst_name": p.get("source_institution_name"),
+                    },
+                )
+                if result.rowcount:
                     all_new_papers.append(p)
                     new_count += 1
 
@@ -99,6 +115,27 @@ async def run_matching_job() -> None:
                     last_fetched_date=date.today(),
                 ))
         await db.commit()
+
+    # Pick up any previously-inserted papers that never got encoded (crashed runs)
+    async with SessionLocal() as db:
+        unembedded = list(await db.execute(
+            select(
+                FetchedPaper.openalex_id,
+                FetchedPaper.title,
+                FetchedPaper.abstract,
+                FetchedPaper.concepts_text,
+            ).where(FetchedPaper.embedding.is_(None))
+        ))
+    if unembedded:
+        log.info("Found %d previously-inserted paper(s) without embeddings — adding to batch.", len(unembedded))
+        for row in unembedded:
+            if not any(p["openalex_id"] == row.openalex_id for p in all_new_papers):
+                all_new_papers.append({
+                    "openalex_id": row.openalex_id,
+                    "title": row.title,
+                    "abstract": row.abstract,
+                    "concepts_text": row.concepts_text,
+                })
 
     if not all_new_papers:
         log.info("No new papers to process — job done.")
@@ -123,13 +160,16 @@ async def run_matching_job() -> None:
         return
 
     # Save embeddings back to fetched_papers
+    from sqlalchemy import text as sa_text
     async with SessionLocal() as db:
-        from sqlalchemy import update as sa_update
         for paper, emb in zip(all_new_papers, new_paper_embs):
+            vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
             await db.execute(
-                sa_update(FetchedPaper)
-                .where(FetchedPaper.openalex_id == paper["openalex_id"])
-                .values(embedding=emb_to_list(emb))
+                sa_text(
+                    f"UPDATE fetched_papers SET embedding = '{vec_str}' "
+                    f"WHERE openalex_id = :oid"
+                ),
+                {"oid": paper["openalex_id"]},
             )
         await db.commit()
     log.info("STAGE 1 — Stored %d paper embeddings to DB", len(all_new_papers))

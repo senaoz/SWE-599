@@ -275,7 +275,7 @@ async def _compute_missing_paper_embeddings() -> None:
     from backend.database import SessionLocal
     from backend.models import Researcher, ResearcherPaper
     from backend.services.embedding import encode_with_fallback, emb_to_list
-    from sqlalchemy import select, update as sa_update
+    from sqlalchemy import select, update as sa_update, text
 
     async with SessionLocal() as db:
         rows = list(await db.execute(
@@ -290,8 +290,46 @@ async def _compute_missing_paper_embeddings() -> None:
         log.info("All paper embeddings already present — skipping.")
         return
 
+    log.info("Computing Qwen embeddings for %d remaining papers …", len(rows))
+
+    # Try to populate from the .npz file cache before calling Ollama
+    cache_hit: dict[str, np.ndarray] = {}
+    if os.path.exists(CACHE_PATH):
+        try:
+            cache = np.load(CACHE_PATH, allow_pickle=True)
+            cache_embs = cache["embeddings"]
+            cache_paper_ids = cache["paper_ids"].tolist()
+            cache_hit = {pid: cache_embs[i] for i, pid in enumerate(cache_paper_ids)}
+            log.info("Loaded %d embeddings from cache file for lookup.", len(cache_hit))
+        except Exception as e:
+            log.warning("Could not load cache file: %s", e)
+
+    # Rows that are already in the cache
+    from_cache = [(r, cache_hit[r.paper_openalex_id]) for r in rows if r.paper_openalex_id in cache_hit]
+    to_compute = [r for r in rows if r.paper_openalex_id not in cache_hit]
+
+    if from_cache:
+        log.info("Cache supplied %d/%d embeddings — only %d need Qwen.", len(from_cache), len(rows), len(to_compute))
+        COMMIT_EVERY = 500
+        async with SessionLocal() as db:
+            for i, (row, emb) in enumerate(from_cache):
+                vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
+                await db.execute(
+                    text(f"UPDATE researcher_papers SET embedding = '{vec_str}' WHERE id = :id"),
+                    {"id": row.id},
+                )
+                if (i + 1) % COMMIT_EVERY == 0:
+                    await db.commit()
+            await db.commit()
+        log.info("Cache embeddings committed.")
+
+    rows = to_compute
+    if not rows:
+        log.info("All missing embeddings resolved from cache — skipping Qwen.")
+    else:
+        log.info("Still need to compute %d embeddings via Qwen.", len(rows))
+
     texts = [f"{r.title or ''} {r.abstract or ''} {r.concepts_text or ''}".strip() for r in rows]
-    log.info("Computing Qwen embeddings for %d remaining papers …", len(texts))
 
     CHUNK = 200
     for chunk_start in range(0, len(texts), CHUNK):
@@ -305,10 +343,10 @@ async def _compute_missing_paper_embeddings() -> None:
 
         async with SessionLocal() as db:
             for row, emb in zip(chunk_rows, chunk_embs):
+                vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
                 await db.execute(
-                    sa_update(ResearcherPaper)
-                    .where(ResearcherPaper.id == row.id)
-                    .values(embedding=emb_to_list(emb))
+                    text(f"UPDATE researcher_papers SET embedding = '{vec_str}' WHERE id = :id"),
+                    {"id": row.id},
                 )
             await db.commit()
         log.info("Paper embeddings: %d/%d committed.", min(chunk_start + CHUNK, len(texts)), len(texts))
@@ -327,10 +365,13 @@ async def _compute_missing_paper_embeddings() -> None:
     async with SessionLocal() as db:
         for r_id, emb_list in r_embs.items():
             mean_emb = np.mean(emb_list, axis=0)
+            vec_str = "[" + ",".join(f"{float(x):.8g}" for x in mean_emb) + "]"
             await db.execute(
-                sa_update(Researcher)
-                .where(Researcher.id == r_id)
-                .values(profile_embedding=emb_to_list(mean_emb), profile_updated_at=datetime.now(timezone.utc))
+                text(
+                    f"UPDATE researchers SET profile_embedding = '{vec_str}', "
+                    f"profile_updated_at = :ts WHERE id = :id"
+                ),
+                {"ts": datetime.now(timezone.utc), "id": r_id},
             )
         await db.commit()
 
