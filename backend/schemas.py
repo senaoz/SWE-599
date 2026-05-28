@@ -142,4 +142,5 @@ class AdminStatus(BaseModel):
     paper_count: int
     match_count: int
     researcher_count: int
+    unmatched_count: int
     last_run_at: datetime | None

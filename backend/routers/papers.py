@@ -26,6 +26,7 @@ async def get_papers(
     from_date: date | None = Query(None, description="Filter papers published on or after this date"),
     to_date: date | None = Query(None, description="Filter papers published on or before this date"),
     min_score: float = Query(MATCH_THRESHOLD, ge=0.0, le=1.0, description="Minimum researcher match score"),
+    include_unmatched: bool = Query(True, description="Include papers with no researcher matches"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -53,6 +54,11 @@ async def get_papers(
     if to_date:
         conditions.append("publication_date <= :to_date")
         params["to_date"] = to_date
+
+    if not include_unmatched:
+        conditions.append(
+            "EXISTS (SELECT 1 FROM paper_researcher_matches m WHERE m.paper_openalex_id = fetched_papers.openalex_id)"
+        )
 
     where_sql = " AND ".join(conditions)
 

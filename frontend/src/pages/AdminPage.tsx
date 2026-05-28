@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Lightning01, Settings01 } from "@untitledui/icons";
+import { Lightning01, Settings01, RefreshCcw01 } from "@untitledui/icons";
 import client from "../api/client";
 import { Button } from "@/components/base/buttons/button";
 
@@ -7,12 +7,14 @@ interface Status {
   paper_count: number;
   match_count: number;
   researcher_count: number;
+  unmatched_count: number;
   last_run_at: string | null;
 }
 
 export default function AdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [triggering, setTriggering] = useState(false);
+  const [rematching, setRematching] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,6 +29,14 @@ export default function AdminPage() {
     setTriggering(false);
   };
 
+  const rematchUnmatched = async () => {
+    setRematching(true);
+    setMsg(null);
+    await client.post("/admin/rematch-unmatched");
+    setMsg(`Rematch job started for ${status?.unmatched_count ?? 0} unmatched papers.`);
+    setRematching(false);
+  };
+
   if (!status) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -39,6 +49,7 @@ export default function AdminPage() {
     { label: "Researchers", value: status.researcher_count },
     { label: "Papers fetched", value: status.paper_count },
     { label: "Matches", value: status.match_count },
+    { label: "Unmatched", value: status.unmatched_count, highlight: status.unmatched_count > 0 },
   ];
 
   return (
@@ -55,13 +66,15 @@ export default function AdminPage() {
       )}
 
       {/* Stats */}
-      <div className="mb-8 grid grid-cols-3 gap-4">
-        {stats.map(({ label, value }) => (
+      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {stats.map(({ label, value, highlight }) => (
           <div
             key={label}
             className="flex flex-col items-center rounded-xl bg-primary p-5 shadow-sm ring-1 ring-primary text-center gap-1"
           >
-            <span className="text-display-sm font-semibold text-brand-secondary">{value}</span>
+            <span className={`text-display-sm font-semibold ${highlight ? "text-warning-primary" : "text-brand-secondary"}`}>
+              {value}
+            </span>
             <span className="text-xs text-tertiary">{label}</span>
           </div>
         ))}
@@ -74,7 +87,7 @@ export default function AdminPage() {
       )}
 
       {/* Manual trigger */}
-      <section>
+      <section className="mb-8">
         <h2 className="mb-1 text-sm font-semibold text-tertiary uppercase tracking-wide">
           Manual Job Trigger
         </h2>
@@ -86,10 +99,30 @@ export default function AdminPage() {
           size="md"
           iconLeading={Lightning01}
           isLoading={triggering}
-          isDisabled={triggering}
+          isDisabled={triggering || rematching}
           onClick={trigger}
         >
           Run matching job now
+        </Button>
+      </section>
+
+      {/* Rematch unmatched */}
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-tertiary uppercase tracking-wide">
+          Rematch Unmatched Papers
+        </h2>
+        <p className="mb-4 text-sm text-tertiary">
+          Re-runs Stage 2 scoring for the {status.unmatched_count} papers that currently have no researcher matches.
+        </p>
+        <Button
+          color="secondary"
+          size="md"
+          iconLeading={RefreshCcw01}
+          isLoading={rematching}
+          isDisabled={triggering || rematching || status.unmatched_count === 0}
+          onClick={rematchUnmatched}
+        >
+          Rematch {status.unmatched_count} unmatched papers
         </Button>
       </section>
     </div>

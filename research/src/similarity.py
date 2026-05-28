@@ -438,6 +438,56 @@ def combined_embedding_similarity(
     return cosine_similarity(query_emb.astype(np.float32), corpus_emb.astype(np.float32))
 
 
+def gemini_embedding_similarity(
+    query_texts,
+    corpus_texts,
+    model_name='models/text-embedding-004',
+    cache_dir='data/embeddings_cache',
+    task_type='RETRIEVAL_DOCUMENT',
+):
+    """Compute cosine similarity using Gemini text-embedding-004.
+
+    Requires GEMINI_API_KEY in environment. Caches results to disk.
+
+    Returns
+    -------
+    np.ndarray of shape (len(query_texts), len(corpus_texts))
+    """
+    import os as _os
+
+    api_key = _os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        raise EnvironmentError('GEMINI_API_KEY not set')
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    def _embed(texts, prefix, task):
+        safe = model_name.replace('/', '_').replace('-', '_').replace(':', '_')
+        h = _corpus_hash([_as_str(t) for t in texts])
+        cache_file = os.path.join(cache_dir, f'{safe}_{prefix}_{len(texts)}_{h}.npy')
+        if os.path.exists(cache_file):
+            return np.load(cache_file)
+        all_embs = []
+        batch_size = 100
+        for i in range(0, len(texts), batch_size):
+            batch = [_as_str(t)[:8000] for t in texts[i:i + batch_size]]
+            resp = requests.post(
+                f'https://generativelanguage.googleapis.com/v1beta/{model_name}:batchEmbedContents',
+                params={'key': api_key},
+                json={'requests': [{'model': model_name, 'content': {'parts': [{'text': t}]}, 'taskType': task} for t in batch]},
+                timeout=60,
+            )
+            resp.raise_for_status()
+            all_embs.extend([e['values'] for e in resp.json()['embeddings']])
+        emb = np.array(all_embs, dtype=np.float32)
+        np.save(cache_file, emb)
+        return emb
+
+    corpus_emb = _embed(corpus_texts, 'corpus', 'RETRIEVAL_DOCUMENT')
+    query_emb  = _embed(query_texts,  'query',  'RETRIEVAL_QUERY')
+    return cosine_similarity(query_emb, corpus_emb)
+
+
 def gemini_score_pair(query_text, candidate_text, model_name='gemini-2.5-flash-lite'):
     """Use Gemini to score semantic similarity between two papers (returns 0–1).
     Returns 0.0 on API error rather than None, so callers need no None-check.

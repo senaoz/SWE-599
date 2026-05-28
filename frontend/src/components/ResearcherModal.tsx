@@ -152,8 +152,18 @@ export default function ResearcherModal({ name, onClose }: Props) {
                                   : "gray";
                             return (
                               <li
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  let paperId = p.openalex_id;
+                                  if (
+                                    paperId.startsWith("https://openalex.org/")
+                                  ) {
+                                    paperId = paperId.slice(21);
+                                  }
+                                  window.open(`/?paper=${paperId}`, "_blank");
+                                }}
                                 key={p.openalex_id}
-                                className="rounded-xl ring-1 ring-secondary p-3"
+                                className="rounded-xl ring-1 ring-secondary p-3 cursor-pointer hover:bg-brand-solid/5 transition-colors"
                               >
                                 <div className="flex flex-wrap items-center gap-2 mb-1.5">
                                   {p.source_institution_name && (
@@ -170,14 +180,9 @@ export default function ResearcherModal({ name, onClose }: Props) {
                                     {pct}% match
                                   </Badge>
                                 </div>
-                                <a
-                                  href={p.openalex_id}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-sm font-medium text-primary hover:text-brand-secondary transition-colors"
-                                >
+                                <h4 className="text-sm font-medium">
                                   {p.title ?? "(No title)"}
-                                </a>
+                                </h4>
                               </li>
                             );
                           })}

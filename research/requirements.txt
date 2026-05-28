@@ -5,3 +5,4 @@ sentence-transformers>=2.0
 google-generativeai>=0.5
 rank-bm25>=0.2
 scipy>=1.7
+openai>=1.0

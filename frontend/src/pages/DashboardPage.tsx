@@ -37,6 +37,7 @@ interface Filters {
   min_score: string;
   from_date: string;
   to_date: string;
+  hide_unmatched: boolean;
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -44,6 +45,7 @@ const DEFAULT_FILTERS: Filters = {
   min_score: "0.3",
   from_date: "",
   to_date: "",
+  hide_unmatched: false,
 };
 
 export default function DashboardPage() {
@@ -66,11 +68,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    const params: Record<string, string | number> = { page, limit: 20 };
+    const params: Record<string, string | number | boolean> = { page, limit: 20 };
     if (filters.institution_id) params.institution_id = filters.institution_id;
     if (filters.min_score) params.min_score = filters.min_score;
     if (filters.from_date) params.from_date = filters.from_date;
     if (filters.to_date) params.to_date = filters.to_date;
+    if (filters.hide_unmatched) params.include_unmatched = false;
 
     client
       .get<PapersResponse>("/papers", { params })
@@ -83,7 +86,7 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [page, filters]);
 
-  const setFilter = (key: keyof Filters, value: string) => {
+  const setFilter = (key: keyof Filters, value: string | boolean) => {
     setPage(1);
     setFilters((f) => ({ ...f, [key]: value }));
   };
@@ -186,11 +189,15 @@ export default function DashboardPage() {
             </label>
             <input
               type="number"
-              min="0"
+              min={DEFAULT_FILTERS.min_score}
               max="1"
               step="0.05"
               value={filters.min_score}
-              onChange={(e) => setFilter("min_score", e.target.value)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                const minScore = parseFloat(DEFAULT_FILTERS.min_score);
+                if (!isNaN(v) && v >= minScore) setFilter("min_score", e.target.value);
+              }}
               className="rounded-lg border border-secondary bg-primary px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand-solid"
             />
           </div>
@@ -218,16 +225,31 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {hasActiveFilters && (
-          <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex items-center justify-between">
+          <label className="flex cursor-pointer items-center gap-2 select-none">
+            <div
+              onClick={() => setFilter("hide_unmatched", !filters.hide_unmatched)}
+              className={`relative h-5 w-9 rounded-full transition-colors ${
+                filters.hide_unmatched ? "bg-brand-solid" : "bg-secondary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  filters.hide_unmatched ? "translate-x-4" : "translate-x-0.5"
+                }`}
+              />
+            </div>
+            <span className="text-xs text-secondary">Hide unmatched papers</span>
+          </label>
+          {hasActiveFilters && (
             <button
               onClick={resetFilters}
               className="text-xs text-brand-secondary hover:underline"
             >
               Reset filters
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className={loading ? "opacity-60 pointer-events-none" : ""}>
