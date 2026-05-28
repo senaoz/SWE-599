@@ -99,7 +99,7 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
         onOpenChange={(open) => !open && onClose()}
       >
         <Modal className="max-w-2xl">
-          <Dialog aria-label={title ?? "Paper details"}>
+          <Dialog aria-label={data?.title ?? title ?? "Paper details"}>
             {() => (
               <div className="w-full max-w-2xl rounded-2xl bg-primary ring-1 ring-primary shadow-xl overflow-hidden">
                 {/* Header */}
@@ -135,7 +135,7 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
                       rel="noreferrer"
                       className="text-lg font-semibold text-primary hover:text-brand-secondary transition-colors leading-snug"
                     >
-                      {title ?? "(No title)"}
+                      {data?.title ?? title ?? "(No title)"}
                     </a>
                     {data?.abstract && (
                       <p className="mt-2 text-sm text-tertiary leading-relaxed">
