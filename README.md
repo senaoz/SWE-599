@@ -12,7 +12,7 @@ This repository contains the full implementation and research code for an NLP-ba
 
 <img width="914" height="1124" alt="System overview" src="https://github.com/user-attachments/assets/94ce3246-9413-4d54-9f56-d9dd9627e3f6" />
 
-**Report:** [`docs/final_report.tex`](SWE599_Final_2026S_OZ_Sena.pdf)
+**Report:** [`Final Report PDF`](SWE599_Final_2026S_OZ_Sena.pdf)
 
 ---
 
