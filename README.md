@@ -4,6 +4,8 @@
 Sena Öz · Advisor: H. Birkan Yılmaz  
 Boğaziçi University, 2026
 
+[`Final Report PDF`](SWE599_Final_2026S_OZ_Sena.pdf)
+
 ---
 
 ## Overview
@@ -11,8 +13,6 @@ Boğaziçi University, 2026
 This repository contains the full implementation and research code for an NLP-based academic paper recommendation system targeting Boğaziçi University (BOUN) researchers. The system monitors a configurable set of academic institutions via the [OpenAlex API](https://openalex.org), detects newly published papers, and matches them against BOUN researcher profiles using a two-stage Retrieval-Augmented Generation (RAG) pipeline.
 
 <img width="914" height="1124" alt="System overview" src="https://github.com/user-attachments/assets/94ce3246-9413-4d54-9f56-d9dd9627e3f6" />
-
-**Report:** [`Final Report PDF`](SWE599_Final_2026S_OZ_Sena.pdf)
 
 ---
 
