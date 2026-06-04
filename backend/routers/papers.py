@@ -27,6 +27,8 @@ async def get_papers(
     to_date: date | None = Query(None, description="Filter papers published on or before this date"),
     min_score: float = Query(MATCH_THRESHOLD, ge=0.0, le=1.0, description="Minimum researcher match score"),
     include_unmatched: bool = Query(True, description="Include papers with no researcher matches"),
+    search: str | None = Query(None, description="Full-text search on title and abstract"),
+    concept: str | None = Query(None, description="Filter by concept/topic keyword"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -59,6 +61,16 @@ async def get_papers(
         conditions.append(
             "EXISTS (SELECT 1 FROM paper_researcher_matches m WHERE m.paper_openalex_id = fetched_papers.openalex_id)"
         )
+
+    if search:
+        conditions.append(
+            "(title ILIKE :search OR abstract ILIKE :search)"
+        )
+        params["search"] = f"%{search}%"
+
+    if concept:
+        conditions.append("concepts_text ILIKE :concept")
+        params["concept"] = f"%{concept}%"
 
     where_sql = " AND ".join(conditions)
 

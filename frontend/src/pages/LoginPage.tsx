@@ -156,18 +156,6 @@ export default function LoginPage({ onLogin }: Props) {
       {/* Right column */}
       <figure className="relative hidden flex-1 flex-col items-start justify-end gap-6 overflow-hidden rounded-l-[80px] p-14 lg:flex" style={{ background: "linear-gradient(135deg, #3b1f7a 0%, #53389E 40%, #6941C6 100%)" }}>
         <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/40 from-20% to-transparent to-90%" />
-        <blockquote className="relative z-10 text-display-md font-medium text-white">
-          "Discover relevant academic research tailored to your institution's expertise — automatically."
-        </blockquote>
-        <figcaption className="relative z-10 flex w-full flex-col gap-3">
-          <p className="text-xl font-semibold text-white md:text-display-xs">Research Discovery</p>
-          <div className="flex w-full gap-3">
-            <div className="flex w-full flex-col gap-0.5">
-              <p className="text-lg font-semibold text-white not-italic">Automated Paper Recommendations</p>
-              <p className="text-md font-medium text-white/80 not-italic">Boğaziçi University</p>
-            </div>
-          </div>
-        </figcaption>
       </figure>
     </section>
   );
