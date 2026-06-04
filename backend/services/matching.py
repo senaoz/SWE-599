@@ -18,19 +18,20 @@ from backend.config import (
 
 log = logging.getLogger(__name__)
 
-_job_running = False
+_main_job_running = False
+_rematch_job_running = False
 
 
 async def run_matching_job() -> None:
-    global _job_running
-    if _job_running:
+    global _main_job_running
+    if _main_job_running:
         log.warning("A job is already running — skipping this trigger.")
         return
-    _job_running = True
+    _main_job_running = True
     try:
         await _run_matching_job_impl()
     finally:
-        _job_running = False
+        _main_job_running = False
 
 
 async def _run_matching_job_impl() -> None:
@@ -319,15 +320,15 @@ async def _run_matching_job_impl() -> None:
 
 async def run_stage2_for_unmatched() -> None:
     """Run Stage 1+2 for fetched papers that have embeddings but no researcher matches."""
-    global _job_running
-    if _job_running:
-        log.warning("A job is already running — skipping rematch trigger.")
+    global _rematch_job_running
+    if _rematch_job_running:
+        log.warning("A rematch job is already running — skipping rematch trigger.")
         return
-    _job_running = True
+    _rematch_job_running = True
     try:
         await _run_stage2_for_unmatched_impl()
     finally:
-        _job_running = False
+        _rematch_job_running = False
 
 
 async def _run_stage2_for_unmatched_impl() -> None:
@@ -410,9 +411,14 @@ async def _run_stage2_for_unmatched_impl() -> None:
     total_matches = 0
     total_llm_calls = 0
     total_llm_skipped = 0
+    COMMIT_EVERY = 20
 
+    total_papers = len(all_papers)
+    total_no_hits = 0
     async with SessionLocal() as db:
         for i, paper in enumerate(all_papers):
+            paper_title = (paper.get("title") or "")[:60]
+
             paper_scores = scores_matrix[i]
             researcher_hits: dict[str, list[tuple[float, object]]] = {}
             for j, boun_row in enumerate(boun_rows):
@@ -422,6 +428,8 @@ async def _run_stage2_for_unmatched_impl() -> None:
                 researcher_hits.setdefault(boun_row.researcher_id, []).append((score, boun_row))
 
             if not researcher_hits:
+                total_no_hits += 1
+                log.debug("REMATCH [%d/%d] SKIP (no hits) — '%s'", i + 1, total_papers, paper_title)
                 continue
 
             researcher_ranked = {
@@ -431,16 +439,24 @@ async def _run_stage2_for_unmatched_impl() -> None:
             researcher_best = {r_id: hits[0][0] for r_id, hits in researcher_ranked.items()}
             top_researchers = sorted(researcher_best.items(), key=lambda x: x[1], reverse=True)[:RAG_RETRIEVE_TOP_K]
 
+            log.info(
+                "REMATCH [%d/%d] — '%s' — %d researcher(s) above threshold, top-%d for LLM",
+                i + 1, total_papers, paper_title, len(researcher_hits), len(top_researchers),
+            )
+
             final_scores: dict[str, tuple[float, list, float | None]] = {}
             for r_id, emb_score in top_researchers:
                 hits = researcher_ranked[r_id]
                 llm_score: float | None = None
                 if len(final_scores) < RAG_LLM_TOP_K:
+                    log.debug("REMATCH [%d/%d] — LLM call → researcher %s (emb=%.3f)", i + 1, total_papers, r_id, emb_score)
                     llm_score = await asyncio.to_thread(_llm_generate, paper, hits[:RAG_CONTEXT_PAPERS])
                     total_llm_calls += 1
                     if llm_score == 0.0:
                         total_llm_skipped += 1
+                        log.debug("REMATCH [%d/%d] — LLM → IRRELEVANT for researcher %s", i + 1, total_papers, r_id)
                         continue
+                    log.debug("REMATCH [%d/%d] — LLM → score=%.3f for researcher %s", i + 1, total_papers, llm_score, r_id)
                     final_score = llm_score if llm_score is not None else emb_score
                 else:
                     final_score = emb_score
@@ -449,6 +465,7 @@ async def _run_stage2_for_unmatched_impl() -> None:
                     final_scores[r_id] = (final_score, hits, llm_score)
 
             import json
+            paper_new_matches = 0
             for r_id, (final_score, hits, llm_score) in final_scores.items():
                 matched_ids_json = json.dumps([
                     {"id": row.paper_openalex_id, "score": round(float(score), 4)}
@@ -463,11 +480,24 @@ async def _run_stage2_for_unmatched_impl() -> None:
                     llm_score=round(llm_score, 4) if llm_score is not None else None,
                 ))
                 total_matches += 1
+                paper_new_matches += 1
+
+            log.info(
+                "REMATCH [%d/%d] — '%s' → %d new match(es) | total=%d | llm_calls=%d skipped=%d no_hits=%d",
+                i + 1, total_papers, paper_title, paper_new_matches,
+                total_matches, total_llm_calls, total_llm_skipped, total_no_hits,
+            )
+
+            if total_matches % COMMIT_EVERY == 0 and total_matches > 0:
+                await db.commit()
+                log.info("REMATCH — committed %d match(es) so far.", total_matches)
 
         await db.commit()
 
-    log.info("REMATCH JOB DONE — %d match(es) stored | %d LLM call(s) | %d filtered by LLM",
-             total_matches, total_llm_calls, total_llm_skipped)
+    log.info(
+        "REMATCH JOB DONE — %d match(es) stored | %d LLM call(s) | %d LLM-skipped | %d no-hit papers",
+        total_matches, total_llm_calls, total_llm_skipped, total_no_hits,
+    )
 
 
 def _llm_generate(new_paper: dict, context_papers: list[tuple[float, object]]) -> float | None:
@@ -497,7 +527,7 @@ def _llm_generate(new_paper: dict, context_papers: list[tuple[float, object]]) -
         resp = requests.post(
             f"{OLLAMA_URL}/api/generate",
             json={"model": LLM_GENERATE_MODEL, "prompt": prompt, "stream": False},
-            timeout=30,
+            timeout=120,
         )
         resp.raise_for_status()
         text = resp.json().get("response", "").strip().upper()
