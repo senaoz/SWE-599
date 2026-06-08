@@ -6,6 +6,8 @@ Boğaziçi University, 2026
 
 [`Final Report PDF`](SWE599_Final_2026S_OZ_Sena.pdf)
 
+<img width="6600" height="4665" alt="599poster" src="https://github.com/user-attachments/assets/fe233979-4516-4200-8e78-d8435749bd96" />
+
 ---
 
 ## Overview
