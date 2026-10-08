@@ -3,6 +3,7 @@
 **A 9-method benchmark on citation-based relevance, and a deployed two-stage recommender for Boğaziçi University researchers**
 
 Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software Engineering (SWE 599), 2026
+
 [Final report (PDF)](SWE599_Final_2026S_OZ_Sena.pdf) · [Statistics](research/stats/results.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md)
 
 ---
@@ -116,16 +117,4 @@ backend/                       FastAPI service, scheduler, matching pipeline
 frontend/                      React application
 docs/DEVLOG.md                 week-by-week development log
 SWE599_Final_2026S_OZ_Sena.pdf final report
-```
-
-## Citation
-
-```bibtex
-@techreport{oz2026llmrerank,
-  author      = {Sena {\"O}z},
-  title       = {Does LLM Reranking Help Scientific Paper Recommendation? A Nine-Method Citation Benchmark and a Deployed Two-Stage Recommender},
-  institution = {Bo{\u{g}}azi{\c{c}}i University},
-  year        = {2026},
-  type        = {M.S. Term Project Report (SWE 599)}
-}
 ```
