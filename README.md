@@ -6,6 +6,10 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 
 [Final report (PDF)](SWE599_Final_2026S_OZ_Sena.pdf) · [Statistics](research/stats/results.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md)
 
+
+<img width="3300" height="2333" alt="599poster" src="https://github.com/user-attachments/assets/1e51a466-e63a-4aa7-9801-2d2195c4cfb7" />
+
+
 ---
 
 ## Summary
