@@ -76,6 +76,7 @@ Significance tests for the comparisons discussed above: [`research/stats/results
 - **One LLM run.** Generative reranking is stochastic; results over multiple seeds are pending.
 - **Possible pretraining contamination.** The LLM may have seen these papers and their reference lists during pretraining.
 - **100 of 174 queries** were evaluated, for cost reasons.
+- **Excluded runs.** Gemini and Kimi reranking runs were not completed and are excluded from all results; their partial outputs are kept in [`research/unused/`](research/unused/).
 
 ## Next step: human-centered evaluation
 
