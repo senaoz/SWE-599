@@ -1,13 +1,13 @@
 """v2 benchmark runner. Run from research/ with the project venv:
 
-    .venv/bin/python run_v2.py build
-    .venv/bin/python run_v2.py run --methods bm25 tfidf minilm --split dev
-    .venv/bin/python run_v2.py run --methods llama --seeds 0 1 2 3 4 --split test
-    .venv/bin/python run_v2.py probe --method llama --n 5
+    .venv/bin/python run_v2.py build --bench random
+    .venv/bin/python run_v2.py run --bench concept --methods bm25 tfidf minilm --split dev
+    .venv/bin/python run_v2.py run --bench concept --methods llama --seeds 0 1 2 3 4 --split test
+    .venv/bin/python run_v2.py probe --bench concept --method llama --n 5
 
 Outputs (one JSON line per query, resumable):
-    eval_dataset/v2/eval_sets.json
-    eval_dataset/v2/runs/<text tag>/<method>__<order>__s<seed>.jsonl
+    eval_dataset/v2/eval_sets_<bench>.json
+    eval_dataset/v2/runs/<bench>/<text tag>/<method>__<order>__s<seed>.jsonl
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from src import jan
-from src.eval_v2 import (ORDER_MODES, assign_splits, build_eval_sets, candidate_order,
+from src.eval_v2 import (BENCHES, ORDER_MODES, assign_splits, build_eval_sets, candidate_order,
                          paper_text, rng_for)
 from src.metrics import ranking_metrics
 from src.openalex import fetch_works_by_id, normalize_work
@@ -31,7 +31,6 @@ from src.rankers_v2 import (EMBED_METHODS, CrossEncoderScorer, EmbeddingCache, c
 ROOT = Path(__file__).resolve().parent
 V1_QUERIES = ROOT / "eval_dataset" / "week3" / "main_papers.json"
 OUT = ROOT / "eval_dataset" / "v2"
-EVAL_SETS = OUT / "eval_sets.json"
 RAW_WORKS = ROOT / "data" / "v2" / "openalex_works.jsonl"
 EMB_CACHE = ROOT / "data" / "v2" / "embeddings"
 
@@ -58,15 +57,19 @@ def cmd_build(args) -> None:
     ids = {q["id"] for q in queries} | {r for q in queries for r in q["referenced_works"]}
     raw = fetch_works_by_id(ids, RAW_WORKS)
     papers = {pid: normalize_work(w) for pid, w in raw.items()}
-    ds = build_eval_sets(queries, papers, seed=args.seed)
+    ds = build_eval_sets(queries, papers, seed=args.seed, bench=args.bench)
     ds["splits"] = assign_splits(ds["sets"], seed=args.seed)
     ds["n_ids_requested"] = len(ids)
     ds["n_ids_missing_from_openalex"] = len(ids - set(raw))
     OUT.mkdir(parents=True, exist_ok=True)
-    EVAL_SETS.write_text(json.dumps(ds, indent=1, ensure_ascii=False), encoding="utf-8")
+    path = eval_sets_path(args.bench)
+    path.write_text(json.dumps(ds, indent=1, ensure_ascii=False), encoding="utf-8")
     n_dev = sum(v == "dev" for v in ds["splits"].values())
+    topped = sum(s["n_neg_concept_matched"] is not None
+                 and s["n_neg_concept_matched"] < len(s["negatives"]) for s in ds["sets"])
     print(f"{len(ds['sets'])} queries ({n_dev} dev / {len(ds['sets']) - n_dev} test), "
-          f"{len(ds['dropped'])} dropped, {len(ds['papers'])} papers -> {EVAL_SETS}")
+          f"{len(ds['dropped'])} dropped, {len(ds['papers'])} papers, "
+          f"{topped} topped up with random negatives -> {path}")
 
 
 # ---------------------------------------------------------------------------
@@ -87,10 +90,15 @@ class Texts:
         return paper_text(self.papers[pid], self.fields, self.max_chars)
 
 
-def load_eval_sets() -> dict:
-    if not EVAL_SETS.exists():
-        raise SystemExit(f"{EVAL_SETS} not found; run `run_v2.py build` first")
-    return json.loads(EVAL_SETS.read_text(encoding="utf-8"))
+def eval_sets_path(bench: str) -> Path:
+    return OUT / f"eval_sets_{bench}.json"
+
+
+def load_eval_sets(bench: str) -> dict:
+    path = eval_sets_path(bench)
+    if not path.exists():
+        raise SystemExit(f"{path} not found; run `run_v2.py build --bench {bench}` first")
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def select_sets(ds: dict, split: str, limit: int | None) -> list[dict]:
@@ -98,8 +106,8 @@ def select_sets(ds: dict, split: str, limit: int | None) -> list[dict]:
     return sets[:limit] if limit else sets
 
 
-def run_path(tag: str, method: str, order: str, seed: int, suffix: str = "") -> Path:
-    return OUT / "runs" / tag / f"{method}{suffix}__{order}__s{seed}.jsonl"
+def run_path(bench: str, tag: str, method: str, order: str, seed: int, suffix: str = "") -> Path:
+    return OUT / "runs" / bench / tag / f"{method}{suffix}__{order}__s{seed}.jsonl"
 
 
 def read_run(path: Path) -> dict[str, dict]:
@@ -162,7 +170,7 @@ class Scorer:
         elif m == "qwen→llama":
             return self.two_stage(q, cands, shown, rng, seed)
         elif m == "llama+minilm":
-            llama = read_run(run_path(self.texts.tag, "llama", order, seed)).get(es["pi_id"])
+            llama = read_run(run_path(self.args.bench, self.texts.tag, "llama", order, seed)).get(es["pi_id"])
             if llama is None:
                 raise SystemExit("llama+minilm needs the llama run for the same tag/order/seed")
             llama_scores = dict(zip(llama["shown"], llama["scores"]))
@@ -191,7 +199,7 @@ class Scorer:
 
 
 def cmd_run(args) -> None:
-    ds = load_eval_sets()
+    ds = load_eval_sets(args.bench)
     sets = select_sets(ds, args.split, args.limit)
     texts = Texts(ds["papers"], args.fields, args.max_chars, args.query_max_chars)
     if any(m in LLM_METHODS for m in args.methods):
@@ -202,7 +210,7 @@ def cmd_run(args) -> None:
         scorer = Scorer(method, texts, sets, args)
         for order in args.orders:
             for seed in args.seeds:
-                path = run_path(texts.tag, method, order, seed, suffix)
+                path = run_path(args.bench, texts.tag, method, order, seed, suffix)
                 done = read_run(path)
                 todo = [s for s in sets if s["pi_id"] not in done]
                 if not todo:
@@ -253,7 +261,7 @@ def check_jan(methods) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_probe(args) -> None:
-    ds = load_eval_sets()
+    ds = load_eval_sets(args.bench)
     sets = select_sets(ds, "all", None)
     texts = Texts(ds["papers"], args.fields, args.max_chars, args.query_max_chars)
     check_jan([args.method])
@@ -289,8 +297,10 @@ def main() -> None:
 
     b = sub.add_parser("build")
     b.add_argument("--seed", type=int, default=0)
+    b.add_argument("--bench", choices=BENCHES, required=True)
 
     def text_args(p):
+        p.add_argument("--bench", choices=BENCHES, required=True)
         p.add_argument("--fields", default="ta", help="any of t(itle) a(bstract) c(oncepts)")
         p.add_argument("--max-chars", type=int, default=600)
         p.add_argument("--query-max-chars", type=int, default=1500)

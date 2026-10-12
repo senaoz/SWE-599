@@ -9,6 +9,9 @@ Fixes for the v1 audit (research/audit/AUDIT.md):
 - F1: candidate order is a separate, recorded step (`candidate_order`).
 - Negatives are other queries' references published before the query paper,
   so positives and negatives share the same "cited work" distribution.
+  Two benchmarks: "random" samples them uniformly; "concept" (harder) requires
+  at least one shared top-k OpenAlex concept with the query, topping up with
+  random negatives when too few match (recorded per query).
 """
 from __future__ import annotations
 
@@ -20,6 +23,8 @@ import numpy as np
 MIN_POSITIVES = 3
 NEG_PER_POS = 2
 DEV_FRACTION = 0.3
+CONCEPT_K = 5
+BENCHES = ("random", "concept")
 ORDER_MODES = ("shuffled", "original", "reversed")
 
 
@@ -37,7 +42,8 @@ def eligible(rec: dict) -> bool:
     return bool(rec["title"] and rec["abstract"])
 
 
-def build_eval_sets(main_papers: list[dict], papers: dict[str, dict], seed: int = 0) -> dict:
+def build_eval_sets(main_papers: list[dict], papers: dict[str, dict], seed: int = 0,
+                    bench: str = "random", concept_k: int = CONCEPT_K) -> dict:
     """Build per-query candidate pools.
 
     main_papers: the 174 v1 query records (id + referenced_works ground truth).
@@ -76,9 +82,17 @@ def build_eval_sets(main_papers: list[dict], papers: dict[str, dict], seed: int 
             and papers[pid]["publication_date"] < query["publication_date"]
             and not (q_authors & set(papers[pid]["author_ids"]))
         ]
-        k = min(NEG_PER_POS * len(positives), len(candidates))
-        picks = rng_for("negatives", qid, seed).choice(len(candidates), size=k, replace=False)
-        negatives = [candidates[i] for i in sorted(picks)]
+        rng = rng_for("negatives", bench, qid, seed)
+        want = NEG_PER_POS * len(positives)
+        negatives, n_matched = [], None
+        if bench == "concept":
+            q_concepts = set(query["concepts_array"][:concept_k])
+            matched = [c for c in candidates
+                       if q_concepts & set(papers[c]["concepts_array"][:concept_k])]
+            negatives = _sample(matched, min(want, len(matched)), rng)
+            n_matched = len(negatives)
+        rest = [c for c in candidates if c not in set(negatives)]
+        negatives = negatives + _sample(rest, min(want - len(negatives), len(rest)), rng)
 
         sets.append({
             "pi_id": qid,
@@ -88,15 +102,21 @@ def build_eval_sets(main_papers: list[dict], papers: dict[str, dict], seed: int 
             "negatives": negatives,
             "n_ref_listed": len(set(p["referenced_works"])),
             "n_neg_pool": len(candidates),
+            "n_neg_concept_matched": n_matched,
         })
 
     used = {s["pi_id"] for s in sets} | {c for s in sets for c in s["positives"] + s["negatives"]}
     return {
         "seed": seed,
+        "bench": bench,
         "sets": sets,
         "dropped": dropped,
         "papers": {pid: papers[pid] for pid in sorted(used)},
     }
+
+
+def _sample(items: list[str], k: int, rng: np.random.Generator) -> list[str]:
+    return [items[i] for i in sorted(rng.choice(len(items), size=k, replace=False))]
 
 
 def assign_splits(sets: list[dict], seed: int = 0, dev_fraction: float = DEV_FRACTION) -> dict[str, str]:
