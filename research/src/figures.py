@@ -122,24 +122,51 @@ def fig_dataset_overview(datasets: dict):
 # Dev tuning (03)
 # ---------------------------------------------------------------------------
 
+FIELD_NAMES = {"t": "Title", "ta": "Title + abstract", "tac": "Title + abstract + concepts"}
+
+
+def tag_label(tag: str) -> str:
+    fields, max_chars, _ = tag.split("_")
+    return FIELD_NAMES.get(fields, fields) + ("" if fields == "t" else f" ({max_chars} chars)")
+
+
 def fig_dev_tuning(dev: pd.DataFrame):
     """R-precision on dev per method, one panel per benchmark, one marker per text config."""
-    tags = sorted(dev["text_tag"].unique())
+    tags = sorted(dev["text_tag"].unique(), key=len)
     markers = ["o", "s", "D", "^"]
     benches = list(dev["bench"].unique())
-    fig, axes = plt.subplots(1, len(benches), figsize=(3.8 * len(benches), 0.32 * dev["method"].nunique() + 1.4),
+    fig, axes = plt.subplots(1, len(benches), figsize=(3.8 * len(benches), 0.32 * dev["method"].nunique() + 1.6),
                              sharey=True)
     axes = np.atleast_1d(axes)
-    methods = (dev.groupby("method")["rprec"].mean().sort_values().index.tolist())
+    methods = dev.groupby("method")["rprec"].mean().sort_values().index.tolist()
     for ax, bench in zip(axes, benches):
         d = dev[dev["bench"] == bench]
         for i, tag in enumerate(tags):
             t = d[d["text_tag"] == tag].set_index("method").reindex(methods)
-            ax.plot(t["rprec"], range(len(methods)), markers[i % 4], ls="", color=INK_2 if i else SLOTS[0],
-                    mfc="white" if i else SLOTS[0], label=tag)
-        ax.set_title(f"{bench} benchmark (dev)"); ax.set_xlabel("R-precision %")
+            ax.plot(t["rprec"], range(len(methods)), markers[i % 4], ls="", color=SLOTS[0] if i == 0 else INK_2,
+                    mfc=SLOTS[0] if i == 0 else "white", label=tag_label(tag))
+        ax.set_title(f"{bench.capitalize()} benchmark (dev)"); ax.set_xlabel("R-precision %")
     axes[0].set_yticks(range(len(methods)), [label(m) for m in methods])
-    axes[-1].legend(title="Text config", fontsize=8, title_fontsize=8, loc="lower right")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=len(tags), fontsize=8, title="Candidate text",
+               title_fontsize=8, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    return fig
+
+
+def fig_stage1_k(two_stage: pd.DataFrame, baseline: dict):
+    """Two-stage R-precision against stage-1 k, with stage 1 alone (Qwen3) as a reference line."""
+    fig, ax = plt.subplots(figsize=(4.4, 2.7))
+    for bench, g in two_stage.groupby("bench", sort=False):
+        g = g.sort_values("k")
+        c = BENCH_COLOR[bench]
+        ax.plot(g["k"], g["rprec"], "-o", color=c, label=f"Qwen3 → Llama ({bench})")
+        ax.hlines(baseline[bench], g["k"].min(), g["k"].max(), color=c, ls="--", lw=1)
+        ax.text(g["k"].max() + 0.8, baseline[bench], f"Qwen3 alone\n({bench})", va="center", fontsize=7, color=INK_2)
+    ax.set_xticks(sorted(two_stage["k"].unique())); ax.set_xlabel("Candidates passed to Llama (stage-1 k)")
+    ax.set_ylabel("R-precision % (dev)"); ax.set_title("Reranking more candidates hurts")
+    ax.set_xlim(right=two_stage["k"].max() + 9)
+    ax.legend(fontsize=7, loc="center right")
     fig.tight_layout()
     return fig
 
