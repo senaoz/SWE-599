@@ -49,19 +49,31 @@ def list_models() -> list[str]:
     return [m["id"] for m in resp.json().get("data", [])]
 
 
-def chat(model: str, prompt: str, max_tokens: int, seed: int = 0, timeout: float = 600) -> dict:
-    """Greedy (temperature 0) single-turn completion. Returns {'text', 'prompt_tokens'}."""
-    data = _post("/chat/completions", {
+def chat(model: str, prompt: str, max_tokens: int, seed: int = 0, top_logprobs: int = 0,
+         timeout: float = 600) -> dict:
+    """Greedy (temperature 0) single-turn completion.
+
+    Returns {'text', 'prompt_tokens', 'top_logprobs'}; 'top_logprobs' is the list of
+    {token, logprob} alternatives for the first generated token, or None if the
+    server did not return them.
+    """
+    payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0,
         "seed": seed,
         "max_tokens": max_tokens,
         "stream": False,
-    }, timeout)
+    }
+    if top_logprobs:
+        payload.update(logprobs=True, top_logprobs=top_logprobs)
+    data = _post("/chat/completions", payload, timeout)
+    choice = data["choices"][0]
+    content = ((choice.get("logprobs") or {}).get("content")) or []
     usage = data.get("usage") or {}
-    return {"text": data["choices"][0]["message"]["content"] or "",
-            "prompt_tokens": usage.get("prompt_tokens")}
+    return {"text": choice["message"]["content"] or "",
+            "prompt_tokens": usage.get("prompt_tokens"),
+            "top_logprobs": content[0].get("top_logprobs") if content else None}
 
 
 def embed(model: str, texts: list[str], batch_size: int = 32, timeout: float = 600) -> np.ndarray:
