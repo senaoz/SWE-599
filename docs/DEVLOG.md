@@ -297,3 +297,40 @@ What the example shows:
   - 16 of 168 queries (10 of them in test) have duplicate positives: 17 of 1,247 positives (1.4%).
   - No negative duplicates one of its query's positives, in either benchmark, so no cited paper appears as a negative under another id.
   - The effect is small. It is kept as is, matching the reference lists as OpenAlex records them, and reported as a limitation.
+
+### 2026-10-12 — Core test runs complete (preliminary numbers)
+
+The core pass finished in about 3.5 hours: all methods, both benchmarks, 3 seeds, and the position-bias conditions. The extra seeds (3 and 4) are still running. The numbers below are **preliminary**: test split, 118 queries, means over seeds 0–2. CIs and tests come in `05_stats`.
+
+**Position bias confirms the v1 mechanism.** Listwise Llama, same test queries, seed 0:
+
+| Candidate order | `random` MRR / R-prec | `concept` MRR / R-prec |
+|---|---|---|
+| Positives first (v1's order) | **0.947** / 72.3 | **0.979** / 74.1 |
+| Shuffled (v2) | 0.663 / 46.3 | 0.608 / 43.1 |
+| Positives last | **0.334** / 30.0 | **0.274** / 19.9 |
+
+With positives first, Llama reproduces (and exceeds) v1's MRR 0.84. With the same candidates reversed, it falls below chance (R-precision about 33%). The model ranks mostly by input position, not content.
+
+**Shuffled results**, R-precision % (`random` / `concept`):
+
+| Method | `random` | `concept` |
+|---|---|---|
+| Qwen3-Embedding-8B | 87.0 | 80.1 |
+| EmbeddingGemma | 85.6 | 78.5 |
+| Qwen3 + MiniLM | 85.6 | 78.2 |
+| SPECTER2 | 83.5 | 76.6 |
+| MiniLM | 83.3 | 75.7 |
+| Llama pointwise | 78.8 | 73.9 |
+| TF-IDF | 75.3 | 65.4 |
+| Qwen3 → Llama (k = 10) | 74.1 | 69.8 |
+| Llama + MiniLM | 69.2 | 64.9 |
+| BM25 | 68.6 | 63.4 |
+| bge-reranker | 67.2 | 58.1 |
+| Llama, sliding window | 56.5 | 53.0 |
+| Llama, full-list listwise | 45.1 | 42.9 |
+
+What stands out:
+- **Pointwise is the best LLM variant.** It is order-independent, beats TF-IDF, and stays below every embedding model.
+- **Reranking with Llama lowers Qwen3's own ranking** (87.0 → 74.1).
+- **Full-list listwise output is unreliable.** About 37% of answers are partial; with the sliding window, about 1%.
