@@ -15,7 +15,7 @@ JAN_URL = os.getenv("JAN_URL", "http://127.0.0.1:1337/v1").rstrip("/")
 
 # Method key -> Jan model id (the id Jan lists under /v1/models).
 JAN_MODEL_MAP = {
-    "llama": os.getenv("JAN_LLAMA_MODEL", "bartowski/Llama-3.2-3B-Instruct-Q4_K_M"),
+    "llama": os.getenv("JAN_LLAMA_MODEL", "bartowski/Llama-3_2-3B-Instruct-Q4_K_M"),
     "qwen": os.getenv("JAN_QWEN_EMBED_MODEL", "Qwen/Qwen3-Embedding-8B-Q4_K_M"),
     "embeddinggemma": os.getenv("JAN_GEMMA_EMBED_MODEL", "unsloth/embeddinggemma-300M-BF16"),
 }
