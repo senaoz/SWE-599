@@ -261,3 +261,9 @@ Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-resu
   1. All methods on both benchmarks with **3 core seeds** for the order-sensitive LLM methods, plus pointwise and the position-bias conditions (about 5.5 h).
   2. Then seeds 3 and 4 (about 3 h).
 - **Started** 2026-10-12 08:15, under `caffeinate`. Log: `research/data/v2/logs/04_test_runs.log`.
+
+### 2026-10-12 — Note on what `concept` negatives are
+
+Inspecting test examples shows that the `concept` match often rests on a very broad OpenAlex concept. For example, a query on reproducibility of ML in health care gets negatives about neonatal screening and an antibody-drug conjugate, which share only "Medicine". `concept` negatives therefore come from the same broad field, not necessarily the same topic, and some `random` negatives happen to be closer.
+
+This is a limitation for the paper. `concept` is a harder setting, not a true hard-negative benchmark. Same-subtopic hard negatives belong to the full-corpus retrieval experiment (Phase 4).
