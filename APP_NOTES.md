@@ -18,6 +18,11 @@ Each entry gives the date it was noted, what to do, and why.
 ## Stage-2 LLM reranking (`backend/services/matching.py`)
 
 - **2026-10-11 — Re-check stage 2 against the v2 results.** The case for the deployed two-stage design (Qwen3 → Llama 3.2 3B) came from v1, which the audit found invalid (F1–F6). The v2 benchmark will show whether LLM reranking helps at all once the leaks are removed. If it doesn't, simplify stage 2 or replace it, e.g. with a cross-encoder such as bge-reranker.
+- **2026-10-12 — v2 answer on stage 2.** On the leak-free v2 benchmark (`research/audit/BEFORE_AFTER.md`):
+  - **Reranking lowers the ranking.** Reranking Qwen3's top 10 with listwise Llama 3.2 3B scores 13.0 / 10.4 R-precision points **below** Qwen3 alone. Stage-1 recall is not the cause: the top 10 already holds about 90% of the true references.
+  - **Pointwise is the only competitive LLM variant.** It scores above BM25, TF-IDF and bge-reranker, but still below every embedding model.
+  - **MiniLM (22M) is within 4 points of Qwen3-Embedding-8B.**
+  - **Implications for the app.** Stage 2 as deployed is likely to hurt, not help. Either drop it, or switch to a pointwise score used only as a tie-breaker, and benchmark it before shipping. A smaller embedding model is a reasonable cost trade-off.
 - **2026-10-11 — Position bias in the app.** v1 found that Llama 3.2 3B is sensitive to candidate order and to the format example in the prompt.
   - `_llm_generate` scores researchers one at a time, so it's pointwise and order effects are smaller. Still, audit its prompt for leading examples.
   - Log how often LLM output fails to parse, and what the code does then.

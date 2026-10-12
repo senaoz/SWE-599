@@ -3,6 +3,8 @@
 - **v1:** tag `v1-results`, 100 queries, results in `v1/stats/results.md`. The audit (`AUDIT.md`, F1–F9) found the v1 evaluation invalid, so v1 numbers are shown only to document the change.
 - **v2:** branch `v2-audit`, 118 test queries, results in `v2/stats/results_<bench>.md`, notebooks `v2/01`–`06`.
 
+**Query count.** v2 reports 118 test queries rather than all 174. Six queries lack an abstract, a date, or three usable references; 50 more form the dev split used only for tuning, so test results are not tuned on themselves.
+
 **This is not a paired re-run.** v2 rebuilds the candidate pools for the same query papers. v1's pools cannot be regenerated: its caches are gone and its seeds came from Python's salted `hash()` (F8).
 
 ## Headline claims
@@ -10,9 +12,10 @@
 | v1 claim | v2 result |
 |---|---|
 | Listwise Llama 3.2 3B is the best method (MRR 0.841 vs Qwen3 0.513) | Listwise Llama is the **worst** method: R-precision 43.9 / 42.0, about 40 points below Qwen3 (p ≈ 2e-19) and close to chance (33.3). |
-| The LLM's advantage reflects relevance judgement | **Position bias.** The same model on the same test queries scores MRR 0.95 / 0.98 with v1's positives-first order and 0.33 / 0.27 with positives last, below chance. |
+| The LLM's advantage reflects relevance judgement | **Position bias.** The same model on the same test queries scores MRR 0.95 / 0.98 with v1's positives-first order and 0.33 [0.27, 0.40] / 0.27 [0.21, 0.34] with positives last, below chance (about 0.56). Only the order changes; prompt and candidate text are v2's, so order alone reproduces v1's 0.84. |
 | Two-stage Qwen3 → Llama (MRR 0.589) falls short because stage 1 loses references | Stage 1 keeps about 90% of references in its top 10 and 98–99% in its top 20. Two-stage (k = 10) is 13.0 / 10.4 points **below Qwen3 alone**: the Llama reranking step is what hurts. |
 | Embedding models are roughly equivalent and weak (MRR 0.47–0.54, R-precision 30–37%) | Embedding models are the **best** methods, at 76–87% R-precision. The v1 values were at chance because positives carried other papers' text (F6). |
+| Cross-encoders are not compared | bge-reranker-base scores 67.2 / 58.1, below TF-IDF and BM25 on both benchmarks; its 512-token limit truncates the query-candidate pairs. |
 | SPECTER2 is among the weakest models | SPECTER2 is within 1 point of MiniLM and about 3–4 points of Qwen3, after fixing its pooling (F9). |
 
 ## Method by method

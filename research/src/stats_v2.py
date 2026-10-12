@@ -107,8 +107,18 @@ def position_bias(df: pd.DataFrame, method: str) -> pd.DataFrame:
     d = df[df["method"] == method]
     common = set.intersection(*(set(g["pi_id"]) for _, g in d.groupby("order")))
     d = d[d["pi_id"].isin(common)]
-    return (d.groupby("order")[["mrr", "rprec", "top1"]].mean()
-            .assign(queries=len(common)).round(4).reset_index())
+    rng = np.random.default_rng(SEED)
+    rows = []
+    for order, g in d.groupby("order"):
+        g = g.groupby("pi_id")[["mrr", "rprec", "top1"]].mean()  # one value per query
+        row = {"order": order, "queries": len(g)}
+        for m in ("mrr", "rprec", "top1"):
+            x = g[m].to_numpy()
+            row[m] = x.mean()
+            if m != "top1":
+                row[f"{m}_lo"], row[f"{m}_hi"] = boot_ci(x, rng)
+        rows.append(row)
+    return pd.DataFrame(rows).round(4)
 
 
 def stage1_recall(df: pd.DataFrame, method: str = "qwen", ks=(5, 10, 20, 50)) -> pd.DataFrame:

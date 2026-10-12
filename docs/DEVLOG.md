@@ -344,3 +344,11 @@ What stands out:
 - **Stage-1 recall.** Qwen3's top 10 holds 93% / 89% of references, and its top 20 99% / 98%. So the two-stage drop (−13.0 / −10.4) comes from Llama reranking, not stage 1.
 - **Contamination.** Only 1 test query (2 overall) is after Llama 3.2's December 2023 cutoff, so this is reported as not testable.
 - **Report.** `research/audit/BEFORE_AFTER.md` compares v1 and v2 claim by claim and method by method. The README is unchanged, pending the user's approval of the v2 results.
+
+### 2026-10-12 — Final checks before review
+
+- **Position-bias CIs.** The position-bias table now has 95% bootstrap CIs. With positives last, MRR is below chance on both benchmarks: 0.33 [0.27, 0.40] and 0.27 [0.21, 0.34], against about 0.56. R-precision is below chance (33.3) only on `concept` (20 [14, 26]); on `random` the CI includes chance (30 [23, 37]).
+- **Scope of that experiment.** These conditions change only the candidate order (F1); prompt and text are v2's. So order alone is enough to reproduce v1's MRR 0.84.
+- **Corrections.** bge-reranker is below both BM25 and TF-IDF on both benchmarks. Top-1 accuracy with positives first is 94–98%.
+- **BEFORE_AFTER.md** now states why v2 reports 118 of the 174 queries: 6 are unusable and 50 are held out for tuning.
+- **APP_NOTES.md** records the stage-2 answer for the app.
