@@ -250,3 +250,14 @@ Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-resu
   - SPECTER2: 82.6 → 87.2 on `random`, 73.1 → 78.1 on `concept`.
   - EmbeddingGemma: 85.7 → 88.4 on `random`, 79.2 → 80.3 on `concept`.
 - **Stray run file.** A dev seed-1 Llama file of unknown origin (16 queries, possibly a manual notebook run) had entered the tuning summary and shifted the config choice. It was moved to `data/v2/stray/`. Dev tuning now averages over seeds before ranking. With that, the choice is unchanged: title + abstract + concepts (mean rank 1.75), k = 10.
+
+### 2026-10-12 — Test runs started [a7b3519]
+
+- **Concurrency test.** llama-server has 4 slots, so concurrent requests were tested on 12 dev queries with full-list Llama.
+  - **Outputs:** identical to the sequential run (12/12 raw responses and rankings).
+  - **Speed:** no gain (44 s vs 41 s). The LLM work is dominated by prompt processing (1–5k tokens per call, about 1,000 tokens/s on the M1 Max), which already saturates the GPU.
+  - Runs stay sequential. The option is kept in code (`RunConfig.workers`).
+- **Run order.** Test runs are ordered so that a complete result exists early:
+  1. All methods on both benchmarks with **3 core seeds** for the order-sensitive LLM methods, plus pointwise and the position-bias conditions (about 5.5 h).
+  2. Then seeds 3 and 4 (about 3 h).
+- **Started** 2026-10-12 08:15, under `caffeinate`. Log: `research/data/v2/logs/04_test_runs.log`.
