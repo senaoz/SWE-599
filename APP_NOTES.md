@@ -22,7 +22,10 @@ Each entry gives the date it was noted, what to do, and why.
   - **Reranking lowers the ranking.** Reranking Qwen3's top 10 with listwise Llama 3.2 3B scores 13.0 / 10.4 R-precision points **below** Qwen3 alone. Stage-1 recall is not the cause: the top 10 already holds about 90% of the true references.
   - **Pointwise is the only competitive LLM variant.** It scores above BM25, TF-IDF and bge-reranker, but still below every embedding model.
   - **MiniLM (22M) is within 4 points of Qwen3-Embedding-8B.**
-  - **Implications for the app.** Stage 2 as deployed is likely to hurt, not help. Either drop it, or switch to a pointwise score used only as a tie-breaker, and benchmark it before shipping. A smaller embedding model is a reasonable cost trade-off.
+  - **Implications for the app.**
+    - The deployed stage 2 (`_llm_generate`) scores each researcher separately, so it is pointwise, not listwise.
+    - v2 did not test pointwise reranking on top of Qwen3. Pointwise on its own scores below Qwen3 (78.8 vs 87.0), so stage 2 needs its own benchmark before anyone can claim it helps; keep or drop it based on that.
+    - A smaller embedding model is a reasonable cost trade-off.
 - **2026-10-11 — Position bias in the app.** v1 found that Llama 3.2 3B is sensitive to candidate order and to the format example in the prompt.
   - `_llm_generate` scores researchers one at a time, so it's pointwise and order effects are smaller. Still, audit its prompt for leading examples.
   - Log how often LLM output fails to parse, and what the code does then.
