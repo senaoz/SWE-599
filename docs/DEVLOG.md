@@ -224,4 +224,5 @@ Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-resu
 
 - **Why.** So that Llama is not judged only by its long-list failure mode (user decision).
 - **Method.** RankGPT-style: windows of 10 moving 5 at a time, from the bottom of the shuffled list to the top. The model never sees more than 10 candidates.
-- **Status.** Being evaluated on dev before deciding whether it joins the test runs.
+- **Dev result.** Output becomes reliable: 199 of 200 window calls parse fully, against 26–48% partial answers for the full list. R-precision rises 46.9 → 54.0 on `random` and 43.6 → 53.6 on `concept`. It is still far below Qwen3 (88.7 / 81.3) and below bge-reranker (70.2 / 55.7). The first-shown candidate still ends up first in 40–52% of queries, so order copying remains.
+- **Decision.** Include it in the test runs (5 seeds) as the strongest listwise setting, so the LLM comparison is fair. Cost on dev is about 6.5 s per query (4 calls on average).
