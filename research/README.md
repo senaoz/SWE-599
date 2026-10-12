@@ -37,7 +37,38 @@ This reproduces every number in `audit/AUDIT.md` from `v1/results/`.
 
 ## Stage 3 — v2
 
-All models run locally. The sentence-transformers models (MiniLM, SPECTER2, bge-reranker) run in-process. The GGUF models (Llama 3.2 3B, Qwen3-Embedding-8B, EmbeddingGemma) are served by [Jan](https://jan.ai): enable Settings → Local API Server. `JAN_URL`, `JAN_API_KEY` and the model ids can be overridden with environment variables; see `src/jan.py`.
+All models run locally. The sentence-transformers models (MiniLM, SPECTER2, bge-reranker) run in-process. The GGUF models (Llama 3.2 3B, Qwen3-Embedding-8B, EmbeddingGemma) are served over an OpenAI-compatible API by [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server` in router mode on `127.0.0.1:1337`. Use build b11146: it is the build Jan bundled for the earlier runs, and its outputs are bit-identical to Jan's. Each model is a preset section named after its model id (paths must be absolute):
+
+```ini
+[*]
+ctx-size = 8192
+
+[bartowski/Llama-3_2-3B-Instruct-Q4_K_M]
+model = /path/to/gguf/bartowski/Llama-3_2-3B-Instruct-Q4_K_M/model.gguf
+ctx-size = 16384
+
+[Qwen/Qwen3-Embedding-8B-Q4_K_M]
+model = /path/to/gguf/Qwen/Qwen3-Embedding-8B-Q4_K_M/model.gguf
+embeddings = true
+pooling = last
+ctx-size = 0
+batch-size = 2048
+ubatch-size = 2048
+
+[unsloth/embeddinggemma-300M-BF16]
+model = /path/to/gguf/unsloth/embeddinggemma-300M-BF16/model.gguf
+embeddings = true
+pooling = mean
+ctx-size = 0
+batch-size = 2048
+ubatch-size = 2048
+```
+
+```bash
+llama-server --models-preset llama-server.ini --models-max 2 --host 127.0.0.1 --port 1337
+```
+
+`JAN_URL`, `JAN_API_KEY` and the model ids can be overridden with environment variables; see `src/jan.py`. The `JAN_` names are kept from when Jan served the models.
 
 Setup, from `research/`:
 
@@ -52,7 +83,7 @@ Run the numbered notebooks in order. Each one ends with a **Findings** cell and 
 .venv/bin/papermill v2/04_test_runs.ipynb v2/04_test_runs.ipynb --cwd v2 --log-output
 ```
 
-| Step | Notebook | What it does | Needs Jan |
+| Step | Notebook | What it does | Needs llama-server |
 |---|---|---|---|
 | 01 | `v2/01_fetch_openalex.ipynb` | Fetch queries and references by OpenAlex id; normalize | no |
 | 02 | `v2/02_build_eval_sets.ipynb` | Build `random` and `concept` benchmarks, dev/test split; sanity checks for every audit finding | no |

@@ -1,8 +1,11 @@
-"""Client for Jan's local OpenAI-compatible API (llama.cpp backend).
+"""Client for the local OpenAI-compatible model server (llama.cpp's llama-server).
+
+Written for Jan's Local API Server, which wraps the same llama.cpp router; the
+JAN_* names are kept so existing configs keep working.
 
 Configure with environment variables:
     JAN_URL      base URL including /v1 (default http://127.0.0.1:1337/v1)
-    JAN_API_KEY  only if an API key is set in Jan → Settings → Local API Server
+    JAN_API_KEY  only if llama-server was started with --api-key
 """
 from __future__ import annotations
 
@@ -13,7 +16,7 @@ import requests
 
 JAN_URL = os.getenv("JAN_URL", "http://127.0.0.1:1337/v1").rstrip("/")
 
-# Method key -> Jan model id (the id Jan lists under /v1/models).
+# Method key -> server model id (the id listed under /v1/models).
 JAN_MODEL_MAP = {
     "llama": os.getenv("JAN_LLAMA_MODEL", "bartowski/Llama-3_2-3B-Instruct-Q4_K_M"),
     "qwen": os.getenv("JAN_QWEN_EMBED_MODEL", "Qwen/Qwen3-Embedding-8B-Q4_K_M"),
