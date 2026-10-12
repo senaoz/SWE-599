@@ -267,3 +267,30 @@ Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-resu
 Inspecting test examples shows that the `concept` match often rests on a very broad OpenAlex concept. For example, a query on reproducibility of ML in health care gets negatives about neonatal screening and an antibody-drug conjugate, which share only "Medicine". `concept` negatives therefore come from the same broad field, not necessarily the same topic, and some `random` negatives happen to be closer.
 
 This is a limitation for the paper. `concept` is a harder setting, not a true hard-negative benchmark. Same-subtopic hard negatives belong to the full-corpus retrieval experiment (Phase 4).
+
+**Example** (test query `W2997681568`, 2020-01-06; same in both benchmarks except the negatives). The query is *Challenges to the Reproducibility of Machine Learning Models in Health Care*. Its top-5 concepts are Medicine, Reproducibility, Machine learning, Health care, Artificial intelligence.
+
+| Role | Paper (year) | Shared top-5 concepts with query |
+|---|---|---|
+| Positive | Estimating the reproducibility of psychological science (2015) | Reproducibility |
+| Positive | Why Most Published Research Findings Are False (2005), `W2144981148` | Medicine |
+| Positive | Why Most Published Research Findings Are False (2005), `W2331384579` | — |
+| Positive | Deep Learning—A Technology With the Potential to Transform Health Care (2018) | Medicine, Deep learning → AI |
+| `random` negative | Real-time human interaction with supervised learning algorithms for music composition and performance (2011) | Machine learning, AI |
+| `random` negative | Strengthening Health Systems While Responding to a Health Crisis… Ebola… Sierra Leone (2016) | — |
+| `random` negative | Within host RNA virus persistence: mechanisms and consequences (2017) | — |
+| `random` negative | Dissecting racial bias in an algorithm used to manage the health of populations (2019) | Health care |
+| `random` negative | The rise of disposable JUUL-type e-cigarette devices (2019) | — |
+| `concept` negative | Congenital Adrenal Hyperplasia: Neonatal Mass Screening… Emilia-Romagna, 1980–1995 (1996) | Medicine |
+| `concept` negative | Enfortumab Vedotin Antibody–Drug Conjugate Targeting Nectin-4… (2016) | Medicine |
+| `concept` negative | Interpretable Decision Sets (2016) | Machine learning, AI |
+| `concept` negative | The impact of clozapine on hospital use: a systematic review and meta-analysis (2017) | Medicine |
+| `concept` negative | Medical Care, Social Determinants of Health, and Health Equity (2018) | Health care |
+| `concept` negative | Optimizing CAR-T Cell Manufacturing Processes during Pivotal Clinical Trials (2019) | Medicine |
+
+Each benchmark has 8 negatives for this query; the `random` list shows 5 of them.
+
+What the example shows:
+- **Field, not topic.** Six of the eight `concept` negatives match only through "Medicine" or "Health care".
+- **Some `random` negatives are close.** Two of them (ML for music; racial bias in a health algorithm) are arguably as close to the query as any `concept` negative.
+- **Duplicate works.** OpenAlex holds two records of the same paper (*Why Most Published Research Findings Are False*: `W2144981148` and `W2331384579`), and the query's reference list cites both. They count as two positives, which inflates n for this query and rewards a method for ranking the same paper twice. Duplicate references have not been detected or merged; this is a data-quality limitation to quantify before the final write-up.
