@@ -77,8 +77,10 @@ def chat(model: str, prompt: str, max_tokens: int, seed: int = 0, top_logprobs: 
 
 
 def embed(model: str, texts: list[str], batch_size: int = 32, timeout: float = 600) -> np.ndarray:
+    from tqdm import tqdm
+
     out = []
-    for start in range(0, len(texts), batch_size):
+    for start in tqdm(range(0, len(texts), batch_size), desc=f"{model} embeddings", unit="batch"):
         data = _post("/embeddings", {"model": model, "input": texts[start:start + batch_size]}, timeout)
         rows = sorted(data["data"], key=lambda d: d["index"])
         out.extend(r["embedding"] for r in rows)
