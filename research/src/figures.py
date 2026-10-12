@@ -232,8 +232,11 @@ def fig_position_bias(tables: dict):
             y = np.arange(len(orders)) + (0.12 if j == 0 else -0.12)
             ax.plot(t[metric], y, "o", color=BENCH_COLOR[bench], label=bench)
             for yy, v in zip(y, t[metric]):
-                ax.text(v, yy + 0.18, f"{v:.2f}" if metric == "mrr" else f"{v:.0f}", ha="center", fontsize=7, color=INK)
+                ax.annotate(f"{v:.2f}" if metric == "mrr" else f"{v:.0f}", (v, yy), xytext=(-7, 0),
+                            textcoords="offset points", ha="right", va="center", fontsize=7, color=INK)
         ax.set_xlabel(xl)
+        lo = min(t[metric].min() for t in tables.values())
+        ax.set_xlim(left=lo - (0.12 if metric == "mrr" else 10))
     axes[0].set_yticks(range(len(orders)), [names[o] for o in orders]); axes[0].invert_yaxis()
     axes[1].legend(title="Benchmark", fontsize=8, title_fontsize=8, loc="lower right")
     fig.suptitle("Listwise Llama 3.2 3B: effect of candidate order", fontsize=10)
@@ -241,13 +244,15 @@ def fig_position_bias(tables: dict):
     return fig
 
 
-def fig_stage1_recall(recalls: dict):
+def fig_stage1_recall(recalls: dict, k_used: int | None = None):
     """Recall of true references in Qwen3's top-k, per benchmark."""
     fig, ax = plt.subplots(figsize=(4.2, 2.6))
     for bench, s in recalls.items():
         ks = [int(i.split("@")[1]) for i in s.index]
         ax.plot(ks, s["mean"] * 100, "-o", color=BENCH_COLOR[bench], label=bench)
-        ax.text(ks[-1] + 1, s["mean"].iloc[-1] * 100, bench, va="center", fontsize=8, color=INK)
+    if k_used:
+        ax.axvline(k_used, color=INK_2, ls="--", lw=1)
+        ax.text(k_used + 0.8, 8, f"two-stage k = {k_used}", fontsize=7, color=INK_2)
     ax.set_xticks(ks); ax.set_xlabel("k (stage-1 cut-off)"); ax.set_ylabel("Mean recall %")
     ax.set_ylim(0, 105); ax.set_title("Stage-1 recall of cited references (Qwen3)")
     ax.legend(fontsize=8, loc="lower right")

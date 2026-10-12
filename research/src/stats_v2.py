@@ -83,7 +83,7 @@ def pairwise_tests(pq: pd.DataFrame, pairs: list[tuple[str, str]],
                          "mean_diff": x.mean() - y.mean(), "p": p})
     out = pd.DataFrame(rows)
     out["p_holm"] = holm(out["p"].tolist())
-    return out.round({"mean_diff": 4, "p": 6, "p_holm": 6})
+    return out.round({"mean_diff": 4})  # keep p unrounded: tiny p-values must not print as 0
 
 
 def chance_levels(sets: list[dict]) -> dict:

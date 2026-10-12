@@ -334,3 +334,13 @@ What stands out:
 - **Pointwise is the best LLM variant.** It is order-independent, beats TF-IDF, and stays below every embedding model.
 - **Reranking with Llama lowers Qwen3's own ranking** (87.0 → 74.1).
 - **Full-list listwise output is unreliable.** About 37% of answers are partial; with the sliding window, about 1%.
+
+### 2026-10-12 — Test runs, statistics and analyses complete
+
+- **Runs.** `04_test_runs` finished in 4.5 h: 62 run files, all 118/118 queries, 0 errors.
+- **Notebooks.** `05_stats` and `06_analysis` ran, and their Findings cells are written. Tables are in `v2/stats/results_<bench>.md`; figures are `05_*` and `06_*` in `v2/figures/`.
+- **Fix.** p-values were rounded to 6 decimals and printed as 0; they are now reported unrounded (e.g. 1.8e-19).
+- **Final numbers.** They match the preliminary entry. Over 5 seeds, full-list Llama is 43.9 / 42.0 and the sliding window 55.6 / 52.2.
+- **Stage-1 recall.** Qwen3's top 10 holds 93% / 89% of references, and its top 20 99% / 98%. So the two-stage drop (−13.0 / −10.4) comes from Llama reranking, not stage 1.
+- **Contamination.** Only 1 test query (2 overall) is after Llama 3.2's December 2023 cutoff, so this is reported as not testable.
+- **Report.** `research/audit/BEFORE_AFTER.md` compares v1 and v2 claim by claim and method by method. The README is unchanged, pending the user's approval of the v2 results.
