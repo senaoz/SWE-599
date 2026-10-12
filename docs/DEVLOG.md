@@ -293,4 +293,7 @@ Each benchmark has 8 negatives for this query; the `random` list shows 5 of them
 What the example shows:
 - **Field, not topic.** Six of the eight `concept` negatives match only through "Medicine" or "Health care".
 - **Some `random` negatives are close.** Two of them (ML for music; racial bias in a health algorithm) are arguably as close to the query as any `concept` negative.
-- **Duplicate works.** OpenAlex holds two records of the same paper (*Why Most Published Research Findings Are False*: `W2144981148` and `W2331384579`), and the query's reference list cites both. They count as two positives, which inflates n for this query and rewards a method for ranking the same paper twice. Duplicate references have not been detected or merged; this is a data-quality limitation to quantify before the final write-up.
+- **Duplicate works.** OpenAlex holds two records of the same paper (*Why Most Published Research Findings Are False*: `W2144981148` and `W2331384579`), and the query's reference list cites both. They count as two positives, which inflates n for this query and rewards a method for ranking the same paper twice. Measured by identical normalized titles:
+  - 16 of 168 queries (10 of them in test) have duplicate positives: 17 of 1,247 positives (1.4%).
+  - No negative duplicates one of its query's positives, in either benchmark, so no cited paper appears as a negative under another id.
+  - The effect is small. It is kept as is, matching the reference lists as OpenAlex records them, and reported as a limitation.
