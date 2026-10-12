@@ -238,3 +238,15 @@ Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-resu
 - **Seeds.** Order-sensitive LLM methods run with 5 shuffle seeds; order-independent methods with 1.
 - **Known limitation.** Qwen3-Embedding and EmbeddingGemma run without their recommended instruction prefixes, for parity with v1.
 - **Position-bias experiment kept in full** (user decision). Listwise Llama on both benchmarks, with candidates in v1's positives-first order and reversed, against the shuffled runs. These conditions are not reported as methods. They are the controlled test of whether v1's MRR 0.84 came from order copying instead of content, which so far rests on indirect dev evidence (the first-shown candidate is ranked first in 58% of queries).
+
+### 2026-10-12 — Model server and encoder fixes [9ec3b00, 7d98672]
+
+- **Model server.** GGUF models moved from Jan to a standalone `llama-server` (launchd, 127.0.0.1:1337) with the same files and settings: Qwen3 last-token pooling, Llama context 16,384 [9ec3b00].
+- **Pooling check, prompted by the question of what each model's pooling should be.** Two encoders were wrong. Both were fixed before the test runs, and both affected v1 too.
+  - **SPECTER2** was loaded through sentence-transformers' default, which silently adds **mean** pooling to plain transformers checkpoints. The model is trained with its **[CLS]** token. It is now built explicitly with CLS pooling, and its output matches a manual `last_hidden_state[:, 0]` to within 2e-6. Added to the audit as **F9**.
+  - **EmbeddingGemma's GGUF** (`unsloth/embeddinggemma-300M-BF16`) has no `dense_*` tensors, so it was missing the two Dense projection layers (768 → 3072 → 768) after mean pooling. Its vectors correlated about 0.00 with the reference model's. It now runs in-process as `unsloth/embeddinggemma-300m` (sentence-transformers, Dense layers included; an ungated mirror of Google's weights, 1.3 GB).
+- **Cache safety.** Embedding cache files now carry an encoder version, so stale vectors cannot be reused after a change like this.
+- **Effect on dev** (title + abstract + concepts). Both models moved close to Qwen3 (88.7 / 81.3):
+  - SPECTER2: 82.6 → 87.2 on `random`, 73.1 → 78.1 on `concept`.
+  - EmbeddingGemma: 85.7 → 88.4 on `random`, 79.2 → 80.3 on `concept`.
+- **Stray run file.** A dev seed-1 Llama file of unknown origin (16 queries, possibly a manual notebook run) had entered the tuning summary and shifted the config choice. It was moved to `data/v2/stray/`. Dev tuning now averages over seeds before ranking. With that, the choice is unchanged: title + abstract + concepts (mean rank 1.75), k = 10.

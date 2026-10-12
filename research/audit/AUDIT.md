@@ -30,6 +30,7 @@ Not checkable without the caches:
 | F6 | **Positive candidates were given the text of other papers** | Confirmed (code), consistent with data; per-query not checkable | **Every method** |
 | F7 | `ndcg_at_n` is normalized by its own hits | Confirmed (code) | Every nDCG number |
 | F8 | Negative sampling seed uses the per-process salted `hash()` | Confirmed (code) | Reproducibility |
+| F9 | SPECTER2 encoded with mean pooling instead of its [CLS] token | Confirmed (code), found 2026-10-12 | SPECTER2 |
 
 **Net:** F6 means that, as far as the code shows, v1 measured rankings of mislabeled text for every method. F1–F4 then explain why the LLM still scored high: its signal came from candidate position and field presence, not from content. The v1 headline numbers should not be cited.
 
@@ -145,6 +146,16 @@ The ideal DCG is built from the hits *the method retrieved*, not from `min(n, |p
 Cell 11: `neg_pool.sample(..., random_state=hash(pi_id) % (2**31))`. Python salts `str.__hash__` per process (`PYTHONHASHSEED`), so the v1 negative pools cannot be regenerated even with the original corpus.
 
 As a result, v2 rebuilds the pools for the same 174 queries. v1 → v2 is **not a paired re-run**.
+
+## F9 — SPECTER2 pooling (confirmed, code; found 2026-10-12)
+
+`src/similarity.py::_get_model` loaded every model with `SentenceTransformer(name)`. `allenai/specter2_base` ships as a plain transformers checkpoint with no sentence-transformers pooling config, so this call silently added **mean** pooling. SPECTER2 is trained and documented with the **[CLS]** token embedding, so v1's SPECTER2 numbers understate the model.
+
+Fixed in v2. The output now matches a manual `last_hidden_state[:, 0]` to within 2e-6.
+
+A related issue was found in v2's first EmbeddingGemma setup: its GGUF lacked the two Dense projection layers that follow pooling in the released model. Vectors from it correlated about 0.00 with the reference sentence-transformers output. v2 now runs the full model in-process.
+
+Whether v1's Ollama `embeddinggemma` included these layers was **not checked**: Ollama served it, and that model is no longer installed.
 
 ## Out of scope
 

@@ -134,7 +134,7 @@ def fig_dev_tuning(dev: pd.DataFrame):
     """R-precision on dev per method, one panel per benchmark, one marker per text config."""
     tags = sorted(dev["text_tag"].unique(), key=len)
     markers = ["o", "s", "D", "^"]
-    benches = list(dev["bench"].unique())
+    benches = [b for b in BENCH_COLOR if b in set(dev["bench"])]
     fig, axes = plt.subplots(1, len(benches), figsize=(3.8 * len(benches), 0.32 * dev["method"].nunique() + 1.6),
                              sharey=True)
     axes = np.atleast_1d(axes)
