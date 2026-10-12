@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -48,6 +49,7 @@ class RunConfig:
     stage1_k: int = 20
     stage2_order: str = "shuffled"  # shuffled | stage1
     limit: int | None = None
+    workers: int = 1              # concurrent requests for LLM methods (llama-server slots)
 
     @property
     def tag(self) -> str:
@@ -254,20 +256,28 @@ def run_methods(methods: list[str], cfg: RunConfig) -> pd.DataFrame:
                 if not todo:
                     continue
                 path.parent.mkdir(parents=True, exist_ok=True)
-                with path.open("a", encoding="utf-8") as f:
-                    for es in tqdm(todo, desc=f"{cfg.bench} {method} {order} s{seed}"):
-                        shown = candidate_order(es, order, seed)
-                        t0 = time.time()
-                        out = scorer(es, shown, order, seed)
-                        rec = {
-                            "pi_id": es["pi_id"], "split": ds["splits"][es["pi_id"]],
-                            "method": method_name(method, cfg), "order": order, "seed": seed,
-                            "bench": cfg.bench, "text_tag": cfg.tag,
-                            "n_pos": len(es["positives"]), "n_cand": len(shown),
-                            "shown": shown, "positives": es["positives"],
-                            "status": "ok", "seconds": round(time.time() - t0, 3), **out,
-                            "metrics": ranking_metrics(out["ranking"], es["positives"]),
-                        }
+
+                def score(es, order=order, seed=seed):
+                    shown = candidate_order(es, order, seed)
+                    t0 = time.time()
+                    out = scorer(es, shown, order, seed)
+                    return {
+                        "pi_id": es["pi_id"], "split": ds["splits"][es["pi_id"]],
+                        "method": method_name(method, cfg), "order": order, "seed": seed,
+                        "bench": cfg.bench, "text_tag": cfg.tag,
+                        "n_pos": len(es["positives"]), "n_cand": len(shown),
+                        "shown": shown, "positives": es["positives"],
+                        "status": "ok", "seconds": round(time.time() - t0, 3), **out,
+                        "metrics": ranking_metrics(out["ranking"], es["positives"]),
+                    }
+
+                # LLM calls are I/O-bound on the server, so they can share its slots; local
+                # models (embeddings, cross-encoder) stay sequential. Records are written
+                # from this thread only, as each query finishes.
+                workers = cfg.workers if method in LLM_METHODS else 1
+                with path.open("a", encoding="utf-8") as f, ThreadPoolExecutor(workers) as pool:
+                    for rec in tqdm(pool.map(score, todo), total=len(todo),
+                                    desc=f"{cfg.bench} {method} {order} s{seed}"):
                         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
                         f.flush()
     return summarize(load_runs(cfg.bench, cfg.tag, split=cfg.split, methods=[method_name(m, cfg) for m in methods]))
