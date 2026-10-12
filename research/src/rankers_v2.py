@@ -158,6 +158,29 @@ def listwise_rank(query: str, cands: list[str], rng: np.random.Generator,
             "raw": raw, "prompt_tokens": prompt_tokens}
 
 
+def sliding_window_rank(query: str, cands: list[str], rng: np.random.Generator,
+                        window: int = 10, step: int = 5, model: str | None = None, seed: int = 0) -> dict:
+    """RankGPT-style listwise ranking: rerank overlapping windows from the bottom of the
+    list to the top, so strong candidates move up while the model never sees more than
+    `window` candidates at once."""
+    order = list(range(len(cands)))
+    starts = list(range(max(len(order) - window, 0), -1, -step))
+    if starts[-1] != 0:
+        starts.append(0)
+    statuses, n_ranked, tokens = [], 0, []
+    for start in starts:
+        idx = order[start:start + window]
+        res = listwise_rank(query, [cands[i] for i in idx], rng, model=model, seed=seed)
+        order[start:start + window] = [idx[j] for j in res["order"]]
+        statuses.append(res["status"])
+        n_ranked += res["n_ranked"]
+        tokens.append(res["prompt_tokens"] or 0)
+    failed = sum(s in ("parse_fail", "http_error") for s in statuses)
+    status = "ok" if all(s == "ok" for s in statuses) else ("parse_fail" if failed == len(statuses) else "partial")
+    return {"order": order, "status": status, "n_calls": len(statuses), "window_statuses": statuses,
+            "n_ranked": n_ranked, "prompt_tokens": max(tokens) if tokens else None}
+
+
 def _expected_score(top_logprobs) -> float | None:
     """Probability-weighted 0–10 score from the first token's alternatives."""
     if not top_logprobs:

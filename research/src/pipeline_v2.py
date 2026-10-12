@@ -21,7 +21,8 @@ from src.eval_v2 import assign_splits, build_eval_sets, candidate_order, paper_t
 from src.metrics import ranking_metrics
 from src.openalex import fetch_works_by_id, normalize_work
 from src.rankers_v2 import (EMBED_METHODS, CrossEncoderScorer, EmbeddingCache, cosine_scores,
-                            lexical_scores, listwise_rank, pointwise_score, rank_from_scores)
+                            lexical_scores, listwise_rank, pointwise_score, rank_from_scores,
+                            sliding_window_rank)
 
 RESEARCH = Path(__file__).resolve().parents[1]
 V1_QUERIES = RESEARCH / "v1" / "results" / "main_papers.json"
@@ -30,8 +31,8 @@ RAW_WORKS = RESEARCH / "data" / "v2" / "openalex_works.jsonl"
 EMB_CACHE = RESEARCH / "data" / "v2" / "embeddings"
 
 METHODS = ("bm25", "tfidf", *EMBED_METHODS, "qwen+minilm", "bge-reranker",
-           "llama", "llama-pointwise", "qwen→llama", "llama+minilm")
-LLM_METHODS = ("llama", "llama-pointwise", "qwen→llama")
+           "llama", "llama-window", "llama-pointwise", "qwen→llama", "llama+minilm")
+LLM_METHODS = ("llama", "llama-window", "llama-pointwise", "qwen→llama")
 FIELD_CODES = {"t": "title", "a": "abstract", "c": "concepts"}
 
 
@@ -180,6 +181,14 @@ class Scorer:
             for rank, idx in enumerate(res["order"]):
                 scores[idx] = (n - rank) / n
             rec = {k: res[k] for k in ("status", "n_ranked", "raw", "prompt_tokens")}
+            return {**rec, "ranking": [shown[i] for i in res["order"]], "scores": scores.tolist()}
+        elif m == "llama-window":
+            res = sliding_window_rank(q, cands, rng, seed=seed)
+            n = len(cands)
+            scores = np.zeros(n)
+            for rank, idx in enumerate(res["order"]):
+                scores[idx] = (n - rank) / n
+            rec = {k: res[k] for k in ("status", "n_ranked", "n_calls", "window_statuses", "prompt_tokens")}
             return {**rec, "ranking": [shown[i] for i in res["order"]], "scores": scores.tolist()}
         elif m == "qwen→llama":
             return self.two_stage(q, cands, shown, rng, seed)

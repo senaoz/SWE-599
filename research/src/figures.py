@@ -26,7 +26,7 @@ LABELS = {
     "bm25": "BM25", "tfidf": "TF-IDF", "minilm": "MiniLM", "specter2": "SPECTER2",
     "qwen": "Qwen3-Embedding-8B", "embeddinggemma": "EmbeddingGemma", "qwen+minilm": "Qwen3 + MiniLM",
     "bge-reranker": "bge-reranker-base", "llama": "Llama 3.2 3B (listwise)",
-    "llama-pointwise": "Llama 3.2 3B (pointwise)", "llama+minilm": "Llama + MiniLM",
+    "llama-pointwise": "Llama 3.2 3B (pointwise)", "llama-window": "Llama 3.2 3B (sliding window)", "llama+minilm": "Llama + MiniLM",
 }
 
 
