@@ -43,18 +43,30 @@ Setup, from `research/`:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python -m ipykernel install --user --name swe599-research
 ```
 
-Steps, from `research/`:
+Run the numbered notebooks in order. Each one ends with a **Findings** cell and saves its paper figures, as PDF and SVG, to `v2/figures/`. Long notebooks can run in the background with papermill, which saves the notebook after every cell, so outputs appear while it runs:
 
-| Step | Command | Output |
-|---|---|---|
-| 1. Build eval sets | `.venv/bin/python v2/run.py build --bench random` (and `--bench concept`) | `v2/eval_sets/eval_sets_<bench>.json` |
-| 2. Tune on dev | `.venv/bin/python v2/run.py run --bench <bench> --split dev --methods ... --fields ta --max-chars 600` | `v2/runs/<bench>/<text tag>/` |
-| 3. Time the LLM | `.venv/bin/python v2/run.py probe --bench <bench> --method llama` | runtime estimate |
-| 4. Test runs | `.venv/bin/python v2/run.py run --bench <bench> --split test --methods ... --seeds 0 1 2 3 4` | `v2/runs/...` |
-| 5. Statistics | `v2/stats/` (coming) | |
-| 6. Analyses | `v2/analysis/` (coming): position bias, stage-1 recall@k, contamination | |
+```bash
+.venv/bin/papermill v2/04_test_runs.ipynb v2/04_test_runs.ipynb --cwd v2 --log-output
+```
+
+| Step | Notebook | What it does | Needs Jan |
+|---|---|---|---|
+| 01 | `v2/01_fetch_openalex.ipynb` | Fetch queries and references by OpenAlex id; normalize | no |
+| 02 | `v2/02_build_eval_sets.ipynb` | Build `random` and `concept` benchmarks, dev/test split; sanity checks for every audit finding | no |
+| 03 | `v2/03_dev_tuning.ipynb` | Choose text config and stage-1 k on dev → `v2/config.json` | yes |
+| 04 | `v2/04_test_runs.ipynb` | All methods on test; LLM methods with 5 shuffle seeds; position-bias conditions | yes |
+| 05 | `v2/05_stats.ipynb` | Bootstrap CIs, Holm-corrected Wilcoxon, seed spread → `v2/stats/` | no |
+| 06 | `v2/06_analysis.ipynb` | Position bias, stage-1 recall@k, contamination, LLM reliability | no |
+
+Code lives in `src/`:
+- `pipeline_v2.py`: the steps
+- `eval_v2.py`: pools, splits, candidate order
+- `rankers_v2.py`: methods
+- `stats_v2.py`: statistics and analyses
+- `figures.py`: paper figures
 
 The two benchmarks differ only in their negatives. Both draw them from other queries' references published before the query paper, excluding the query's own references and shared authors.
 

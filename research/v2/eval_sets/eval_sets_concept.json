@@ -106247,7 +106247,5 @@
   "https://openalex.org/W3113115421": "test",
   "https://openalex.org/W3028673138": "test",
   "https://openalex.org/W3013030269": "test"
- },
- "n_ids_requested": 1888,
- "n_ids_missing_from_openalex": 155
+ }
 }
