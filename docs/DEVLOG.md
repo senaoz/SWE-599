@@ -164,3 +164,64 @@ Every 6 hours (or on manual trigger via Admin):
 | Infra | Docker Compose |
 
 ---
+
+## v2 audit and rebuild (October 2026)
+
+Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-results` (614cfb2). The aim is to check whether the v1 headline (Llama listwise reranker MRR 0.84 vs Qwen3 0.51) holds before using it in PhD applications. Each entry gives what was done, why, and the evidence, with the commit in brackets.
+
+### 2026-10-09 — Audit of v1 (`research/audit/AUDIT.md`) [91d5161]
+
+- **What.** Reproduced the external review's findings from the saved rankings, and found three more. Numbers are in `AUDIT.md` and reproduced by `audit/verify_v1.py`.
+- **Review findings, confirmed.**
+  - **F1:** positives were always shown first.
+  - **F2:** the prompt example `[3, 1, 7, ...]` pointed at a positive. Llama put candidate 3 first in 33/100 queries; other methods did this in 2–8/100.
+  - **F3:** a failed call fell back to the original order (3 Llama queries).
+  - **F4:** negatives had no concept tags, while the LLM input was title + concepts.
+  - **F5:** on the 25 queries where stage 1 removes nothing, two-stage (0.526) scored below Qwen3 alone (0.580). So "stage-1 recall loss" cannot explain the drop.
+- **New findings.**
+  - **F6:** positives were given *other papers'* text. A DataFrame index label was used as a row position after a sort and filter. This explains why every non-LLM method was at or below chance (chance MRR 0.556; BM25 R-precision 23.1%, CI below chance).
+  - **F7:** nDCG was normalized by the method's own hits.
+  - **F8:** negatives were sampled with Python's salted `hash()`, so v1 pools cannot be rebuilt.
+- **Consequence.** The v1 numbers should not be cited. The v1 caches (`eval_sets.pkl`, `rankings.pkl`, corpus) no longer exist, so v2 rebuilds the pools for the same queries. This is not a paired re-run.
+
+### 2026-10-11 — Local models only, served by Jan [8fa5c66, e90f8ad, e2a14c2]
+
+- **Decision.** Drop cloud models (Gemini, Kimi, Ollama Cloud) and Ollama. GGUF models run in Jan's local OpenAI-compatible API (`src/jan.py`). MiniLM, SPECTER2 and bge-reranker stay in-process (sentence-transformers).
+- **Quantizations.** These match v1's Ollama setup:
+  - Llama 3.2 3B Instruct Q4_K_M
+  - Qwen3-Embedding-8B Q4_K_M
+  - EmbeddingGemma BF16
+- **Pooling problem.** Jan registered Qwen3-Embedding with mean pooling. The llama.cpp log showed `model default pooling_type is [3], but [1] was specified`. It was set to last-token pooling (the model's default) and verified (no warning; cosine changed 0.557 → 0.463). Without this, Qwen3 results would have been silently wrong.
+- **Context.** Llama context was set to 16,384 tokens; the largest listwise prompt is about 5.2k tokens.
+- **Cleanup.** `research/scripts/remove_local_models.sh` removes all downloaded models later.
+
+### 2026-10-11 — v2 data and benchmarks [a149cac, 591484e, 10ae589]
+
+- **Fetch.** The 174 v1 query papers and all 1,729 listed references were fetched by OpenAlex id. 155 references are deleted from OpenAlex (404). Every record is normalized by one function, so all candidates have identical fields and an asserted id (fixes F4, F6).
+- **Eligibility.** Every candidate needs a title and an abstract; v1 required this only for negatives. 168 queries remain: 50 dev and 118 test, split with a sha256 seed (fixes F8).
+- **Negative pool.** Other queries' references, published before the query and sharing no author with it. **Chosen over a random corpus sample** so that positives and negatives share the same "cited work" distribution. The v1 corpus was the first 10,000 of 505,882 papers because of OpenAlex's paging cap, i.e. not a random sample.
+- **Two benchmarks** (user decision: report both).
+  - **Why.** With random negatives, MRR saturated on dev (TF-IDF 1.000, MiniLM 1.000).
+  - **`random`:** negatives sampled uniformly from the pool. Only 30% share a top-5 OpenAlex concept with the query, against 74% of positives.
+  - **`concept`:** negatives must share one; 98% do, more than the positives.
+  - **Primary metric.** R-precision, because MRR saturates on `random`.
+- **Order and failures.** Candidates are shuffled per query and seed, and the shown order is stored (fixes F1). The prompt has no example indices (fixes F2). A failed call falls back to a random order, and every call's status is logged (fixes F3).
+- **Metrics.** nDCG now uses the ideal ranking (fixes F7).
+
+### 2026-10-11 — Repository layout and notebooks [92e7fb3, e04eeff]
+
+- **Layout.** `research/` was reorganized into `v1/` (frozen, numbered notebooks), `audit/`, `v2/` and `archive/`. `v1/results/` is byte-identical to the old `eval_dataset/week3/`, and the v1 statistics reproduce exactly.
+- **Notebooks.** v2 runs as numbered notebooks 01–06 (user request: v1 style, with outputs and figures for the paper). They execute with papermill, which saves after every cell. Paper figures go to `v2/figures/` as PDF and SVG, using a palette validated for colour-vision deficiency.
+
+### 2026-10-12 — Dev tuning (`v2/03_dev_tuning.ipynb`) [31dad82]
+
+- **Text config.** One shared candidate text for all methods, chosen by mean rank across methods and both benchmarks: **title + abstract + concepts, 600 chars** (mean rank 1.75, vs 1.88 for title + abstract).
+- **Listwise Llama is the weakest method.** R-precision is 44–55% against 82–89% for Qwen3 and about 33% for a random ranking, with 26–48% partial outputs. Inspection of the raw outputs shows the model largely **copies the input order**: the first-shown candidate is ranked first in 58% of dev queries. This is a likely mechanism for v1's 0.84, since there positives were always first. The position-bias experiment in notebook 06 will test it directly.
+- **Two-stage gets worse as Llama sees more candidates.** On `random`, k = 10, 20, 30 give 78.4, 54.2 and 43.6, all below Qwen3 alone (88.7). k = 10 is used on test as the least harmful setting.
+- **bge-reranker degrades with longer text.** Its 512-token limit truncates the long query-candidate pairs.
+
+### 2026-10-12 — Sliding-window listwise variant [a79313e]
+
+- **Why.** So that Llama is not judged only by its long-list failure mode (user decision).
+- **Method.** RankGPT-style: windows of 10 moving 5 at a time, from the bottom of the shuffled list to the top. The model never sees more than 10 candidates.
+- **Status.** Being evaluated on dev before deciding whether it joins the test runs.
