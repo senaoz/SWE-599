@@ -25,7 +25,7 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
 3. **Embedding choice barely matters here.** TF-IDF, MiniLM, Qwen3 and their fusions have heavily overlapping confidence intervals on MRR (pairwise tests p ≈ 1); only BM25 is clearly worse. SPECTER2, despite citation-graph pretraining, ranks below MiniLM on R-precision (p = 0.004).
 4. **Less text can be better.** For Qwen3, abstract-only input outperforms title + abstract + concept tags (MRR 0.68 vs. 0.49 in the field ablation).
 
-![MRR with 95% confidence intervals](research/stats/mrr_ci.svg)
+![MRR with 95% confidence intervals](research/v1/stats/mrr_ci.svg)
 
 ---
 
@@ -40,7 +40,7 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
 | **Relevance proxy** | A cited paper is treated as relevant to the citing paper |
 | **Metrics** | MRR; R-precision (share of the top-*n* that are true references, *n* = number of positives); nDCG@*n*; Top-1 accuracy |
 
-Construction: [`research/cited_paper_ranking.ipynb`](research/cited_paper_ranking.ipynb) · Per-query rankings: [`research/eval_dataset/week3/`](research/eval_dataset/week3/)
+Construction: [`research/v1/03_cited_paper_ranking.ipynb`](research/v1/03_cited_paper_ranking.ipynb) · Per-query rankings: [`research/v1/results/`](research/v1/results/)
 
 > *Note on naming:* the final report calls R-precision "Hit Rate @ n%". It is renamed here because "hit rate" usually means "at least one relevant item in the top-k", which would not match these values.
 
@@ -59,7 +59,7 @@ Construction: [`research/cited_paper_ranking.ipynb`](research/cited_paper_rankin
 | SPECTER2 | 0.465 [0.404, 0.529] | 30.2 [27.1, 33.4] | 0.582 | 24 |
 | BM25 | 0.410 [0.352, 0.471] | 23.1 [20.8, 25.4] | 0.528 | 18 |
 
-Significance tests for the comparisons discussed above: [`research/stats/results.md`](research/stats/results.md).
+Significance tests for the comparisons discussed above: [`research/v1/stats/results.md`](research/v1/stats/results.md).
 
 **Field ablation (Qwen3 embeddings, 100 queries)**
 
@@ -80,7 +80,7 @@ Significance tests for the comparisons discussed above: [`research/stats/results
 - **One LLM run.** Generative reranking is stochastic; results over multiple seeds are pending.
 - **Possible pretraining contamination.** The LLM may have seen these papers and their reference lists during pretraining.
 - **100 of 174 queries** were evaluated, for cost reasons.
-- **Excluded runs.** Gemini and Kimi reranking runs were not completed and are excluded from all results; their partial outputs are kept in [`research/unused/`](research/unused/).
+- **Excluded runs.** Gemini and Kimi reranking runs were not completed and are excluded from all results; their partial outputs are kept in [`research/archive/`](research/archive/).
 
 ## Next step: human-centered evaluation
 
@@ -104,20 +104,19 @@ Stack: FastAPI · SQLAlchemy (async) · PostgreSQL 16 + pgvector · Ollama · Re
 ```bash
 git clone https://github.com/senaoz/SWE-599.git && cd SWE-599
 pip install -r research/requirements.txt
-python research/stats/significance.py      # recomputes all tables, CIs and tests above
+python research/v1/stats/significance.py      # recomputes all tables, CIs and tests above
 ```
 
-Re-running the retrieval methods themselves requires [Ollama](https://ollama.com) with `qwen3-embedding` and `llama3.2:3b`, and the notebooks in [`research/`](research/).
+Re-running the retrieval methods themselves requires [Ollama](https://ollama.com) with `qwen3-embedding` and `llama3.2:3b`, and the notebooks in [`research/v1/`](research/v1/).
 
 ## Repository structure
 
 ```
-research/
+research/                      see research/README.md
   src/                         similarity.py (all methods) · metrics.py · preprocessing.py
-  cited_paper_ranking.ipynb    benchmark construction + evaluation
-  similarity_evaluation.ipynb  pipeline sanity checks
-  eval_dataset/week3/          per-query rankings for every method
-  stats/                       significance.py · results.md · mrr_ci.svg
+  v1/                          numbered notebooks · results/ (per-query rankings) · stats/
+  audit/                       v1 audit (AUDIT.md, verify_v1.py)
+  v2/                          leak-free benchmark: run.py · eval_sets/ · runs/
 backend/                       FastAPI service, scheduler, matching pipeline
 frontend/                      React application
 docs/DEVLOG.md                 week-by-week development log

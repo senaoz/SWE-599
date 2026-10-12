@@ -1,24 +1,28 @@
 """v2 benchmark runner. Run from research/ with the project venv:
 
-    .venv/bin/python run_v2.py build --bench random
-    .venv/bin/python run_v2.py run --bench concept --methods bm25 tfidf minilm --split dev
-    .venv/bin/python run_v2.py run --bench concept --methods llama --seeds 0 1 2 3 4 --split test
-    .venv/bin/python run_v2.py probe --bench concept --method llama --n 5
+    .venv/bin/python v2/run.py build --bench random
+    .venv/bin/python v2/run.py run --bench concept --methods bm25 tfidf minilm --split dev
+    .venv/bin/python v2/run.py run --bench concept --methods llama --seeds 0 1 2 3 4 --split test
+    .venv/bin/python v2/run.py probe --bench concept --method llama --n 5
 
 Outputs (one JSON line per query, resumable):
-    eval_dataset/v2/eval_sets_<bench>.json
-    eval_dataset/v2/runs/<bench>/<text tag>/<method>__<order>__s<seed>.jsonl
+    v2/eval_sets/eval_sets_<bench>.json
+    v2/runs/<bench>/<text tag>/<method>__<order>__s<seed>.jsonl
 """
 from __future__ import annotations
 
 import argparse
 import ast
 import json
+import sys
 import time
 from pathlib import Path
 
 import numpy as np
 from tqdm.auto import tqdm
+
+RESEARCH = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RESEARCH))
 
 from src import jan
 from src.eval_v2 import (BENCHES, ORDER_MODES, assign_splits, build_eval_sets, candidate_order,
@@ -28,11 +32,10 @@ from src.openalex import fetch_works_by_id, normalize_work
 from src.rankers_v2 import (EMBED_METHODS, CrossEncoderScorer, EmbeddingCache, cosine_scores,
                             lexical_scores, listwise_rank, pointwise_score, rank_from_scores)
 
-ROOT = Path(__file__).resolve().parent
-V1_QUERIES = ROOT / "eval_dataset" / "week3" / "main_papers.json"
-OUT = ROOT / "eval_dataset" / "v2"
-RAW_WORKS = ROOT / "data" / "v2" / "openalex_works.jsonl"
-EMB_CACHE = ROOT / "data" / "v2" / "embeddings"
+V1_QUERIES = RESEARCH / "v1" / "results" / "main_papers.json"
+OUT = Path(__file__).resolve().parent
+RAW_WORKS = RESEARCH / "data" / "v2" / "openalex_works.jsonl"
+EMB_CACHE = RESEARCH / "data" / "v2" / "embeddings"
 
 METHODS = ("bm25", "tfidf", *EMBED_METHODS, "qwen+minilm", "bge-reranker",
            "llama", "llama-pointwise", "qwen→llama", "llama+minilm")
@@ -91,13 +94,13 @@ class Texts:
 
 
 def eval_sets_path(bench: str) -> Path:
-    return OUT / f"eval_sets_{bench}.json"
+    return OUT / "eval_sets" / f"eval_sets_{bench}.json"
 
 
 def load_eval_sets(bench: str) -> dict:
     path = eval_sets_path(bench)
     if not path.exists():
-        raise SystemExit(f"{path} not found; run `run_v2.py build --bench {bench}` first")
+        raise SystemExit(f"{path} not found; run `v2/run.py build --bench {bench}` first")
     return json.loads(path.read_text(encoding="utf-8"))
 
 

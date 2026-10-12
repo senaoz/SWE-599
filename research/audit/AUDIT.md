@@ -1,6 +1,6 @@
 # v1 evaluation audit
 
-Scope: the cited-paper ranking benchmark in `research/cited_paper_ranking.ipynb`. Results are frozen in `research/eval_dataset/week3/` (git tag `v1-results`, commit `614cfb2`). Every number below is reproduced by:
+Scope: the cited-paper ranking benchmark in `research/v1/03_cited_paper_ranking.ipynb`. Results are frozen in `research/v1/results/` (originally `research/eval_dataset/week3/`; git tag `v1-results`, commit `614cfb2`). Every number below is reproduced by:
 
 ```
 python research/audit/verify_v1.py
@@ -10,7 +10,7 @@ python research/audit/verify_v1.py
 
 The v1 intermediate caches are no longer available: `eval_sets.pkl`, `rankings.pkl`, `priority_followed.pkl` and `openalex_reference_works_raw.pkl`. `research/data/cleaned/boun.csv` is a different corpus; none of the 174 query papers or their 1,811 references are in it. So the audit uses two sources:
 
-- **Code.** The notebook source, `src/`, and the cell outputs saved in `cited_paper_ranking_out.ipynb` and `fetch_and_preprocessing.ipynb`.
+- **Code.** The notebook source, `src/`, and the cell outputs saved in `v1/03_cited_paper_ranking_out.ipynb` and `v1/01_fetch_and_preprocessing.ipynb`.
 - **Saved rankings.** `rankings_*.json`, covering 100 queries. Each file stores only the **top-n_positives** candidate indices per query. In v1, candidate index `< n_positives` means positive.
 
 Not checkable without the caches:
@@ -109,7 +109,7 @@ Stage 1 keeps the top 20. For the 25 queries with n ≤ 6, the pool is 3n ≤ 20
 
 ## F6 — Positive candidates carry another paper's text (confirmed from code)
 
-The chain in `cited_paper_ranking.ipynb`, cells 6 and 12:
+The chain in `v1/03_cited_paper_ranking.ipynb`, cells 6 and 12:
 ```python
 extended_followed_df = pd.concat([followed_df, fetched_works_df])           # keeps original index labels
 id_to_idx = {row['id']: i for i, row in extended_followed_df.iterrows()}   # id -> index *label*
@@ -117,7 +117,7 @@ id_to_idx = {row['id']: i for i, row in extended_followed_df.iterrows()}   # id 
 row = extended_followed_df.iloc[id_to_idx[ref_id]]                          # used as a *position*
 positives.append({'id': ref_id, 'title': row['title'], 'text': row['text'], 'concepts_array': ...})
 ```
-Both frames were produced by `src/preprocessing.process_papers`. That function sorts by `publication_year`, filters rows, and never resets the index. The saved output in `fetch_and_preprocessing.ipynb` confirms both frames went through it: the corpus went from 10,000 to 9,946 rows and the fetched references from 1,532 to 1,522.
+Both frames were produced by `src/preprocessing.process_papers`. That function sorts by `publication_year`, filters rows, and never resets the index. The saved output in `v1/01_fetch_and_preprocessing.ipynb` confirms both frames went through it: the corpus went from 10,000 to 9,946 rows and the fetched references from 1,532 to 1,522.
 
 Consequences:
 - **Fetched references.** The fetched set (1,522 papers) has labels 0..1531. `iloc` on those labels returns rows of `followed_df`, i.e. **unrelated corpus papers**. The `id` stored on the positive is still the correct reference id, so nothing downstream would flag it. The corpus covers papers published since 2020 and references skew older, so most positives come from this fetched set.
@@ -126,7 +126,7 @@ Consequences:
 
 The saved scores are consistent with positives carrying no relevant content:
 - **Chance level.** Every non-LLM method is at or below chance. MRR is 0.410–0.536 against a chance level of 0.556. R-precision is 23.1–37.4% against 33.3%.
-- **Below chance.** BM25's R-precision of 23.1% (95% CI 20.8–25.4, `stats/results.md`) is *below* chance with a CI that excludes it. An uninformative method can only do that if positives are systematically disadvantaged, for example through empty or short text.
+- **Below chance.** BM25's R-precision of 23.1% (95% CI 20.8–25.4, `v1/stats/results.md`) is *below* chance with a CI that excludes it. An uninformative method can only do that if positives are systematically disadvantaged, for example through empty or short text.
 - **The LLM.** Llama's 0.841 can then only come from F1–F4.
 
 **Not checkable per query** without `eval_sets.pkl`. v2 must assert `positive['id'] == source_row['id']` on every candidate.

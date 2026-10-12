@@ -5,3 +5,5 @@ sentence-transformers>=2.0
 rank-bm25>=0.2
 scipy>=1.7
 openai>=1.0
+requests>=2.28
+tqdm>=4.60

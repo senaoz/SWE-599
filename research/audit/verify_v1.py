@@ -1,6 +1,6 @@
 """Reproduce the v1 audit findings from the saved week3 rankings.
 
-Reads research/eval_dataset/week3/rankings_*.json (read-only). Each file stores,
+Reads research/v1/results/rankings_*.json (read-only). Each file stores,
 per query, only the top-n_positives candidate indices; in v1 the candidate list
 was positives + negatives, so index < n_positives means "positive".
 
@@ -15,8 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[2]
-WEEK3 = ROOT / "research" / "eval_dataset" / "week3"
+WEEK3 = Path(__file__).resolve().parents[1] / "v1" / "results"
 STAGE1_K = 20  # top-k kept by stage 1 in the v1 two-stage method
 
 

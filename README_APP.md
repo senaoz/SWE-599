@@ -134,7 +134,8 @@ Every 6 hours (or on manual trigger):
 ├── research/
 │   ├── src/              # similarity.py, preprocessing.py, metrics.py
 │   ├── data/cleaned/     # boun.csv, priority_followed.csv
-│   └── eval_dataset/     # benchmark results
+│   ├── v1/               # numbered notebooks + benchmark results
+│   └── v2/               # leak-free benchmark (see research/README.md)
 └── docker-compose.yml
 ```
 
@@ -164,13 +165,13 @@ cd research
 pip install -r requirements.txt
 
 # 1. Fetch and preprocess BOUN + followed institution papers
-jupyter notebook fetch_and_preprocessing.ipynb
+jupyter notebook v1/01_fetch_and_preprocessing.ipynb
 
 # 2. Compare embedding methods (TF-IDF, MiniLM, SPECTER2, Gemini, Qwen)
-jupyter notebook similarity_evaluation.ipynb
+jupyter notebook v1/02_similarity_evaluation.ipynb
 
 # 3. Cited paper ranking benchmark (hit-rate evaluation)
-jupyter notebook cited_paper_ranking.ipynb
+jupyter notebook v1/03_cited_paper_ranking.ipynb
 ```
 
 Evaluated methods and hit rates (Week 3): Llama 44.99%, SPECTER2 30.21%, Gemini 42.5%, MiniLM 28.3%.
