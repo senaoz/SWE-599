@@ -352,3 +352,10 @@ What stands out:
 - **Corrections.** bge-reranker is below both BM25 and TF-IDF on both benchmarks. Top-1 accuracy with positives first is 94–98%.
 - **BEFORE_AFTER.md** now states why v2 reports 118 of the 174 queries: 6 are unusable and 50 are held out for tuning.
 - **APP_NOTES.md** records the stage-2 answer for the app.
+
+### 2026-10-12 — README updated with v2 results [1452743]
+
+- **Approval.** The user approved the v2 results, and the README was rewritten from them.
+- **Correction notice.** The README states that the May 2026 final report and poster carry the superseded v1 numbers.
+- **Content.** v2 benchmark description, results table for both benchmarks, the position-bias table, other findings, updated limitations, and reproduction steps.
+- **App section.** Unchanged except for a note that stage 2 is under review (see `APP_NOTES.md`).
