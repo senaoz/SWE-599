@@ -226,3 +226,15 @@ Branch `v2-audit`, PR senaoz/SWE-599#1. v1 results are frozen under tag `v1-resu
 - **Method.** RankGPT-style: windows of 10 moving 5 at a time, from the bottom of the shuffled list to the top. The model never sees more than 10 candidates.
 - **Dev result.** Output becomes reliable: 199 of 200 window calls parse fully, against 26–48% partial answers for the full list. R-precision rises 46.9 → 54.0 on `random` and 43.6 → 53.6 on `concept`. It is still far below Qwen3 (88.7 / 81.3) and below bge-reranker (70.2 / 55.7). The first-shown candidate still ends up first in 40–52% of queries, so order copying remains.
 - **Decision.** Include it in the test runs (5 seeds) as the strongest listwise setting, so the LLM comparison is fair. Cost on dev is about 6.5 s per query (4 calls on average).
+
+### 2026-10-12 — Scope of the test runs
+
+- **Methods on test (12).**
+  - Lexical: BM25, TF-IDF.
+  - Embeddings: MiniLM, SPECTER2, Qwen3-Embedding-8B, EmbeddingGemma.
+  - Fusions: Qwen3 + MiniLM, Llama + MiniLM.
+  - Cross-encoder: bge-reranker-base.
+  - LLM: listwise Llama (full list), sliding-window Llama, pointwise Llama, two-stage Qwen3 → Llama (k = 10).
+- **Seeds.** Order-sensitive LLM methods run with 5 shuffle seeds; order-independent methods with 1.
+- **Known limitation.** Qwen3-Embedding and EmbeddingGemma run without their recommended instruction prefixes, for parity with v1.
+- **Position-bias experiment kept in full** (user decision). Listwise Llama on both benchmarks, with candidates in v1's positives-first order and reversed, against the shuffled runs. These conditions are not reported as methods. They are the controlled test of whether v1's MRR 0.84 came from order copying instead of content, which so far rests on indirect dev evidence (the first-shown candidate is ranked first in 58% of queries).
