@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import torch
+from sentence_transformers.sentence_transformer import modules as st_models
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -39,6 +40,13 @@ OLLAMA_MODEL_MAP = {
     'embeddinggemma': 'embeddinggemma',
 }
 
+# Models that ship as plain transformers checkpoints, without a sentence-transformers
+# pooling config. Loading them by name would silently add mean pooling; SPECTER2 is
+# trained with the [CLS] token (model card), so it is built explicitly.
+POOLING_OVERRIDES = {
+    'allenai/specter2_base': 'cls',
+}
+
 _MODEL_CACHE: dict = {}
 
 # ---------------------------------------------------------------------------
@@ -59,9 +67,13 @@ def _cache_path(model_name, prefix, n_texts, corpus_hash, cache_dir='data/embedd
 def _get_model(model_name):
     """Load a SentenceTransformer model, caching it for reuse."""
     if model_name not in _MODEL_CACHE:
-        _MODEL_CACHE[model_name] = SentenceTransformer(
-            model_name, trust_remote_code=True, device=DEVICE
-        )
+        if model_name in POOLING_OVERRIDES:
+            word = st_models.Transformer(model_name)
+            pool = st_models.Pooling(word.get_embedding_dimension(), pooling_mode=POOLING_OVERRIDES[model_name])
+            model = SentenceTransformer(modules=[word, pool], device=DEVICE)
+        else:
+            model = SentenceTransformer(model_name, trust_remote_code=True, device=DEVICE)
+        _MODEL_CACHE[model_name] = model
     return _MODEL_CACHE[model_name]
 
 

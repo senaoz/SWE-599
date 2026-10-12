@@ -15,11 +15,21 @@ from pathlib import Path
 import numpy as np
 
 from src import jan
-from src.similarity import (BATCH_SIZES, DEVICE, MODEL_MAP, _get_model, bm25_similarity,
-                            tfidf_similarity)
+from src.similarity import BATCH_SIZES, DEVICE, _get_model, bm25_similarity, tfidf_similarity
 
 CROSS_ENCODER = "BAAI/bge-reranker-base"
 EMBED_METHODS = ("minilm", "specter2", "qwen", "embeddinggemma")
+
+# In-process sentence-transformers models; the rest are served by llama-server (src/jan.py).
+# EmbeddingGemma runs here because its GGUF lacks the two Dense projection layers
+# (768 -> 3072 -> 768) that follow mean pooling in the released model.
+ST_MODELS = {
+    "minilm": "all-MiniLM-L6-v2",
+    "specter2": "allenai/specter2_base",
+    "embeddinggemma": "unsloth/embeddinggemma-300m",
+}
+# Bump when a method's encoder changes so stale cached vectors are not reused.
+CACHE_VERSION = {"specter2": "cls", "embeddinggemma": "st-dense"}
 LLM_STATUSES = ("ok", "partial", "parse_fail", "http_error")
 
 # v1 ended this prompt with "e.g.: [3, 1, 7, ...]", which pointed at a positive (F2).
@@ -54,7 +64,8 @@ def rank_from_scores(scores, rng: np.random.Generator) -> list[int]:
 class EmbeddingCache:
     def __init__(self, method: str, cache_dir: Path):
         self.method = method
-        self.path = Path(cache_dir) / f"{method}.npz"
+        version = CACHE_VERSION.get(method)
+        self.path = Path(cache_dir) / (f"{method}__{version}.npz" if version else f"{method}.npz")
         self.vectors: dict[str, np.ndarray] = {}
         if self.path.exists():
             with np.load(self.path) as data:
@@ -65,8 +76,8 @@ class EmbeddingCache:
         return hashlib.sha256(text.encode()).hexdigest()
 
     def _encode(self, texts: list[str]) -> np.ndarray:
-        if self.method in MODEL_MAP:
-            name = MODEL_MAP[self.method]
+        if self.method in ST_MODELS:
+            name = ST_MODELS[self.method]
             return _get_model(name).encode(texts, batch_size=BATCH_SIZES.get(name, 64),
                                            convert_to_numpy=True, show_progress_bar=True)
         return jan.embed(jan.JAN_MODEL_MAP[self.method], texts)

@@ -225,7 +225,7 @@ class Scorer:
 def check_jan(methods) -> list[str]:
     """Fail fast if a method needs a Jan model that is not served."""
     needed = {jan.JAN_MODEL_MAP["llama"]} if any(m in LLM_METHODS for m in methods) else set()
-    needed |= {jan.JAN_MODEL_MAP[m] for m in methods if m in ("qwen", "embeddinggemma")}
+    needed |= {jan.JAN_MODEL_MAP[m] for m in methods if m in jan.JAN_MODEL_MAP}
     if {"qwen+minilm", "qwen→llama"} & set(methods):
         needed.add(jan.JAN_MODEL_MAP["qwen"])
     if not needed:
