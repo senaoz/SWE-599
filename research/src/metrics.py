@@ -118,6 +118,7 @@ def ndcg_at_n(ranked, positive_indices, n):
         return sum(h / math.log2(i + 2) for i, h in enumerate(hits))
 
     top_n_hits = [1 if idx in positive_indices else 0 for idx, _ in ranked[:n]]
-    ideal_hits = sorted(top_n_hits, reverse=True)
-    ideal_dcg = dcg(ideal_hits)
+    # Ideal ranking puts every positive first; normalizing by the retrieved hits
+    # (as v1 did) scores a single hit at rank 1 as a perfect 1.0.
+    ideal_dcg = dcg([1] * min(n, len(positive_indices)))
     return dcg(top_n_hits) / ideal_dcg if ideal_dcg > 0 else 0.0
