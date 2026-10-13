@@ -30,10 +30,17 @@ The notebooks used paths relative to `research/` and depend on caches that no lo
 ## Stage 2 — Audit
 
 ```bash
-python research/audit/verify_v1.py
+python research/audit/verify_v1.py           # reproduces every number in audit/AUDIT.md from v1/results/
+research/.venv/bin/python research/audit/data_quality.py   # regenerates audit/DATA_QUALITY.md
 ```
 
-This reproduces every number in `audit/AUDIT.md` from `v1/results/`.
+| File | Contents |
+|---|---|
+| `audit/AUDIT.md` | The nine v1 problems (F1–F9), with evidence |
+| `audit/BEFORE_AFTER.md` | v1 vs v2, claim by claim and method by method |
+| `audit/DATA_QUALITY.md` | Abstracts that are not abstracts, and a sensitivity check |
+| `audit/SUMMARY.md` | One-page summary of the project |
+| `audit/TODO.md`, `audit/IMPROVEMENT_IDEAS.md` | Research plan and ideas, with status notes |
 
 ## Stage 3 — v2
 
