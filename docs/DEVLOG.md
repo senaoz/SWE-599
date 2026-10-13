@@ -496,3 +496,18 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Citer duplicates.** Pool citers are not deduplicated among themselves: canonicalization would merge 13,572 into 13,464, so 108 rows double-count co-citation edges.
 - **Checked and fine.** The dropped positive `W3012048021` is in no duplicate group, so the label was not lost through canonicalization.
 - **Assumption, not verified.** `fetch_works` treats any id missing from a successful response as permanently gone. 819 of 17,275 (4.7%) is in line with the ~5% seen in P0.
+
+### 2026-10-12 — Checkpoint A decisions applied (`v2/08_build_corpus_graph.ipynb`)
+
+- **Decisions (user).** All three were approved:
+  1. conservative citer dates for R4;
+  2. a manual, reviewed list of query duplicates with different titles;
+  3. merging duplicate citers.
+- **Code.** `src/cograph.py` gains `effective_day` (a YYYY-01-01 date counts as Dec 31; a citer is never earlier than the latest known date among its references) and `merge_duplicate_citers`. There are now 14 unit tests, all passing.
+- **Results** (test / dev reachability of positives):
+  - **all rules: 54.7% / 53.0%** (62.9% / 62.4% with recorded dates);
+  - R4 off: 68.1% / 67.0%;
+  - canary: 100%.
+- **Graph.** 13,569 pool records → 13,461 citer rows; 16 query-duplicate rows; 126,377 edges. 5,097 pool rows got a later date than recorded.
+- **Remaining high-overlap citers** (≥ 50% of a query's positives): 66 test and 30 dev rows, at most 80%, mostly topic reviews and commentaries. No exact copies are left.
+- **Meaning.** About 45% of test positives have no allowed citer, so co-citation expansion can recover at most about 55% of them. The data-quality finding stands on its own: a quarter of pool citers carry January-1 dates, and 5,097 rows had to move later.
