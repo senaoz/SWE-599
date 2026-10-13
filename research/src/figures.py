@@ -245,16 +245,26 @@ def fig_position_bias(tables: dict):
 
 
 def fig_stage1_recall(recalls: dict, k_used: int | None = None):
-    """Recall of true references in Qwen3's top-k, per benchmark."""
-    fig, ax = plt.subplots(figsize=(4.2, 2.6))
-    for bench, s in recalls.items():
-        ks = [int(i.split("@")[1]) for i in s.index]
-        ax.plot(ks, s["mean"] * 100, "-o", color=BENCH_COLOR[bench], label=bench)
-    if k_used:
-        ax.axvline(k_used, color=INK_2, ls="--", lw=1)
-        ax.text(k_used + 0.8, 8, f"two-stage k = {k_used}", fontsize=7, color=INK_2)
-    ax.set_xticks(ks); ax.set_xlabel("k (stage-1 cut-off)"); ax.set_ylabel("Mean recall %")
-    ax.set_ylim(0, 105); ax.set_title("Stage-1 recall of cited references (Qwen3)")
-    ax.legend(fontsize=8, loc="lower right")
+    """Recall of true references in each first-stage method's top k; one panel per benchmark.
+
+    recalls: {bench: {method: stage1_recall() summary}}.
+    """
+    styles = {"qwen": (FAMILY_COLOR["Embedding"], "-", "Qwen3-Embedding-8B"),
+              "bm25": (FAMILY_COLOR["Lexical"], "-", "BM25"),
+              "bm25+qwen (RRF)": (SLOTS[2], "--", "BM25 + Qwen3 (RRF)")}
+    benches = [b for b in BENCH_COLOR if b in recalls]
+    fig, axes = plt.subplots(1, len(benches), figsize=(3.7 * len(benches), 2.7), sharey=True)
+    for ax, bench in zip(np.atleast_1d(axes), benches):
+        for method, summary in recalls[bench].items():
+            color, ls, name = styles.get(method, (INK_2, "-", method))
+            ks = [int(i.split("@")[1]) for i in summary.index]
+            ax.plot(ks, summary["mean"] * 100, ls, marker="o", color=color, label=name)
+        if k_used:
+            ax.axvline(k_used, color=INK_2, ls=":", lw=1)
+            ax.text(k_used + 0.8, 8, f"two-stage k = {k_used}", fontsize=7, color=INK_2)
+        ax.set_xticks(ks); ax.set_xlabel("k (stage-1 cut-off)"); ax.set_ylim(0, 105)
+        ax.set_title(f"{bench.capitalize()} benchmark")
+    np.atleast_1d(axes)[0].set_ylabel("Mean recall of cited references %")
+    np.atleast_1d(axes)[-1].legend(fontsize=7, loc="lower right")
     fig.tight_layout()
     return fig

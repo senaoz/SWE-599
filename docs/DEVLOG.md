@@ -359,3 +359,14 @@ What stands out:
 - **Correction notice.** The README states that the May 2026 final report and poster carry the superseded v1 numbers.
 - **Content.** v2 benchmark description, results table for both benchmarks, the position-bias table, other findings, updated limitations, and reproduction steps.
 - **App section.** Unchanged except for a note that stage 2 is under review (see `APP_NOTES.md`).
+
+### 2026-10-12 — Plan documents and open gaps closed (TODO 1.5, 3.2, 7.3, 7.4)
+
+- **Plan documents.** The user's plan and ideas are saved as `research/audit/TODO.md` and `research/audit/IMPROVEMENT_IDEAS.md`. Completed items are ticked, and the original text is kept with status notes added.
+- **1.5, data quality** (`audit/data_quality.py`, `audit/DATA_QUALITY.md`).
+  - 85 of 1,365 papers (about 6%) carry text that is very likely not their abstract. Examples: author lists, citation strings, journal standfirsts, fragments, a competing-interests note, and two queries whose "abstract" is another paper's title.
+  - One paper exists as two query records, one in dev (`W3012006042`) and one in test (`W4247191450`).
+  - Without the 11 strong-flagged test queries, no method moves more than about 1 R-precision point and the ranking is unchanged, so nothing was filtered.
+- **3.2, stage-1 recall for BM25 and a hybrid.** The hybrid is BM25 + Qwen3 via RRF, computed from the stored runs. At k = 10 (`random` / `concept`): Qwen3 92.5 / 89.0, BM25 80.8 / 76.2, hybrid 89.0 / 84.2. The hybrid's R-precision (78.7 / 72.8) is below Qwen3's.
+- **7.3.** Pitch sentences filled where v2 has numbers. Sentences that depend on Phases 4–5 keep their TBDs. While checking, the claim that every method drops 7–10 points on `concept` turned out wrong: the actual range is 1.9–9.9.
+- **7.4.** One-page summary in `research/audit/SUMMARY.md`.

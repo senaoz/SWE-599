@@ -142,3 +142,29 @@ def contamination_split(pq: pd.DataFrame, dates: dict[str, str], cutoff: str,
             .agg(queries=("gain", "size"), llm=(llm, "mean"), baseline=(baseline, "mean"),
                  gain=("gain", "mean"))
             .round(4).reset_index())
+
+
+def rrf_runs(bench: str, cfg, methods=("bm25", "qwen"), split: str = "test", seed: int = 0,
+             k: int = 60) -> pd.DataFrame:
+    """Hybrid ranking by Reciprocal Rank Fusion of stored runs (no model calls).
+
+    Returns per-query rows shaped like `load_runs`, with method "bm25+qwen (RRF)".
+    """
+    from src.metrics import ranking_metrics
+    from src.pipeline_v2 import read_run, run_path
+
+    runs = [read_run(run_path(cfg, m, "shuffled", seed)) for m in methods]
+    rows = []
+    for pid in set.intersection(*(set(r) for r in runs)):
+        recs = [r[pid] for r in runs]
+        if recs[0]["split"] != split:
+            continue
+        score: dict[str, float] = {}
+        for rec in recs:
+            for rank, cid in enumerate(rec["ranking"], start=1):
+                score[cid] = score.get(cid, 0.0) + 1.0 / (k + rank)
+        ranking = sorted(score, key=lambda c: (-score[c], c))
+        rows.append({"pi_id": pid, "split": split, "method": "+".join(methods) + " (RRF)",
+                     "order": "shuffled", "seed": seed, "bench": bench,
+                     **ranking_metrics(ranking, recs[0]["positives"])})
+    return pd.DataFrame(rows)
