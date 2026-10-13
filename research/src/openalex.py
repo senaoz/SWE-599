@@ -6,6 +6,7 @@ candidates carry the same fields regardless of where they came from.
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -27,16 +28,38 @@ def short_id(work_id: str) -> str:
     return work_id.rsplit("/", 1)[-1]
 
 
-def _get(params: dict, retries: int = 4) -> dict:
+class OpenAlexError(RuntimeError):
+    pass
+
+
+def request(params: dict, retries: int = 4) -> tuple[dict, dict]:
+    """GET /works; returns (json body, rate-limit headers).
+
+    Adds OPENALEX_API_KEY from the environment when set. Errors never carry the
+    request URL, so the key cannot reach logs, notebooks or tracebacks.
+    """
+    key = os.getenv("OPENALEX_API_KEY")
+    query = {**params, "api_key": key} if key else params
     for attempt in range(retries):
-        resp = requests.get(API, params=params, timeout=60)
+        try:
+            resp = requests.get(API, params=query, timeout=60)
+        except requests.RequestException as e:
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise OpenAlexError(f"request failed: {type(e).__name__}") from None
         if resp.status_code == 200:
-            return resp.json()
+            headers = {k: v for k, v in resp.headers.items() if k.lower().startswith("x-ratelimit")}
+            return resp.json(), headers
         if resp.status_code in (429, 500, 502, 503, 504) and attempt < retries - 1:
             time.sleep(2 ** attempt)
             continue
-        resp.raise_for_status()
+        raise OpenAlexError(f"HTTP {resp.status_code}: {resp.text[:300]}")
     raise RuntimeError("unreachable")
+
+
+def _get(params: dict, retries: int = 4) -> dict:
+    return request(params, retries)[0]
 
 
 def _read_jsonl(path: Path) -> dict[str, dict]:

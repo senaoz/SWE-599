@@ -14,13 +14,11 @@ from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
 
-import requests
-
 RESEARCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RESEARCH))
 
 from src.eval_v2 import eligible, rng_for  # noqa: E402
-from src.openalex import API, normalize_work, short_id  # noqa: E402
+from src.openalex import normalize_work, request, short_id  # noqa: E402
 
 PROBE = RESEARCH / "data" / "v2" / "probe"
 RAW_WORKS = RESEARCH / "data" / "v2" / "openalex_works.jsonl"
@@ -38,11 +36,8 @@ def call(name: str, params: dict) -> dict:
     path = PROBE / f"{name}.json"
     if path.exists():
         return json.loads(path.read_text())
-    resp = requests.get(API, params=params, timeout=60)
-    headers = {k: v for k, v in resp.headers.items() if k.lower().startswith("x-ratelimit")}
-    if resp.status_code != 200:
-        raise RuntimeError(f"{name}: HTTP {resp.status_code} {resp.text[:300]}")
-    out = {"params": params, "headers": headers, "url": resp.url, "body": resp.json()}
+    body, headers = request(params, retries=1)
+    out = {"params": params, "headers": headers, "body": body}
     PROBE.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out))
     return out
@@ -65,7 +60,7 @@ def main() -> None:
     r = call("01_ids100", {"filter": "openalex_id:" + "|".join(map(short_id, ids100)),
                            "per_page": 100, "select": WORK_SELECT})
     got = {w["id"] for w in r["body"]["results"]}
-    print(f"[1] 100-id filter: {len(got)}/100 returned, URL {len(r['url'])} chars, "
+    print(f"[1] 100-id filter: {len(got)}/100 returned, "
           f"doi present {sum(bool(w.get('doi')) for w in r['body']['results'])}/{len(got)}")
     print("    headers:", r["headers"])
 
