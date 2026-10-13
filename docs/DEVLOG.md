@@ -437,3 +437,12 @@ The same candidates thus get opposite outcomes from order alone. For this query,
 - **P3, corpus.** m = 5 was chosen by estimated size only.
   - 12,895 works are cited by at least 5 pool citers (343 of them positives). 71.7% of the returned non-positives have a title and an abstract.
   - Corpus: **9,706 works, 1,176 positives and 8,530 non-positives**, saved in `v2/corpus/corpus_manifest.json`.
+
+### 2026-10-12 — Where the BOUN papers fit (plan addendum)
+
+- **Finding.** BOUN (Boğaziçi) papers are used only in the deployed app and in v1 exploratory checks, never in the v1 cited-paper benchmark or in v2.
+  - **App:** `backend/services/seeder.py` extracts BOUN-affiliated authors from `research/data/cleaned/boun.csv` (4,608 papers). That gives 2,671 researchers and 7,803 researcher–paper rows (rechecked with the seeder's logic).
+  - **v1 checks:** the Week 1 pairs benchmark and the qualitative checks in `v1/02_similarity_evaluation.ipynb`.
+- **Consequence.** The benchmark measures paper → cited papers; the app recommends paper → researcher, with a pointwise stage 2. v2 is evidence about the app, not a test of it.
+- **Data check while verifying.** 1,605 of the 4,608 `boun.csv` rows have no abstract (3,003 do), so the app embeds those papers from title and concepts only. The file has not been audited otherwise.
+- **Plan.** Added Idea F (researcher-level evaluation with a time split) to `research/audit/IMPROVEMENT_IDEAS.md` and Phase 6B (6B.1–6B.4) to `research/audit/TODO.md`. Nothing is executed yet. Phase 5 is unchanged.
