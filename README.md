@@ -119,7 +119,7 @@ A fully containerized recommender that runs the two-stage pipeline every six hou
 
 1. **Fetch** new papers from followed institutions (OpenAlex API, cursor-based incremental fetching).
 2. **Stage 1, Retrieve:** Qwen3 embeddings (`qwen3-embedding`, 4096-d, stored in PostgreSQL with pgvector); cosine similarity against ~7,800 Boğaziçi paper embeddings; top-10 researchers above a 0.3 threshold.
-3. **Stage 2, Rerank:** Llama 3.2 3B (Ollama) decides `RELEVANT <score>` / `IRRELEVANT <score>` for each candidate researcher. Falls back to Stage-1 scores if the LLM is unavailable. *The v2 benchmark finds that LLM reranking lowers Qwen3's own ranking; this stage is under review, see [`APP_NOTES.md`](APP_NOTES.md).*
+3. **Stage 2, Rerank:** Llama 3.2 3B (Ollama) decides `RELEVANT <score>` / `IRRELEVANT <score>` for each candidate researcher. Falls back to Stage-1 scores if the LLM is unavailable. *The v2 benchmark finds that listwise LLM reranking lowers Qwen3's own ranking. This pointwise stage has not been benchmarked yet and is under review; see [`APP_NOTES.md`](APP_NOTES.md).*
 4. **Serve** a React 19 + TypeScript interface: paper feed, researcher pages, institution following, relevance feedback, admin panel.
 
 Stack: FastAPI · SQLAlchemy (async) · PostgreSQL 16 + pgvector · Ollama · React 19 · Vite · Tailwind · Docker Compose. Setup instructions: [`README_APP.md`](README_APP.md).
