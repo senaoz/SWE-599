@@ -32,7 +32,7 @@ Sena Öz · M.S. Software Engineering, Boğaziçi University · SWE 599 · Octob
 **Findings**
 1. **The LLM's advantage was position bias.** Changing nothing but candidate order, listwise Llama gets MRR 0.95–0.98 with positives first and 0.27–0.33 with positives last, below chance. On shuffled candidates it ranks last of 13 methods. It truncates 38% of its rankings.
 2. **Reranking hurts the deployed cascade.** Stage 1 already keeps 89–93% of the cited references in its top 10, yet Llama reranking lowers R-precision by 10–13 points (p ≤ 3·10⁻¹⁰).
-3. **Small embedding models nearly match large ones.** MiniLM is within 4 points of an 8B embedding model. Pointwise LLM scoring is the only LLM variant that beats lexical baselines.
+3. **Small embedding models nearly match large ones.** MiniLM is within 3.7 / 4.4 points of an 8B embedding model. Pointwise LLM scoring is the only LLM variant that beats lexical baselines.
 4. **The audit is reproducible.** Every v1 number in the audit is reproduced by a script. The v2 pipeline runs as six notebooks with sanity checks for each audit finding.
 
 **Limitations.**

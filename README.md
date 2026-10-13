@@ -37,7 +37,7 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
    - Qwen3's top 10 already holds about 90% of the true references.
    - Reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
 4. **Small embedding models are almost as good as large ones.**
-   - MiniLM (22M parameters) is within 4 points of Qwen3-8B.
+   - MiniLM (22M parameters) is within 3.7 / 4.4 points of Qwen3-8B.
    - SPECTER2 and MiniLM are indistinguishable (p ≥ 0.94).
    - Among LLM variants, only pointwise scoring (78.8 / 73.9) beats the lexical baselines.
 
