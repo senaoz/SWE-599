@@ -446,3 +446,29 @@ The same candidates thus get opposite outcomes from order alone. For this query,
 - **Consequence.** The benchmark measures paper → cited papers; the app recommends paper → researcher, with a pointwise stage 2. v2 is evidence about the app, not a test of it.
 - **Data check while verifying.** 1,605 of the 4,608 `boun.csv` rows have no abstract (3,003 do), so the app embeds those papers from title and concepts only. The file has not been audited otherwise.
 - **Plan.** Added Idea F (researcher-level evaluation with a time split) to `research/audit/IMPROVEMENT_IDEAS.md` and Phase 6B (6B.1–6B.4) to `research/audit/TODO.md`. Nothing is executed yet. Phase 5 is unchanged.
+
+### 2026-10-12 — Fallback citer search and the co-citation graph (`v2/07`, `v2/08`) [e14f50c, 5952b8b, 02acdbf]
+
+- **Decisions (user, 2026-10-12).** All three recommendations were approved:
+  1. a second citer search for low-result queries;
+  2. earlier versions of living reviews count as query duplicates;
+  3. drop the 5 lost positives from the labels.
+- **Fallback search** [e14f50c]. 72 queries had fewer than 100 title-search results. They got a second search on the first 6 content words of the title (72 searches, $0.072).
+  - The pool grew from 10,663 to 13,572 citers, and positive-slot coverage from 62% to 64.5%.
+  - m = 5 was kept as fixed before the fetch. Real eligibility was 71.5% (P0 estimate 63%), so the corpus came out at 12,096 records, not 10k.
+- **Graph code** [5952b8b]. `src/cograph.py` holds canonicalization, query-duplicate detection, the citer × document graph with per-query rule masks (R1–R5 plus canary), co-citation scores and Curveball rewiring.
+  - `research/tests/test_cograph.py` has 11 tests. pytest 9.1.1 was installed (new dependency, approved).
+- **R3 rule, settled by inspecting every match.**
+  - Token-overlap near-titles matched different papers, e.g. *On airborne transmission and control of SARS-CoV-2* for the query *Airborne Transmission of SARS-CoV-2*.
+  - The final rule is: DOI, exact title (any year), or digit-free character similarity ≥ 0.9 **with a shared author id**.
+  - The author condition is not applied to exact titles. A 2012 record titled *Electronic cigarettes for smoking cessation.* shares all 10 of the 2020 query's references but no author id, and a date-only rule would have allowed it.
+  - Result: 20 pool works duplicate a query (12 title, 7 near-title, 1 DOI), and 3 query records are in the pool.
+- **Notebook 08** [02acdbf].
+  - **Canonicalization:** 12,096 records → 11,968 works (119 duplicate groups); 11,967 are eligible candidates.
+  - **Labels:** 1,247 → 1,219 positive slots (5 dropped, 9 merged). Dev drops `W3012006042` (decision 6) and `W4388291555` (2 positives left), giving 48 dev / 118 test queries.
+  - **Graph:** 13,743 citer rows, 127,908 edges.
+- **Reachability** (share of test positives that an allowed citer cites):
+  - all rules: 63.4%;
+  - R3 off: 65.3%; **R4 off: 68.2%**; R5 off: 63.5%; R3–R5 off: 70.1%;
+  - canary: 100%, as required.
+- **Membership asymmetry.** Positives have a median of 2 pool citers (33.5% have none); non-positives have a median of 7, by construction. A degree-only probe is planned for notebook 09.
