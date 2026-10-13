@@ -472,3 +472,27 @@ The same candidates thus get opposite outcomes from order alone. For this query,
   - R3 off: 65.3%; **R4 off: 68.2%**; R5 off: 63.5%; R3–R5 off: 70.1%;
   - canary: 100%, as required.
 - **Membership asymmetry.** Positives have a median of 2 pool citers (33.5% have none); non-positives have a median of 7, by construction. A degree-only probe is planned for notebook 09.
+
+### 2026-10-12 — Checkpoint A: leak diagnostics before the rule set is signed off
+
+Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together with whichever rule the user chooses.
+
+- **High-overlap citers.** Under all rules, 189 allowed citers (57 dev, 132 test) cite at least half of a query's positives. Most are legitimate (topic reviews, same-author earlier work), but two leak types show up:
+  1. **Imprecise dates.**
+     - 3,227 of 13,572 pool citers (24%) are dated YYYY-01-01, which is often a year-only date. 69 of the 189 high-overlap citers carry such dates; for example, COVID papers "dated" 2020-01-01 pass R4 for queries from February 2020.
+     - 3,479 citer rows cite a work dated after their own date, which is impossible if both dates were right.
+     - Reachability of test positives under each date rule:
+
+       | Date rule | Test reachability |
+       |---|---|
+       | current | 63.4% |
+       | Jan-1 dates moved to Dec-31 | 59.5% |
+       | effective date ≥ latest cited work's date | 57.7% |
+       | both | 54.7% |
+       | 365-day margin | 34.4% |
+
+       Citers with at least 50% overlap fall from 132 to 66 under "both".
+  2. **The same work under a different title.** The query *NeRF* (CACM, 2021) has the ECCV paper *NeRF: Representing Scenes as Neural Radiance Fields…* (two records) as a citer. The query *"How do I fool you?"* has its preprint as a citer. Title containment plus a shared author also catches unrelated papers (*Mip-NeRF*, *NeRF in the Wild*, an e-cigarette RCT), so it cannot be an automatic rule.
+- **Citer duplicates.** Pool citers are not deduplicated among themselves: canonicalization would merge 13,572 into 13,464, so 108 rows double-count co-citation edges.
+- **Checked and fine.** The dropped positive `W3012048021` is in no duplicate group, so the label was not lost through canonicalization.
+- **Assumption, not verified.** `fetch_works` treats any id missing from a successful response as permanently gone. 819 of 17,275 (4.7%) is in line with the ~5% seen in P0.
