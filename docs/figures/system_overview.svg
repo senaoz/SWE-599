@@ -1,0 +1,252 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 690" width="1200" height="690" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">SWE-599 system overview</title>
+  <desc id="d">The v1 benchmark was audited (nine problems) and rebuilt as a leak-free v2 pipeline of six notebooks running only local models. Embedding models lead; listwise Llama ranks last and follows candidate order. The deployed app uses BOUN data and a pointwise LLM stage that is not yet benchmarked.</desc>
+  <style>
+    .bg { fill: #fcfcfb; }
+    .box { fill: #ffffff; stroke: #d9d7cf; stroke-width: 1; }
+    .lane { fill: none; stroke: #c9c7bf; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ink { fill: #1f1f1e; }
+    .muted { fill: #5f5e5a; }
+    .title { font-size: 20px; font-weight: 650; }
+    .sub { font-size: 13px; }
+    .h { font-size: 13.5px; font-weight: 650; }
+    .t { font-size: 11.5px; }
+    .lab { font-size: 11px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+    .num { font-size: 12px; font-weight: 700; }
+    .line { stroke: #8c8a83; stroke-width: 1.4; fill: none; }
+    .dash { stroke: #8c8a83; stroke-width: 1.3; fill: none; stroke-dasharray: 4 4; }
+    .head { fill: #8c8a83; }
+    .v1 { fill: #eb6834; }  .v1s { stroke: #eb6834; }
+    .v2 { fill: #2a78d6; }  .v2s { stroke: #2a78d6; }
+    .mod { fill: #1baf7a; } .mods { stroke: #1baf7a; }
+    .app { fill: #c98500; } .apps { stroke: #c98500; }
+    .barbg { fill: #ecebe6; }
+    .chance { stroke: #5f5e5a; stroke-width: 1; stroke-dasharray: 3 3; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a19; }
+      .box { fill: #232322; stroke: #3f3e3a; }
+      .lane { stroke: #4a4944; }
+      .ink { fill: #f3f2ed; }
+      .muted { fill: #b6b4ab; }
+      .line, .dash { stroke: #8f8d85; }
+      .head { fill: #8f8d85; }
+      .v1 { fill: #f07a4c; } .v1s { stroke: #f07a4c; }
+      .v2 { fill: #4a8fe6; } .v2s { stroke: #4a8fe6; }
+      .mod { fill: #2cc28c; } .mods { stroke: #2cc28c; }
+      .app { fill: #e0a21f; } .apps { stroke: #e0a21f; }
+      .barbg { fill: #33322f; }
+      .chance { stroke: #b6b4ab; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="head"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="690" rx="14"/>
+
+  <!-- Title -->
+  <text class="ink title" x="40" y="38">SWE-599: audit of v1 and a leak-free v2 benchmark</text>
+  <text class="muted sub" x="40" y="58">Does reranking with a small local LLM help citation-based paper recommendation? Short answer: no.</text>
+
+  <!-- Row 1: v1 and audit -->
+  <text class="v1 lab" x="40" y="90">1 · v1 (May 2026) and audit</text>
+  <rect class="box" x="40" y="100" width="250" height="92" rx="8"/>
+  <rect class="v1" x="40" y="100" width="4" height="92" rx="2"/>
+  <text class="ink h" x="56" y="124">v1 benchmark</text>
+  <text class="muted t" x="56" y="144">Llama 3.2 3B listwise MRR 0.84</text>
+  <text class="muted t" x="56" y="160">vs Qwen3 embeddings 0.51</text>
+  <text class="muted t" x="56" y="178">→ "LLM wins" (tag v1-results)</text>
+
+  <line class="line" x1="290" y1="146" x2="326" y2="146" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="330" y="100" width="534" height="92" rx="8"/>
+  <rect class="v1" x="330" y="100" width="4" height="92" rx="2"/>
+  <text class="ink h" x="346" y="124">Audit: 9 problems (F1–F9) → the v1 headline was an artifact</text>
+  <text class="muted t" x="346" y="144">positives shown first · prompt example hinted a positive · fallback to input order</text>
+  <text class="muted t" x="346" y="160">negatives lacked concepts · positives carried other papers' text (index bug)</text>
+  <text class="muted t" x="346" y="178">nDCG mis-normalized · salted hash() seeds · SPECTER2 wrong pooling</text>
+
+  <path class="line" d="M 700 192 L 700 232" marker-end="url(#arrow)"/>
+  <text class="muted t" x="710" y="218">rebuilt as v2</text>
+
+  <!-- Row 2: v2 pipeline -->
+  <text class="v2 lab" x="40" y="226">2 · v2 pipeline (research/v2/, numbered notebooks)</text>
+
+  <g>
+    <rect class="box" x="40" y="236" width="124" height="94" rx="8"/>
+    <rect class="v2" x="40" y="236" width="124" height="4" rx="2"/>
+    <text class="v2 num" x="52" y="258">01</text>
+    <text class="ink h" x="74" y="258">Fetch</text>
+    <text class="muted t" x="52" y="280">OpenAlex by id</text>
+    <text class="muted t" x="52" y="296">one normalizer</text>
+    <text class="muted t" x="52" y="312">ids asserted</text>
+  </g>
+  <line class="line" x1="164" y1="283" x2="176" y2="283" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="180" y="236" width="124" height="94" rx="8"/>
+    <rect class="v2" x="180" y="236" width="124" height="4" rx="2"/>
+    <text class="v2 num" x="192" y="258">02</text>
+    <text class="ink h" x="214" y="258">Eval sets</text>
+    <text class="muted t" x="192" y="280">random / concept</text>
+    <text class="muted t" x="192" y="296">50 dev · 118 test</text>
+    <text class="muted t" x="192" y="312">sanity checks</text>
+  </g>
+  <line class="line" x1="304" y1="283" x2="316" y2="283" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="320" y="236" width="124" height="94" rx="8"/>
+    <rect class="v2" x="320" y="236" width="124" height="4" rx="2"/>
+    <text class="v2 num" x="332" y="258">03</text>
+    <text class="ink h" x="354" y="258">Dev tuning</text>
+    <text class="muted t" x="332" y="280">shared text config</text>
+    <text class="muted t" x="332" y="296">stage-1 k = 10</text>
+    <text class="muted t" x="332" y="312">dev split only</text>
+  </g>
+  <line class="line" x1="444" y1="283" x2="456" y2="283" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="460" y="236" width="124" height="94" rx="8"/>
+    <rect class="v2" x="460" y="236" width="124" height="4" rx="2"/>
+    <text class="v2 num" x="472" y="258">04</text>
+    <text class="ink h" x="494" y="258">Test runs</text>
+    <text class="muted t" x="472" y="280">13 methods</text>
+    <text class="muted t" x="472" y="296">shuffled · 5 seeds</text>
+    <text class="muted t" x="472" y="312">order conditions</text>
+  </g>
+  <line class="line" x1="584" y1="283" x2="596" y2="283" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="600" y="236" width="124" height="94" rx="8"/>
+    <rect class="v2" x="600" y="236" width="124" height="4" rx="2"/>
+    <text class="v2 num" x="612" y="258">05</text>
+    <text class="ink h" x="634" y="258">Statistics</text>
+    <text class="muted t" x="612" y="280">bootstrap 95% CIs</text>
+    <text class="muted t" x="612" y="296">Holm–Wilcoxon</text>
+    <text class="muted t" x="612" y="312">seed spread</text>
+  </g>
+  <line class="line" x1="724" y1="283" x2="736" y2="283" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="740" y="236" width="124" height="94" rx="8"/>
+    <rect class="v2" x="740" y="236" width="124" height="4" rx="2"/>
+    <text class="v2 num" x="752" y="258">06</text>
+    <text class="ink h" x="774" y="258">Analyses</text>
+    <text class="muted t" x="752" y="280">position bias</text>
+    <text class="muted t" x="752" y="296">stage-1 recall@k</text>
+    <text class="muted t" x="752" y="312">contamination</text>
+  </g>
+
+  <!-- Row 3: data source and local models -->
+  <text class="mod lab" x="120" y="380">3 · data and local models (no cloud)</text>
+  <rect class="box" x="40" y="390" width="264" height="80" rx="8"/>
+  <rect class="mod" x="40" y="390" width="4" height="80" rx="2"/>
+  <text class="ink h" x="56" y="412">OpenAlex API</text>
+  <text class="muted t" x="56" y="432">174 query papers · 1,729 references</text>
+  <text class="muted t" x="56" y="448">155 references deleted (404)</text>
+  <text class="muted t" x="56" y="464">~6% "abstracts" are not abstracts</text>
+  <path class="line" d="M 102 390 L 102 334" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="320" y="390" width="264" height="80" rx="8"/>
+  <rect class="mod" x="320" y="390" width="4" height="80" rx="2"/>
+  <text class="ink h" x="336" y="412">llama-server (launchd, :1337)</text>
+  <text class="muted t" x="336" y="432">Llama 3.2 3B Instruct Q4_K_M · ctx 16k</text>
+  <text class="muted t" x="336" y="448">Qwen3-Embedding-8B Q4_K_M</text>
+  <text class="muted t" x="336" y="464">last-token pooling (verified)</text>
+
+  <rect class="box" x="600" y="390" width="264" height="80" rx="8"/>
+  <rect class="mod" x="600" y="390" width="4" height="80" rx="2"/>
+  <text class="ink h" x="616" y="412">sentence-transformers (in-process)</text>
+  <text class="muted t" x="616" y="432">MiniLM · SPECTER2 [CLS] · bge-reranker</text>
+  <text class="muted t" x="616" y="448">EmbeddingGemma with Dense layers</text>
+  <text class="muted t" x="616" y="464">BM25 · TF-IDF (no model)</text>
+
+  <!-- bus from models to 03 and 04 -->
+  <path class="line" d="M 452 390 L 452 360"/>
+  <path class="line" d="M 732 390 L 732 360"/>
+  <path class="line" d="M 382 360 L 732 360"/>
+  <path class="line" d="M 382 360 L 382 334" marker-end="url(#arrow)"/>
+  <path class="line" d="M 522 360 L 522 334" marker-end="url(#arrow)"/>
+
+  <!-- Right column: results -->
+  <rect class="box" x="896" y="100" width="264" height="370" rx="8"/>
+  <rect class="v2" x="896" y="100" width="4" height="370" rx="2"/>
+  <text class="ink h" x="914" y="124">v2 test results</text>
+  <text class="muted t" x="914" y="142">R-precision %, random / concept</text>
+
+  <g class="t">
+    <text class="ink t" x="914" y="168">Qwen3-Embedding-8B</text>
+    <text class="ink t" x="1146" y="168" text-anchor="end">87.0 / 80.1</text>
+    <rect class="barbg" x="914" y="174" width="232" height="6" rx="3"/>
+    <rect class="mod" x="914" y="174" width="201.8" height="6" rx="3"/>
+
+    <text class="ink t" x="914" y="198">MiniLM (22M params)</text>
+    <text class="ink t" x="1146" y="198" text-anchor="end">83.3 / 75.7</text>
+    <rect class="barbg" x="914" y="204" width="232" height="6" rx="3"/>
+    <rect class="mod" x="914" y="204" width="193.3" height="6" rx="3"/>
+
+    <text class="ink t" x="914" y="228">Llama pointwise</text>
+    <text class="ink t" x="1146" y="228" text-anchor="end">78.8 / 73.9</text>
+    <rect class="barbg" x="914" y="234" width="232" height="6" rx="3"/>
+    <rect class="app" x="914" y="234" width="182.8" height="6" rx="3"/>
+
+    <text class="ink t" x="914" y="258">Qwen3 → Llama (k = 10)</text>
+    <text class="ink t" x="1146" y="258" text-anchor="end">74.0 / 69.7</text>
+    <rect class="barbg" x="914" y="264" width="232" height="6" rx="3"/>
+    <rect class="app" x="914" y="264" width="171.7" height="6" rx="3"/>
+
+    <text class="ink t" x="914" y="288">Llama listwise (v1 "winner")</text>
+    <text class="ink t" x="1146" y="288" text-anchor="end">43.9 / 42.0</text>
+    <rect class="barbg" x="914" y="294" width="232" height="6" rx="3"/>
+    <rect class="v1" x="914" y="294" width="101.8" height="6" rx="3"/>
+
+    <line class="chance" x1="991.3" y1="160" x2="991.3" y2="304"/>
+    <text class="muted t" x="995" y="318">chance 33.3 (bars: random)</text>
+  </g>
+
+  <line class="box" x1="914" y1="334" x2="1146" y2="334" style="stroke-width:1"/>
+  <text class="ink h" x="914" y="356">Why listwise fails</text>
+  <text class="muted t" x="914" y="376">Same candidates, only order changed:</text>
+  <text class="ink t" x="914" y="394">positives first → MRR 0.95 / 0.98</text>
+  <text class="ink t" x="914" y="410">positives last → MRR 0.33 / 0.27</text>
+  <text class="muted t" x="914" y="430">51% of outputs copy the input list</text>
+  <text class="muted t" x="914" y="446">(median Spearman ρ = 0.98)</text>
+  <text class="muted t" x="914" y="462">Llama reranking: −13 / −10 points</text>
+
+  <!-- Row 4: deployed app -->
+  <rect class="lane" x="24" y="500" width="1152" height="172" rx="12"/>
+  <text class="app lab" x="40" y="524">4 · deployed app (backend/ + frontend/, unchanged in this work)</text>
+
+  <rect class="box" x="40" y="538" width="200" height="72" rx="8"/>
+  <rect class="app" x="40" y="538" width="4" height="72" rx="2"/>
+  <text class="ink h" x="56" y="560">New papers</text>
+  <text class="muted t" x="56" y="580">followed institutions</text>
+  <text class="muted t" x="56" y="596">OpenAlex, every 6 h</text>
+  <line class="line" x1="240" y1="574" x2="276" y2="574" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="280" y="538" width="250" height="72" rx="8"/>
+  <rect class="app" x="280" y="538" width="4" height="72" rx="2"/>
+  <text class="ink h" x="296" y="560">Stage 1: Qwen3 embeddings</text>
+  <text class="muted t" x="296" y="580">vs ~7,800 BOUN researcher–paper rows</text>
+  <text class="muted t" x="296" y="596">top researchers (pgvector)</text>
+  <line class="line" x1="530" y1="574" x2="566" y2="574" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="570" y="538" width="250" height="72" rx="8"/>
+  <rect class="app" x="570" y="538" width="4" height="72" rx="2"/>
+  <text class="ink h" x="586" y="560">Stage 2: Llama, pointwise</text>
+  <text class="muted t" x="586" y="580">RELEVANT / IRRELEVANT + score</text>
+  <text class="app t" x="586" y="596">not benchmarked yet (APP_NOTES.md)</text>
+  <line class="line" x1="820" y1="574" x2="856" y2="574" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="860" y="538" width="300" height="72" rx="8"/>
+  <rect class="app" x="860" y="538" width="4" height="72" rx="2"/>
+  <text class="ink h" x="876" y="560">React UI</text>
+  <text class="muted t" x="876" y="580">paper feed · researcher pages</text>
+  <text class="muted t" x="876" y="596">thumbs-up/down feedback → trust study</text>
+
+  <rect class="box" x="280" y="622" width="272" height="40" rx="8"/>
+  <text class="ink t" x="296" y="646">boun.csv: 4,608 papers · 2,671 researchers</text>
+  <line class="line" x1="405" y1="622" x2="405" y2="614" marker-end="url(#arrow)"/>
+  <text class="muted t" x="570" y="646">BOUN data is used only by the app, not by the v1/v2 benchmarks</text>
+
+  <!-- evidence link from results to stage 2 -->
+  <path class="dash" d="M 1028 470 L 1028 488 L 695 488 L 695 534" marker-end="url(#arrow)"/>
+  <text class="muted t" x="706" y="480">evidence: listwise reranking hurts; pointwise stage needs its own test</text>
+</svg>

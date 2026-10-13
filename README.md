@@ -21,6 +21,8 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 
 ## Summary
 
+![System overview: v1 audit, v2 pipeline, local models, results and the deployed app](docs/figures/system_overview.svg)
+
 Researchers miss relevant work from institutions they don't routinely follow. I built a system that monitors new papers from selected institutions via [OpenAlex](https://openalex.org) and recommends them to Boğaziçi researchers, and I used it to ask a research question:
 
 > **Does reranking embedding-retrieved candidates with a small local LLM improve recommendation quality, and under what conditions?**

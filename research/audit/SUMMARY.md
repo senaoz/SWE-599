@@ -2,6 +2,8 @@
 
 Sena Öz · M.S. Software Engineering, Boğaziçi University · SWE 599 · October 2026
 
+![System overview: v1 audit, v2 pipeline, local models, results and the deployed app](../../docs/figures/system_overview.svg)
+
 **Question.** I built a recommender that suggests new papers from followed institutions to Boğaziçi researchers. Its design is embedding retrieval followed by reranking with a small local LLM (Llama 3.2 3B). Does the reranking step actually help?
 
 **v1 said yes; an audit showed it was an artifact.** My first benchmark ranked each query paper's cited references among random distractors. It reported the LLM far ahead of embeddings (MRR 0.84 vs 0.51). Auditing my own code found nine problems (AUDIT.md, F1–F9):
