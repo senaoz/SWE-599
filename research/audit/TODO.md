@@ -73,9 +73,10 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 ## Phase 5: Full-corpus retrieval + leakage-controlled graph expansion
 
-> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done and Checkpoint A decisions applied: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5 and conservative dates, 14 unit tests pass, 54.7% of test positives reachable (canary 100%). Next: notebook 09 (embeddings, needs approval).
+> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done and Checkpoint A decisions applied: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5 and conservative dates, 14 unit tests pass, 54.7% of test positives reachable (canary 100%). Notebook 09 (5.1) done. Next: notebook 10 (graph expansion, canary and ablations, random graph), CHECKPOINT B report first.
 
-* [ ] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
+* [x] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
+   * *`v2/09_full_corpus_retrieval.ipynb`: 11,967-work corpus, 118 test queries. Qwen3 recall@100 is 64.0% [58.7, 69.4], BM25 38.7%; the degree-only probe gets 2.4% (random 1.3%).*
 * [x] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
 * [x] 5.3 Unit tests for each leakage rule (small synthetic graph).
    * *`research/tests/test_cograph.py`, 11 tests; run inside `v2/08_build_corpus_graph.ipynb`.*
