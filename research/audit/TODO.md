@@ -19,7 +19,7 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 * [x] 0.1 Create tag `v1-results` and branch `v2-audit`.
    * Done when: tag and branch exist; `git status` clean.
-   * *Done: tag on 614cfb2 (local), branch pushed.*
+   * *Done: tag `v1-results` on 614cfb2, pushed to GitHub; branch pushed.*
 * [x] 0.2 Create `research/audit/` and `research/eval_dataset/v2/`; copy in this plan and the ideas file.
    * *Done: `research/audit/` holds this plan and the ideas file; v2 outputs are in `research/v2/` (see status note).*
 
