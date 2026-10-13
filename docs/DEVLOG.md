@@ -394,3 +394,10 @@ The same candidates thus get opposite outcomes from order alone. For this query,
 - **What.** Branch `v2-audit` (PR senaoz/SWE-599#1) was merged into `main` with a merge commit, `e232e49`.
 - **Why a merge commit.** This log cites individual commit hashes; a squash merge would have orphaned them. Later phases keep using merge commits.
 - **State after the merge.** v1 stays frozen at tag `v1-results` (614cfb2); v2 notebooks 01–06, the audit documents and the README with v2 results are on `main`. Open work: Phases 4–6 in `research/audit/TODO.md`.
+
+### 2026-10-12 — README: how `random` and `concept` differ
+
+- **What.** Added a section to `README.md` (and a short version to `research/README.md`) that explains the two benchmarks with numbers and two test examples. Requested because the one-line description did not make the difference clear.
+- **Numbers** (all 168 queries, recomputed from `v2/eval_sets/`). Share of candidates that share a top-5 OpenAlex concept with their query: positives 73.5%, `random` negatives 29.5%, `concept` negatives 97.7%. Of the matching `concept` negatives, 68.7% match only through a level-0 field such as "Medicine" (positives: 33.2%). 7 of 168 queries have `concept` negatives topped up with random ones.
+- **New example.** Test query `W3138513807` (LocusZoom.js): all six `concept` negatives match only through "Computer science".
+- **Correction.** The 2026-10-12 note on `concept` negatives says six of the eight `concept` negatives of `W2997681568` match only through "Medicine" or "Health care", and its table lists six. The query has eight; two were missing from the table (2019, team-based continuity; 2020, immune-related adverse events, both "Medicine"). The correct count is **7 of 8**.
