@@ -1,0 +1,12 @@
+{
+  "fields": "tac",
+  "max_chars": 600,
+  "query_max_chars": 1500,
+  "stage1_k": 10,
+  "chosen_on": "dev",
+  "dev_mean_rank": {
+    "tac_600_1500": 1.75,
+    "ta_600_1500": 1.875,
+    "t_600_1500": 2.375
+  }
+}

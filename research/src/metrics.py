@@ -118,6 +118,26 @@ def ndcg_at_n(ranked, positive_indices, n):
         return sum(h / math.log2(i + 2) for i, h in enumerate(hits))
 
     top_n_hits = [1 if idx in positive_indices else 0 for idx, _ in ranked[:n]]
-    ideal_hits = sorted(top_n_hits, reverse=True)
-    ideal_dcg = dcg(ideal_hits)
+    # Ideal ranking puts every positive first; normalizing by the retrieved hits
+    # (as v1 did) scores a single hit at rank 1 as a perfect 1.0.
+    ideal_dcg = dcg([1] * min(n, len(positive_indices)))
     return dcg(top_n_hits) / ideal_dcg if ideal_dcg > 0 else 0.0
+
+
+def ranking_metrics(ranking, positives, recall_ks=(5, 10, 20, 50)):
+    """All per-query metrics for a full ranking of candidate ids (best first)."""
+    pos = set(positives)
+    n = len(pos)
+    ranked = [(cid, 0.0) for cid in ranking]
+    hits = [1 if cid in pos else 0 for cid in ranking]
+    ap = sum(sum(hits[:i + 1]) / (i + 1) for i, h in enumerate(hits) if h) / n
+    out = {
+        "mrr": reciprocal_rank(ranked, pos),
+        "rprec": hit_rate_at_n(ranked, pos, n) * 100,
+        "ndcg": ndcg_at_n(ranked, pos, n),
+        "ap": ap,
+        "top1": float(hits[0]) if hits else 0.0,
+    }
+    for k in recall_ks:
+        out[f"recall@{k}"] = sum(hits[:k]) / n
+    return out
