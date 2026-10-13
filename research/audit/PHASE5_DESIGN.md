@@ -30,6 +30,16 @@ A co-citation graph can recover a positive only through a citer that cites both 
 9. **Tests:** pytest (new dependency), in `research/tests/`.
 10. **Environment:** the worktree links `research/.venv` and `research/data/v2` to the main checkout.
 
+## Changes during P2–P3 and notebook 08 (approved 2026-10-12)
+
+- **Fallback search.** 72 queries whose title search returned fewer than 100 results got a second search on their first 6 content words.
+- **Earlier versions count as duplicates.** Earlier versions of living reviews and guidelines are query duplicates under R3.
+- **R3 matching**, settled by inspecting every match:
+  - DOI, or exact normalized title (any year), or near-title.
+  - Near-title means digit-free character similarity ≥ 0.9 **and** a shared author id.
+- **Labels.** The 5 positives that are gone from OpenAlex or lack an abstract are dropped from the labels.
+- **Corpus size.** The corpus came out at 11,967 works, not 10k. The m = 5 threshold was fixed before the fetch, and eligibility (71.5%) beat the P0 estimate (63%).
+
 ## Leakage rules and controls
 
 | Rule | Implementation | Control |

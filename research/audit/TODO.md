@@ -73,11 +73,12 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 ## Phase 5: Full-corpus retrieval + leakage-controlled graph expansion
 
-> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Next: notebook 08 (deduplication, graph, unit tests), then CHECKPOINT A.
+> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5, 11 unit tests pass. Next: CHECKPOINT A review, then notebook 09 (embeddings).
 
 * [ ] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
-* [ ] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
-* [ ] 5.3 Unit tests for each leakage rule (small synthetic graph).
+* [x] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
+* [x] 5.3 Unit tests for each leakage rule (small synthetic graph).
+   * *`research/tests/test_cograph.py`, 11 tests; run inside `v2/08_build_corpus_graph.ipynb`.*
 * [ ] 5.4 Leakage canary run (query refs included on purpose) and normal run; report the gap.
 * [ ] 5.5 Random-graph control with the same degree distribution.
 * [ ] 5.6 GRIT-style expansion (seed top t%, replace bottom b%; tune t, b on dev).
