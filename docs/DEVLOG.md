@@ -370,3 +370,21 @@ What stands out:
 - **3.2, stage-1 recall for BM25 and a hybrid.** The hybrid is BM25 + Qwen3 via RRF, computed from the stored runs. At k = 10 (`random` / `concept`): Qwen3 92.5 / 89.0, BM25 80.8 / 76.2, hybrid 89.0 / 84.2. The hybrid's R-precision (78.7 / 72.8) is below Qwen3's.
 - **7.3.** Pitch sentences filled where v2 has numbers. Sentences that depend on Phases 4–5 keep their TBDs. While checking, the claim that every method drops 7–10 points on `concept` turned out wrong: the actual range is 1.9–9.9.
 - **7.4.** One-page summary in `research/audit/SUMMARY.md`.
+
+### 2026-10-12 — How Llama's listwise output relates to input order
+
+Spearman correlation between each output position and the input position of the candidate placed there, over the shuffled test runs (1,177 outputs with ≥ 5 ranked items, both benchmarks, 5 seeds):
+
+| Pattern | Share of outputs |
+|---|---|
+| Copies the input order forward (ρ > 0.8) | **50.6%** |
+| Reverses the input order (ρ < −0.8) | 6.7% |
+| Close to order-independent (\|ρ\| ≤ 0.3) | 29.5% |
+
+The median ρ is **0.98**: the typical listwise answer is a copy of the input list.
+
+Example, test query `W2997681568`, `random` benchmark, seed 0, 12 candidates. Here the model reverses the list:
+- with positives first, it outputs `["12","9","8",…,"1",…]` and scores R-precision 0;
+- with positives last, it outputs `["12","10","11","9",…,"1"]` and scores R-precision 100.
+
+The same candidates thus get opposite outcomes from order alone. For this query, Qwen3 ranks the 4 positives at 1, 2, 4 and 5 regardless of order.
