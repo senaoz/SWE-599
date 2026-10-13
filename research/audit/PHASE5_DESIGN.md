@@ -38,6 +38,10 @@ A co-citation graph can recover a positive only through a citer that cites both 
   - DOI, or exact normalized title (any year), or near-title.
   - Near-title means digit-free character similarity ≥ 0.9 **and** a shared author id.
 - **Labels.** The 5 positives that are gone from OpenAlex or lack an abstract are dropped from the labels.
+- **Checkpoint A decisions (2026-10-12).**
+  - **R4 uses a conservative citer date.** A YYYY-01-01 date counts as YYYY-12-31, and a citer is never earlier than the latest known date among the works it cites. Recorded dates are reported as an upper bound, and a 365-day margin as a sensitivity check.
+  - **A manual list of query duplicates** whose titles differ (NeRF ECCV ×2, the *"How do I fool you?"* preprint) was fixed before any method ran.
+  - **Pool duplicates are merged** into one citer row, with united references and the latest member date.
 - **Corpus size.** The corpus came out at 11,967 works, not 10k. The m = 5 threshold was fixed before the fetch, and eligibility (71.5%) beat the P0 estimate (63%).
 
 ## Leakage rules and controls
