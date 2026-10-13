@@ -73,6 +73,8 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 ## Phase 5: Full-corpus retrieval + leakage-controlled graph expansion
 
+> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). Next: P1–P3 fetches, then CHECKPOINT A (citer coverage, corpus statistics) before any embedding.
+
 * [ ] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
 * [ ] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
 * [ ] 5.3 Unit tests for each leakage rule (small synthetic graph).
