@@ -1,8 +1,9 @@
 """Phase 5 data: citer pool and candidate corpus (research/audit/PHASE5_DESIGN.md).
 
 - Citer pool: for each query, an OpenAlex title search restricted to works published
-  before the query with at least 10 references. Selection reads only the query's title,
-  never its references, so the graph is not built around the answer key.
+  before the query with at least 10 references; queries with fewer than 100 results get
+  a second search on the first 6 content words of the title. Selection reads only the
+  query's title, never its references, so the graph is not built around the answer key.
 - Candidate corpus: all eligible positives plus the works cited by at least m pool
   citers (query records never count as citers); m is chosen from corpus size alone.
 
@@ -31,10 +32,19 @@ CITER_SELECT = "id,doi,title,publication_date,type,authorships,referenced_works"
 ID_BATCH = 100      # OpenAlex allows up to 100 OR values per filter
 CITERS_PER_QUERY = 100  # one search page (per_page max is 100); P0: page 2 added no positive
 MIN_CITER_REFS = 10
+FALLBACK_BELOW = 100    # queries whose title search returns fewer results get a second search
+FALLBACK_WORDS = 6
 
 
 def search_terms(title: str) -> str:
     return re.sub(r"[^\w\s-]", " ", title).strip()
+
+
+def fallback_terms(title: str) -> str:
+    """The first FALLBACK_WORDS content words of the title (search behaves like an AND over words)."""
+    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+    words = [w for w in search_terms(title).split() if w.lower() not in ENGLISH_STOP_WORDS]
+    return " ".join(words[:FALLBACK_WORDS])
 
 
 def _read_jsonl(path: Path) -> dict[str, dict]:
@@ -72,17 +82,20 @@ def fetch_works(ids, sleep: float = 0.1) -> tuple[dict[str, dict], set[str]]:
     return {i: works[i] for i in wanted if i in works}, wanted & not_found
 
 
-def fetch_citers(qid: str, title: str, pub_date: str) -> dict:
-    """One title search per query: works published before it with >= 10 references."""
-    path = CITERS / f"{short_id(qid)}.json"
+def fetch_citers(qid: str, title: str, pub_date: str, fallback: bool = False) -> dict:
+    """One title search per query: works published before it with >= 10 references.
+
+    fallback=True searches only the first content words of the title (see FALLBACK_BELOW).
+    """
+    path = CITERS / f"{short_id(qid)}{'__fallback' if fallback else ''}.json"
     if path.exists():
         return json.loads(path.read_text())
     before = (date.fromisoformat(pub_date) - timedelta(days=1)).isoformat()
-    params = {"search": search_terms(title),
+    params = {"search": fallback_terms(title) if fallback else search_terms(title),
               "filter": f"to_publication_date:{before},referenced_works_count:>{MIN_CITER_REFS - 1}",
               "per_page": CITERS_PER_QUERY, "select": CITER_SELECT}
     body, headers = request(params)
-    out = {"pi_id": qid, "fetched": date.today().isoformat(), "params": params,
+    out = {"pi_id": qid, "fallback": fallback, "fetched": date.today().isoformat(), "params": params,
            "count": body["meta"]["count"], "cost_usd": headers.get("X-RateLimit-Cost-USD"),
            "results": body["results"]}
     CITERS.mkdir(parents=True, exist_ok=True)
