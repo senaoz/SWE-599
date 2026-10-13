@@ -60,6 +60,52 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
 | **Metrics** | **R-precision**: share of the top *n* that are true references, where *n* is the number of positives. This is the primary metric, because MRR saturates near 1.0 for the strong methods. Also reported: MRR, nDCG@*n*, average precision. |
 | **Models** | All local. Llama 3.2 3B Instruct (Q4_K_M) and Qwen3-Embedding-8B (Q4_K_M) are served by llama.cpp; MiniLM, SPECTER2, EmbeddingGemma and bge-reranker-base run via sentence-transformers. |
 
+### How `random` and `concept` differ
+
+The two benchmarks share everything except the negatives. Each query has the same positives, the same number of negatives (2*n*) and the same candidate pool: other queries' references, published before the query and with no shared author. Only the way negatives are drawn from that pool changes:
+
+- **`random`** samples negatives uniformly from the pool. Most of them come from unrelated topics, so a method only has to tell "this field" from "another field".
+- **`concept`** keeps only pool papers that share at least one of the query's top-5 OpenAlex concepts, then samples from those. For 7 of 168 queries too few papers match, and the remaining slots are filled with random negatives.
+
+Share of candidates that share at least one top-5 concept with their query (all 168 queries):
+
+| | Positives | `random` negatives | `concept` negatives |
+|---|---|---|---|
+| Share a top-5 concept | 73.5% | 29.5% | 97.7% |
+| …of those, only through a top-level field (e.g. "Medicine", "Computer science") | 33.2% | 79.1% | 68.7% |
+
+So `concept` negatives look like positives on the concept tags; in fact they match more often than the positives do. Most of them match only through a broad field label, though, so `concept` means **same field, not same topic**. It is a harder setting, not a true hard-negative benchmark. Every method scores lower on `concept`, by 1.9 (listwise Llama, already near chance) to 9.9 (TF-IDF) R-precision points.
+
+**Example 1** (test query, 2021): *LocusZoom.js: interactive and embeddable visualization of genetic association study results*. Top-5 concepts: Computer science, MIT License, Annotation, JavaScript, Visualization.
+
+| Role | Paper (year) | Shared top-5 concepts |
+|---|---|---|
+| Positive | LocusZoom: regional visualization of genome-wide association scan results (2010) | Computer science |
+| Positive | Tabix: fast retrieval of sequence features from generic TAB-delimited files (2011) | Computer science |
+| Positive | The NHGRI-EBI GWAS Catalog of published genome-wide association studies… (2018) | — |
+| `random` negative | Multipoint high-fidelity CFD-based aerodynamic shape optimization of a 10 MW wind turbine (2019) | — |
+| `random` negative | Epidemiology of COVID-19 Among Children in China (2020) | — |
+| `random` negative | A Practical Guide to Selection Bias in Instrumental Variable Analyses (2019) | — |
+| `concept` negative | What is Twitter, a social network or a news media? (2010) | Computer science |
+| `concept` negative | Roofline (2009) | Computer science |
+| `concept` negative | Bootstrap confidence intervals: when, which, what? A practical guide for medical statisticians (2000) | Computer science |
+
+All six `concept` negatives of this query match only through "Computer science"; none is about genetics or visualization. Three of six negatives are shown per benchmark.
+
+**Example 2** (test query, 2020): *Challenges to the Reproducibility of Machine Learning Models in Health Care*. Top-5 concepts: Medicine, Reproducibility, Machine learning, Health care, Artificial intelligence.
+
+| Role | Paper (year) | Shared top-5 concepts |
+|---|---|---|
+| Positive | Estimating the reproducibility of psychological science (2015) | Reproducibility |
+| Positive | Why Most Published Research Findings Are False (2005) | Medicine |
+| `random` negative | Within host RNA virus persistence: mechanisms and consequences (2017) | — |
+| `random` negative | Dissecting racial bias in an algorithm used to manage the health of populations (2019) | Health care |
+| `concept` negative | Interpretable Decision Sets (2016) | Machine learning, Artificial intelligence |
+| `concept` negative | Enfortumab Vedotin Antibody–Drug Conjugate Targeting Nectin-4… (2016) | Medicine |
+| `concept` negative | Optimizing CAR-T Cell Manufacturing Processes during Pivotal Clinical Trials (2019) | Medicine |
+
+Shown: 2 of 4 positives, 2 of 8 `random` and 3 of 8 `concept` negatives. Here 7 of the 8 `concept` negatives match only through "Medicine" or "Health care". Some `random` negatives (the racial-bias paper) are arguably as close to the query as any `concept` negative.
+
 Construction and runs: numbered notebooks in [`research/v2/`](research/v2/) (01 fetch → 02 build → 03 dev tuning → 04 test runs → 05 statistics → 06 analyses). Per-query runs: [`research/v2/runs/`](research/v2/runs/).
 
 ## Results (v2, test split)

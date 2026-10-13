@@ -113,6 +113,8 @@ The two benchmarks differ only in their negatives. Both draw them from other que
 | `random` | Sampled uniformly from that pool |
 | `concept` | Must share one of the query's top-5 OpenAlex concepts (harder) |
 
+Positives, negative counts (2*n*) and the pool are identical in both; only the negatives' selection differs. 97.7% of `concept` negatives share a top-5 concept with their query, against 29.5% of `random` negatives and 73.5% of positives. But 68.7% of those matching `concept` negatives share only a top-level field such as "Medicine" or "Computer science". For example, a 2021 query on LocusZoom.js (genetic association visualization) gets `concept` negatives such as *What is Twitter, a social network or a news media?* and *Roofline*, which match only through "Computer science". `concept` is therefore "same field", not "same topic". See [How `random` and `concept` differ](../README.md#how-random-and-concept-differ) for the full table and two worked examples.
+
 Per-query run files are JSONL and resumable. Each record holds:
 - the candidate order shown to the model and the full ranking, as OpenAlex ids
 - the LLM status and raw response
