@@ -511,3 +511,18 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Graph.** 13,569 pool records → 13,461 citer rows; 16 query-duplicate rows; 126,377 edges. 5,097 pool rows got a later date than recorded.
 - **Remaining high-overlap citers** (≥ 50% of a query's positives): 66 test and 30 dev rows, at most 80%, mostly topic reviews and commentaries. No exact copies are left.
 - **Meaning.** About 45% of test positives have no allowed citer, so co-citation expansion can recover at most about 55% of them. The data-quality finding stands on its own: a quarter of pool citers carry January-1 dates, and 5,097 rows had to move later.
+
+### 2026-10-12 — Full-corpus first stage (`v2/09_full_corpus_retrieval.ipynb`) [5bd3b69, c0a7c1f]
+
+- **What.** Every method ranks the whole 11,967-work corpus for the 166 Phase 5 queries.
+  - Candidates are the works published before the query, plus its own positives; 13 corpus records that duplicate a query are excluded for that query.
+  - Text and methods are as in v2, plus BM25 + Qwen3 RRF, a degree-only probe and a random ranker.
+  - New module: `src/retrieval.py`.
+- **Runtime.** Qwen3-8B embedded about 10,300 corpus texts in about 50 minutes (322 batches at about 9.4 s), after a 500-text timing probe (0.31 s/text). Everything else took minutes.
+- **Results** (test, 118 queries, recall@100 [95% CI]):
+  - Qwen3 **64.0 [58.7, 69.4]**, EmbeddingGemma 60.6, RRF 60.2, SPECTER2 57.5, MiniLM 55.4, TF-IDF 45.3, BM25 38.7;
+  - degree probe 2.4 [1.1, 3.9], random 1.3.
+  - Qwen3: nDCG@10 0.340, MRR 0.609, R-precision 25.1% (87.0% on the fixed v2 pools).
+- **Tests** (Holm). Qwen3 vs EmbeddingGemma on recall@100 is not significant (p_holm = 0.11); Qwen3 beats all others. RRF hurts Qwen3 (−3.9 points recall@100, −0.065 nDCG@10), as in v2.
+- **Membership check.** The degree-only probe is near random, so adding positives regardless of degree (decision 3) gives no exploitable signal. On the membership-symmetric positives (424 with ≥ 5 pool citers), Qwen3 recall@100 is 73.4% vs 63.1% on all positives of the same queries.
+- **Headroom for expansion.** 315 of 855 test positives are outside Qwen3's top 100; 151 of them (47.9%) are reachable through an allowed citer.
