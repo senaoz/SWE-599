@@ -165,13 +165,61 @@ The deployed system already logs thumbs-up/down feedback.
 
 ---
 
+## 5b. Idea F: Researcher-level evaluation on BOUN data (added 2026-10-12)
+
+**Why.** The benchmark (v1 `03` and all of v2) measures paper → cited papers. Every query and every candidate comes from the followed institutions' papers and their references. The deployed app does a different task: it recommends a new paper to a *researcher*.
+
+**How the app uses BOUN data** (`backend/services/seeder.py`):
+- BOUN-affiliated authors (`I4405392`) are extracted from `research/data/cleaned/boun.csv` (4,608 papers, 2020+, English). This gives 2,671 researchers and 7,803 researcher–paper rows, the "~7,800 BOUN paper embeddings" in the README.
+- Stage 1 matches a new paper against those embeddings and groups the scores by researcher.
+- Stage 2 gives Llama the new paper plus the researcher's 3 most similar BOUN papers and scores each researcher **pointwise**.
+
+v2's results are therefore strong evidence about the app, but not a direct test of it. `APP_NOTES.md` already notes that the deployed stage 2 is untested.
+
+Elsewhere, BOUN data appears only in v1 exploratory checks:
+- the Week 1 pairs benchmark (`v1/pairs_benchmark/`), with semi-automatic labels;
+- the qualitative similarity checks in `v1/02_similarity_evaluation.ipynb`;
+- an archived co-authoring notebook.
+
+**`boun.csv` was never audited.** The F6 label/position bug likely does not apply, because the backend reads the file row by row. Two checks already show that the v2 data-quality issues are likely present:
+- **1,605 of the 4,608 rows have no abstract.** The app embeds those papers from title and concepts only.
+- Non-abstract "abstracts" (about 6% in v2) and duplicate OpenAlex records are still to be checked.
+
+**Task.** For a BOUN researcher, are the external (followed-institution) papers that they later actually cite ranked near the top when recommended to them? This is the app's real task, and citations label it automatically.
+
+**Design sketch.**
+- **Profile:** the researcher's BOUN papers published before a cutoff T.
+- **Candidates:** followed-institution papers published before T.
+- **Positives:** candidates cited by the researcher's BOUN papers published after T.
+- The time split is a natural leakage control.
+
+**Compare.**
+- Profile aggregation: max vs mean over the researcher's paper embeddings.
+- The v2 stage-1 methods.
+- The deployed pointwise Llama stage 2 on top of stage 1, against stage 1 alone.
+
+**Leakage rules** (same spirit as Idea C):
+- no post-T information in profiles or candidates;
+- deduplicated records (preprint/published, duplicate OpenAlex ids);
+- positives come only from post-T citing papers.
+
+**Open questions.**
+- The cutoff T.
+- Minimum number of pre-T papers and post-T positives per researcher.
+- Which followed-institution corpus to use for candidates. v1 had only the first 10,000 of 505,882 papers, so a fetch is likely needed.
+- How to handle multi-author papers that link several researchers.
+
+**Labs.** Mainly Goharian (IR evaluation of a deployed two-stage system) and Yan Chen (it connects to the trust study through the app's thumbs-up/down data, Idea E).
+
+---
+
 ## 6. Which idea fits which lab
 
 | Lab | Most relevant ideas |
 |---|---|
-| Goharian, Georgetown IR Lab (LADR, GRIT) | C, D, plus A |
+| Goharian, Georgetown IR Lab (LADR, GRIT) | C, D, F, plus A |
 | Jian Wu, ODU LAMP-SYS (CC30k, data quality) | B, data-quality flags |
-| Yan Chen, Virginia Tech PRIME (trust, delegation) | E, plus the audit story in section 0 |
+| Yan Chen, Virginia Tech PRIME (trust, delegation) | E, F, plus the audit story in section 0 |
 
 ---
 

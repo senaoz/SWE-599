@@ -92,6 +92,16 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 * [ ] 6.2 Design a small study: LLM recommendation with vs without explanation vs similarity score.
 * [ ] 6.3 Ethics/consent check with my advisor before recruiting anyone.
 
+## Phase 6B: Researcher-level evaluation on BOUN data (the app's task)
+
+Added 2026-10-12; see `IMPROVEMENT_IDEAS.md`, Idea F. Not started; each fetch or run needs approval first.
+
+* [ ] 6B.1 Data-quality audit of `research/data/cleaned/boun.csv`, reusing `audit/data_quality.py`: strong vs weak non-abstract flags, missing abstracts (1,605 of 4,608 rows have none), and a duplicate-record check.
+* [ ] 6B.2 Build the researcher-level eval set with a time split: profiles = BOUN papers before T; candidates = followed-institution papers before T; positives = candidates cited by the researcher's papers after T. Leakage rules and their unit tests as in Phase 5.
+* [ ] 6B.3 Benchmark profile aggregation (max vs mean) and the v2 stage-1 methods, then the deployed pointwise Llama stage 2 against stage 1 alone.
+* [ ] 6B.4 Relate the offline results to the app's thumbs-up/down feedback (with 6.1).
+* CHECKPOINT 6B: researcher-level results table; answer for `APP_NOTES.md` on whether stage 2 helps.
+
 ## Phase 7: Write-up
 
 * [x] 7.1 `research/audit/BEFORE_AFTER.md`: v1 vs v2 for every claim in the README.
