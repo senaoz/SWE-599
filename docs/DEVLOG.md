@@ -401,3 +401,26 @@ The same candidates thus get opposite outcomes from order alone. For this query,
 - **Numbers** (all 168 queries, recomputed from `v2/eval_sets/`). Share of candidates that share a top-5 OpenAlex concept with their query: positives 73.5%, `random` negatives 29.5%, `concept` negatives 97.7%. Of the matching `concept` negatives, 68.7% match only through a level-0 field such as "Medicine" (positives: 33.2%). 7 of 168 queries have `concept` negatives topped up with random ones.
 - **New example.** Test query `W3138513807` (LocusZoom.js): all six `concept` negatives match only through "Computer science".
 - **Correction.** The 2026-10-12 note on `concept` negatives says six of the eight `concept` negatives of `W2997681568` match only through "Medicine" or "Health care", and its table lists six. The query has eight; two were missing from the table (2019, team-based continuity; 2020, immune-related adverse events, both "Medicine"). The correct count is **7 of 8**.
+
+### 2026-10-12 — Phase 5 design approved; OpenAlex probe (P0)
+
+- **Design.** `research/audit/PHASE5_DESIGN.md`, approved by the user with all ten recommended decisions. Main points:
+  - a citer pool from a per-query title search, published before the query;
+  - a candidate corpus of about 10k (all eligible positives plus works cited by at least *m* pool citers);
+  - rules R1–R5, each with an ablation; a degree-preserving random graph and a kNN graph as controls;
+  - pointwise reranking of the full top-100 list.
+- **Why a citer pool.** In the v2 cache, 43.6% of the 1,247 positive slots have a cached citer that is not a query and predates the query (median 0). All such citers are themselves query references, so a graph built from them would be built around the answer key.
+- **OpenAlex pricing, checked in the docs.**
+  - With no key, the daily budget is $0.10 (`X-RateLimit-Limit-USD: 0.1`, 1,000 credits).
+  - A list/filter call costs $0.0001 (1 credit); a **search costs $0.001 (10 credits)**. So without a key the limit is 100 searches a day.
+  - `per_page` maxes out at **100**, not 200. The proposal's citer-paging estimates assumed 200 and are corrected here.
+  - A free API key gives $1 a day.
+- **Probe.** `research/scripts/probe_openalex_p0.py`: 4 dev queries, 7 calls, $0.0052, responses cached in `data/v2/probe/`.
+  - A 100-id OR filter works: 99 of 100 cached ids returned (one is no longer in OpenAlex), URL 1,610 chars. 91 of 99 have a DOI.
+  - Title search returns 97–8,349 matches per query (first page of 100 used). No query record and no same-title copy of the query appeared.
+  - **Positives with at least one pool citer: 7/7, 4/7, 7/7, 3/9 (21 of 30).** The two weaker queries are early COVID (2020-03, only 97 earlier matches) and AI-explanations in health care.
+  - A second result page for one query reached no new positive.
+  - Corpus size: the 396 pool citers cite 19,468 distinct works; 2,058 are cited by ≥ 2, 739 by ≥ 3 and 370 by ≥ 5.
+  - In a seeded sample of 100 such works, 92 are returned and 63 have a title and an abstract.
+  - Rough extrapolation to 168 queries, ignoring overlap: m = 5 gives about 15k works, about 10k eligible. *m* will be set from the real P2 counts.
+- **Cost of P1–P3:** 168 searches + about 170 list calls ≈ $0.19. That is two days without a key, or one run with a free key.
