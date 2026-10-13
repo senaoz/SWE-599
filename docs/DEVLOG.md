@@ -424,3 +424,16 @@ The same candidates thus get opposite outcomes from order alone. For this query,
   - In a seeded sample of 100 such works, 92 are returned and 63 have a title and an abstract.
   - Rough extrapolation to 168 queries, ignoring overlap: m = 5 gives about 15k works, about 10k eligible. *m* will be set from the real P2 counts.
 - **Cost of P1–P3:** 168 searches + about 170 list calls ≈ $0.19. That is two days without a key, or one run with a free key.
+
+### 2026-10-12 — Citer pool and candidate corpus (`v2/07_fetch_citers_corpus.ipynb`)
+
+- **Key.** A free OpenAlex API key (daily budget $1) is read from `OPENALEX_API_KEY`. The user keeps it in the macOS Keychain. `src/openalex.request` adds it to requests and strips URLs from every error, so the key cannot reach logs or notebooks; the notebook and log were checked for it.
+- **Cost.** 168 searches ($0.168) plus about 145 list calls, about 5 minutes.
+- **P1.** 1,726 of 1,733 v2 works are still in OpenAlex. Of the 7 that are gone, 4 are positives.
+- **P2, citer pool.** 10,663 distinct works.
+  - Median earlier matches per query is 195. 72 queries have fewer than 100 and 5 have none: OpenAlex search behaves like an AND over all title words.
+  - 2 query records and 13 same-title copies of queries came back. Five of the copies are earlier versions of the Cochrane review *Electronic cigarettes for smoking cessation* (2012–2018). These make rule R3 concrete.
+- **Coverage.** 62% of positive slots (dev 61.9%, test 62.3%) are cited by at least one pool citer that predates the query and is not a query record (same-title copies not yet removed).
+- **P3, corpus.** m = 5 was chosen by estimated size only.
+  - 12,895 works are cited by at least 5 pool citers (343 of them positives). 71.7% of the returned non-positives have a title and an abstract.
+  - Corpus: **9,706 works, 1,176 positives and 8,530 non-positives**, saved in `v2/corpus/corpus_manifest.json`.
