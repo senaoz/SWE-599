@@ -13,7 +13,10 @@ Synthetic graph. Query Q (2020-06-01) cites positives P1 and P2. Candidate docs:
 import numpy as np
 import pytest
 
-from src.cograph import Rules, build_graph, canonical_map, curveball, query_duplicates
+from datetime import date
+
+from src.cograph import (Rules, build_graph, canonical_map, curveball, effective_day, merge_duplicate_citers,
+                         query_duplicates)
 
 DOCS = ["P1", "P2", "N"]
 CITERS = {
@@ -136,3 +139,30 @@ def test_curveball_preserves_degrees_and_leaves_other_rows():
     q = g.row_of("QROW")
     assert (r.C[q].toarray() == g.C[q].toarray()).all()
     assert (r.C != g.C).nnz > 0   # something actually moved
+
+
+def test_r4_effective_date_is_conservative():
+    jan1 = {"publication_date": "2020-01-01", "referenced_works": []}
+    assert effective_day(jan1) == date(2020, 12, 31).toordinal()        # year-only date counts as Dec 31
+    assert effective_day(jan1, year_only_jan1=False) == date(2020, 1, 1).toordinal()
+    cites_later = {"publication_date": "2020-02-01", "referenced_works": ["R"]}
+    assert effective_day(cites_later, {"R": "2020-03-10"}) == date(2020, 3, 10).toordinal()
+    assert effective_day(cites_later, {"X": "2021-01-01"}) == date(2020, 2, 1).toordinal()  # unknown refs ignored
+
+
+def test_r4_effective_date_blocks_a_misdated_citer():
+    # dated before the query, but it cites a work published after the query
+    citers = {"M": {"publication_date": "2020-01-15", "referenced_works": ["P1", "P2", "LATE_REF"]}}
+    g_raw = build_graph(citers, DOCS, {d: d for d in DOCS}, set(), set())
+    g = build_graph(citers, DOCS, {d: d for d in DOCS}, set(), set(), ref_dates={"LATE_REF": "2020-07-01"})
+    assert g_raw.allowed("Q", "2020-06-01").all() and not g.allowed("Q", "2020-06-01").any()
+
+
+def test_merge_duplicate_citers_unites_refs_and_keeps_latest_date():
+    citers = {"A": {"publication_date": "2019-03-01", "referenced_works": ["P1"]},
+              "B": {"publication_date": "2019-09-01", "referenced_works": ["P2"]},
+              "C": {"publication_date": "2018-01-05", "referenced_works": ["N"]}}
+    merged = merge_duplicate_citers(citers, {"A": "A", "B": "A", "C": "C"})
+    assert set(merged) == {"A", "C"}
+    assert merged["A"]["referenced_works"] == ["P1", "P2"] and merged["A"]["publication_date"] == "2019-09-01"
+    assert merged["A"]["members"] == ["A", "B"]

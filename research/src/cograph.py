@@ -7,7 +7,9 @@ Every citer row keeps its publication date and its kind, so each leakage rule
     R1/R2  the query's own row (its reference list) is never a citer
     R3     rows that duplicate any query record (same DOI, same title, near-same title,
            including earlier versions of living reviews) are dropped
-    R4     only citers published strictly before the query
+    R4     only citers published strictly before the query, by a conservative date:
+           a YYYY-01-01 date counts as YYYY-12-31 (often year-only), and a citer is never
+           earlier than the latest known date among the works it cites
     R5     no query record is a citer
 
 `Rules` switches each rule off for the ablations; `canary=True` adds the query's own
@@ -161,6 +163,35 @@ def day(d: str | None) -> int:
     return date.fromisoformat(d).toordinal() if d else NO_DATE
 
 
+def effective_day(rec: dict, ref_dates: dict[str, str] | None = None, year_only_jan1: bool = True) -> int:
+    """Conservative publication day of a citer (rule R4).
+
+    A YYYY-01-01 date is often a year-only date, so it counts as YYYY-12-31. A paper
+    cannot predate a work it cites, so the day is at least the latest known date among
+    its references (reference dates are used as recorded: their true date is no earlier).
+    """
+    d = rec.get("publication_date")
+    if not d:
+        return NO_DATE
+    own = date(int(d[:4]), 12, 31).toordinal() if year_only_jan1 and d.endswith("-01-01") else day(d)
+    refs = [day(ref_dates[r]) for r in rec.get("referenced_works") or [] if ref_dates and ref_dates.get(r)]
+    return max([own, *refs])
+
+
+def merge_duplicate_citers(citers: dict[str, dict], canon: dict[str, str]) -> dict[str, dict]:
+    """One row per duplicate group of citers: references are united, and the date is the
+    latest member date, so a merged row is never earlier than any of its records."""
+    merged: dict[str, dict] = {}
+    for cid, rec in citers.items():
+        c = canon.get(cid, cid)
+        m = merged.setdefault(c, {**citers.get(c, rec), "referenced_works": [], "members": []})
+        m["members"].append(cid)
+        m["referenced_works"] = sorted(set(m["referenced_works"]) | set(rec.get("referenced_works") or []))
+        dates = [d for d in (m.get("publication_date"), rec.get("publication_date")) if d]
+        m["publication_date"] = max(dates) if dates else None
+    return merged
+
+
 @dataclass
 class Rules:
     temporal: bool = True             # R4
@@ -217,9 +248,10 @@ class CoGraph:
 
 
 def build_graph(citers: dict[str, dict], doc_ids: list[str], canon: dict[str, str],
-                query_ids: set[str], query_dups: set[str]) -> CoGraph:
+                query_ids: set[str], query_dups: set[str], ref_dates: dict[str, str] | None = None) -> CoGraph:
     """citers: {id: {"publication_date", "referenced_works"}}, including query records.
-    References are mapped to canonical ids; references outside the corpus are dropped."""
+    References are mapped to canonical ids; references outside the corpus are dropped.
+    With ref_dates, citer days are conservative (`effective_day`); without, as recorded."""
     index = {d: i for i, d in enumerate(doc_ids)}
     citer_ids = sorted(citers)
     rows, cols = [], []
@@ -232,7 +264,8 @@ def build_graph(citers: dict[str, dict], doc_ids: list[str], canon: dict[str, st
                       shape=(len(citer_ids), len(doc_ids)))
     return CoGraph(
         C=C, doc_ids=list(doc_ids), citer_ids=citer_ids,
-        citer_day=np.array([day(citers[c].get("publication_date")) for c in citer_ids], dtype=np.int64),
+        citer_day=np.array([effective_day(citers[c], ref_dates) if ref_dates is not None
+                            else day(citers[c].get("publication_date")) for c in citer_ids], dtype=np.int64),
         is_query=np.array([c in query_ids for c in citer_ids]),
         is_query_dup=np.array([c in query_dups for c in citer_ids]),
     )
