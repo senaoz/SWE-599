@@ -388,3 +388,9 @@ Example, test query `W2997681568`, `random` benchmark, seed 0, 12 candidates. He
 - with positives last, it outputs `["12","10","11","9",…,"1"]` and scores R-precision 100.
 
 The same candidates thus get opposite outcomes from order alone. For this query, Qwen3 ranks the 4 positives at 1, 2, 4 and 5 regardless of order.
+
+### 2026-10-12 — PR #1 merged into `main` [e232e49]
+
+- **What.** Branch `v2-audit` (PR senaoz/SWE-599#1) was merged into `main` with a merge commit, `e232e49`.
+- **Why a merge commit.** This log cites individual commit hashes; a squash merge would have orphaned them. Later phases keep using merge commits.
+- **State after the merge.** v1 stays frozen at tag `v1-results` (614cfb2); v2 notebooks 01–06, the audit documents and the README with v2 results are on `main`. Open work: Phases 4–6 in `research/audit/TODO.md`.
