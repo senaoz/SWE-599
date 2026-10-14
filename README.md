@@ -32,8 +32,8 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
    - Qwen3's top 10 already holds about 90% of the true references.
    - Reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
 4. **Small embedding models are almost as good as large ones.**
-   - MiniLM (22M parameters) is within 3.7 / 4.4 points of Qwen3-8B.
-   - SPECTER2 and MiniLM are indistinguishable (p ≥ 0.94).
+   - MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B (mean per-query difference).
+   - SPECTER2 and MiniLM are indistinguishable (Holm p ≥ 0.84).
    - Among LLM variants, only pointwise scoring (78.8 / 73.9) beats the lexical baselines.
 
 ![R-precision with 95% confidence intervals, random benchmark](research/v2/figures/05_rprec_ci_random.svg)
@@ -47,7 +47,7 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
 The diagram below introduces the terms used in the rest of this README:
 - **Ranking approaches.** An LLM can score candidates *pointwise* (one at a time), *pairwise* (two at a time) or *listwise* (the whole list at once). Listwise ranking is where Llama 3.2 3B copied the input order.
 - **Metrics.** R-precision, MRR, nDCG@k and recall@k, each worked out on one small example.
-- **Phase 5 pipeline.** Full-corpus retrieval, then leakage-controlled co-citation expansion, then pointwise reranking (notebooks 09–11 in `research/v2/`).
+- **Phase 5 pipeline.** Full-corpus retrieval, then leakage-controlled co-citation expansion, then pointwise reranking (notebooks 09–12 in `research/v2/`).
 
 ![Ranking approaches, metrics with a worked example, and the Phase 5 multi-stage pipeline](docs/figures/ranking_primer.svg)
 
@@ -134,7 +134,7 @@ R-precision % [95% CI] and MRR. The chance level (a random ranking) is 33.3% R-p
 | Llama 3.2 3B, listwise, sliding window | 55.6 [53.5, 57.8] | 52.2 [49.9, 54.5] | 0.797 | 0.777 |
 | Llama 3.2 3B, listwise, full list | 43.9 [41.9, 46.0] | 42.0 [40.2, 43.9] | 0.662 | 0.638 |
 
-Significance tests and seed spread: [`research/v2/stats/`](research/v2/stats/). All figures (PDF and SVG): [`research/v2/figures/`](research/v2/figures/).
+Significance tests: [`research/v2/stats/`](research/v2/stats/); seed spread: [`05_stats.ipynb`](research/v2/05_stats.ipynb). All figures (PDF and SVG): [`research/v2/figures/`](research/v2/figures/).
 
 **Position bias** (listwise Llama, same 118 test queries and candidates, only the order changed; `random` / `concept`):
 
@@ -263,13 +263,16 @@ To re-run the methods themselves, serve the two GGUF models with llama.cpp's `ll
 
 ```
 research/                      see research/README.md
-  src/                         shared code: v2 pipeline, rankers, stats, figures; v1 similarity/metrics
+  src/                         shared code: v2 pipeline, rankers, stats, figures; Phase 5 corpus, graph, retrieval, expansion, reranking; v1 similarity/metrics
   v1/                          numbered notebooks · results/ (per-query rankings) · stats/
-  audit/                       v1 audit (AUDIT.md, verify_v1.py) · BEFORE_AFTER.md · DATA_QUALITY.md · SUMMARY.md · TODO.md · IMPROVEMENT_IDEAS.md
-  v2/                          leak-free benchmark: notebooks 01–06 · eval_sets/ · runs/ · stats/ · figures/
+  audit/                       v1 audit (AUDIT.md, verify_v1.py) · BEFORE_AFTER.md · DATA_QUALITY.md · SUMMARY.md · TODO.md · IMPROVEMENT_IDEAS.md · PHASE5_DESIGN.md
+  v2/                          notebooks 01–06 (v2 benchmark) and 07–12 (Phase 5) · eval_sets/ · runs/ · corpus/ · runs_corpus/ · stats/ · figures/
+  tests/                       unit tests for the leakage rules, expansion and reranking
+  scripts/                     OpenAlex probe, Qwen3-Reranker check, notebook cleanup
 backend/                       FastAPI service, scheduler, matching pipeline
 frontend/                      React application
-docs/DEVLOG.md                 development log, incl. the dated v2 audit log
+docs/DEVLOG.md                 development log, incl. the dated v2 audit and Phase 5 log
+docs/figures/                  system overview and ranking primer diagrams
 APP_NOTES.md                   follow-ups for the deployed app
 SWE599_Final_2026S_OZ_Sena.pdf final report
 ```
