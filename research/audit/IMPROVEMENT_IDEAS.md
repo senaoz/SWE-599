@@ -3,8 +3,12 @@
 Ideas collected while reading papers from target PhD labs and auditing the v1 code.
 Status: ideas only. Nothing here is a result yet. Every number marked "v1" comes from the
 current repo; every number marked "TBD" must come from new experiments.
+*(Original framing. Results were added later in the dated status notes.)*
 
-> **Status (2026-10-12).** Ideas A and D (fixed pools) are done on branch `v2-audit`; see `BEFORE_AFTER.md` and `TODO.md`. Status notes below are added in quote blocks; the original text is unchanged.
+> **Status (2026-10-14).**
+> - Idea A and the fixed-pool part of Idea D were done on branch `v2-audit` (2026-10-12; see `BEFORE_AFTER.md`).
+> - Ideas C and D were done in full in Phase 5 (notebooks 07–12, branch `v2-phase5`; see `PHASE5_DESIGN.md`).
+> - Status notes below are added in quote blocks; the original text is unchanged.
 
 ---
 
@@ -131,6 +135,16 @@ That is exactly why leakage control has to be explicit.
   Gains should vanish; if they don't, the gain isn't coming from citation structure.
 - **Attribution:** report what fraction of recovered positives came through the graph.
 
+> **Status (2026-10-14): done in Phase 5** (notebooks 08 and 10; test split).
+> - **Rules R1–R5** are each implemented as a row mask and unit-tested (`research/tests/test_cograph.py`). R4 uses a conservative citer date, because 24% of citers carry year-only Jan 1 dates.
+> - **Leaks the rules caught:**
+>   - a 2012 record of a Cochrane review holding all 10 of a 2020 query's references;
+>   - an earlier, differently titled version of a query (NeRF), excluded by a manual list.
+> - **Reachability** (positives cited by at least one allowed citer): 54.7% under all rules, 62.9% with recorded dates, 70.1% with R3–R5 off.
+> - **Canary:** +5.8 recall@100 [+3.6, +8.2], against +0.8 [−0.4, +2.1] under all rules.
+> - **Random graphs** (Curveball, 5 seeds): −0.5 to −0.9.
+> - **Attribution:** 20 of 548 positives (3.6%) in the expanded top 100 came through the graph.
+
 ---
 
 ## 4. Idea D: First-stage recall study (from LADR and GRIT)
@@ -151,7 +165,14 @@ That is exactly why leakage control has to be explicit.
 >
 > - **The hybrid does not beat Qwen3 alone.**
 > - **Reranking still hurts.** Llama reranking of Qwen3's top 10 still lands 10–13 R-precision points *below* Qwen3, so on these pools the reranker, not stage-1 recall, is the bottleneck.
-> - **Open.** Full-corpus retrieval, the LADR- and GRIT-style expansions, and end-to-end gains (Phase 5).
+>
+> **Status (2026-10-14): full corpus done in Phase 5** (11,967 papers; test split, 118 queries; notebooks 09–12).
+> - **Recall@100:** Qwen3 64.0% [58.7, 69.4], BM25 38.7%, BM25 + Qwen3 (RRF) 60.2%. The hybrid again does not beat Qwen3.
+> - **GRIT-style expansion** (t = 5, b = 10%, chosen on dev): +0.8 recall@100 [−0.4, +2.1], not significant.
+> - **LADR-style**, BM25 seeds plus a kNN graph: 62.3% recall@100, scoring 12.5% of the candidates.
+> - **End to end:**
+>   - pointwise Llama 3.2 3B lowers nDCG@10 from 0.340 to 0.175 (alone) or leaves it unchanged (fused);
+>   - Qwen3-Reranker-4B, fused, raises R-precision from 25.1% to 28.3% (Holm p = 0.040) and nDCG@10 to 0.360 (not significant after Holm).
 
 ---
 
@@ -235,5 +256,5 @@ Elsewhere, BOUN data appears only in v1 exploratory checks:
 > **Filled where v2 has the numbers** (2026-10-12, test split, 118 queries):
 >
 > - "I audited my LLM-reranking benchmark and found that its headline result, a 3B LLM reranker beating embedding retrieval (MRR 0.84 vs 0.51), was an evaluation artifact. Candidates were always shown positives-first, and positive candidates even carried the wrong papers' text. With a controlled protocol (shuffled candidates, identical inputs, dev/test split, 5 seeds), the LLM ranks last of 13 methods: 44% R-precision vs 87% for Qwen3 embeddings. Changing only the candidate order moves its MRR from 0.95 to 0.33."
-> - "On fixed candidate pools, stage-1 recall at k=20 is 99% (Qwen3), and LLM reranking of the top 10 *lowers* R-precision by 13 points. A leakage-controlled co-citation expansion recovers TBD of the missed references and lifts end-to-end MRR from TBD to TBD." *(The second half needs Phase 5's full-corpus setting, where stage-1 recall is no longer near-perfect.)*
+> - "On fixed candidate pools, stage-1 recall at k=20 is 99% (Qwen3), and LLM reranking of the top 10 *lowers* R-precision by 13 points. Over a full 12k-paper corpus, recall@20 drops to 41% and recall@100 to 64%. A leakage-controlled co-citation expansion recovers only 6% of the missed references (+0.8 recall@100, not significant), while its canary shows +5.8 when the answer key leaks in. End to end, a small general LLM halves nDCG@10, and only a trained reranker (Qwen3-Reranker-4B, fused) helps: R-precision 25% → 28%." *(Filled 2026-10-14 from notebooks 09–12. The original sentence assumed the expansion would lift end-to-end MRR; it does not.)*
 > - "Citation-proxy labels agree with researcher judgments on TBD of pairs, which motivates graded, context-aware relevance labels." *(Needs Phase 4.5.)*

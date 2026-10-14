@@ -23,10 +23,10 @@ A co-citation graph can recover a positive only through a citer that cites both 
 2. **Corpus size:** about 10k first; 50k only if results warrant it. The 505,882-paper priority-institution corpus is not used: it holds 2020+ papers, the positives' median year is 2018, and citers must predate the query.
 3. **Positives:** all eligible positives are in the corpus. The membership asymmetry this creates is measured with degree/popularity-only probes.
 4. **Positives dated on/after the query** (21 of 1,247 in v2) stay exempt from the date filter, as in v2. A sensitivity run drops them.
-5. **Citer exclusions:** all 168 query records and their near-duplicates.
-6. **Duplicate query pair:** the dev copy `W3012006042` is dropped from Phase 5 dev; test stays at 118.
+5. **Citer exclusions:** all 174 v1 query records (the 168 usable queries plus the 6 unusable ones) and their near-duplicates.
+6. **Duplicate query pair:** the dev copy `W3012006042` is dropped from Phase 5 dev; test stays at 118. (Notebook 08 also dropped dev query `W4388291555`, left with 2 positives, so Phase 5 has 48 dev / 118 test queries.)
 7. **Duplicate records** (DOI, normalized title, fuzzy match) are canonicalized in the corpus, the labels and the graph together.
-8. **Rerank:** pointwise Llama over the full K = 100 list, one seed (greedy decoding, order-independent). Primary metrics are recall@100 and nDCG@10; R-precision and MRR are also reported.
+8. **Rerank:** pointwise Llama over the full K = 100 list, one seed (greedy decoding, order-independent). Primary metrics are recall@100 and nDCG@10; R-precision and MRR are also reported. Qwen3-Reranker-4B was added later as a second pointwise reranker (user decision, 2026-10-13; notebook 12).
 9. **Tests:** pytest (new dependency), in `research/tests/`.
 10. **Environment:** the worktree links `research/.venv` and `research/data/v2` to the main checkout.
 
@@ -52,7 +52,7 @@ A co-citation graph can recover a positive only through a citer that cites both 
 | R2 query removed as citer | as R1, plus its duplicates (R3) | unit test |
 | R3 duplicates | DOI + normalized title + fuzzy match; drop citers that duplicate any query | ablation: keep them |
 | R4 temporal | each edge carries its citer's date; per-query filter `citer date < query date` | ablation: allow later citers; sensitivity with a 365-day margin |
-| R5 no query citers | all 168 query records excluded | ablation: allow test queries |
+| R5 no query citers | all 174 query records excluded | ablation: allow other query records |
 
 - **Random-graph control:** degree-preserving rewiring of the citer-document bipartite graph (Curveball), 5 seeds.
 - **kNN-graph control (LADR-style):** the same expansion over a document kNN graph from the embeddings, with no citations involved.
@@ -65,11 +65,13 @@ A co-citation graph can recover a positive only through a citer that cites both 
   - `09_full_corpus_retrieval`
   - `10_graph_expansion`
   - `11_end_to_end`
+  - `12_qwen3_reranker`
 - **Modules** (in `src/`):
   - `corpus.py`: citer and corpus fetch, canonicalization.
   - `cograph.py`: sparse incidence matrix with citer dates, per-query masks, co-citation scores, rewiring.
   - `retrieval.py`: exhaustive dense search, BM25 index, RRF, kNN graph.
   - `expansion.py`: GRIT- and LADR-style expansion, attribution.
+  - `rerank.py`: cached pointwise scores (Llama 3.2 3B, Qwen3-Reranker-4B), score fusion.
 - **Runs:** `v2/runs_corpus/`, kept apart from `v2/runs/`.
 
 ## Checkpoints
