@@ -6,6 +6,7 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 
 [One-page summary](research/audit/SUMMARY.md) · [Statistics](research/v2/stats/) · [v1 → v2 comparison](research/audit/BEFORE_AFTER.md) · [Audit of v1](research/audit/AUDIT.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md) · [Final report (PDF, v1)](SWE599_Final_2026S_OZ_Sena.pdf)
 
+
 > **Correction (October 2026).** The final report and poster (May 2026) present v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)):
 > - candidates were always shown positives-first;
 > - the prompt's example pointed at a positive;
@@ -17,9 +18,9 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 
 *Poster from May 2026; its results are the superseded v1 numbers.*
 
----
+------
 
-## Summary
+![System overview: v1 audit, v2 pipeline, local models, results and the deployed app](docs/figures/system_overview.svg)
 
 Researchers miss relevant work from institutions they don't routinely follow. I built a system that monitors new papers from selected institutions via [OpenAlex](https://openalex.org) and recommends them to Boğaziçi researchers, and I used it to ask a research question:
 
