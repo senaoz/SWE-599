@@ -98,6 +98,12 @@ Run the numbered notebooks in order. Each one ends with a **Findings** cell and 
 | 04 | `v2/04_test_runs.ipynb` | All methods on test; LLM methods with 5 shuffle seeds; position-bias conditions | yes |
 | 05 | `v2/05_stats.ipynb` | Bootstrap CIs, Holm-corrected Wilcoxon, seed spread → `v2/stats/` | no |
 | 06 | `v2/06_analysis.ipynb` | Position bias, stage-1 recall@k, contamination, LLM reliability | no |
+| 07 | `v2/07_fetch_citers_corpus.ipynb` | Phase 5: citer pool (title search per query) and 11,967-work candidate corpus; needs `OPENALEX_API_KEY` for a fresh fetch | no |
+| 08 | `v2/08_build_corpus_graph.ipynb` | Duplicate merging, labels, co-citation graph with leakage rules R1–R5, reachability, unit tests | no |
+| 09 | `v2/09_full_corpus_retrieval.ipynb` | Full-corpus first stage: 7 methods, degree-only and random probes | yes (Qwen3-Embedding) |
+| 10 | `v2/10_graph_expansion.ipynb` | GRIT-style co-citation expansion; random-graph, kNN, rule-ablation and canary controls; LADR-style run | no |
+| 11 | `v2/11_end_to_end.ipynb` | Pointwise Llama 3.2 3B reranking of the full-corpus lists | yes |
+| 12 | `v2/12_qwen3_reranker.ipynb` | Qwen3-Reranker-4B reranking (Hugging Face, 8 GB, in-process) | no |
 
 Code lives in `src/`:
 - `pipeline_v2.py`: the steps
@@ -105,6 +111,9 @@ Code lives in `src/`:
 - `rankers_v2.py`: methods
 - `stats_v2.py`: statistics and analyses
 - `figures.py`: paper figures
+- Phase 5: `corpus.py` (citers and corpus), `cograph.py` (duplicates, leakage rules, co-citation graph), `retrieval.py` (full-corpus ranking), `expansion.py` (GRIT- and LADR-style expansion), `rerank.py` (cached pointwise scores)
+
+Unit tests for the leakage rules and the Phase 5 code: `.venv/bin/python -m pytest tests`.
 
 The two benchmarks differ only in their negatives. Both draw them from other queries' references published before the query paper, excluding the query's own references and shared authors.
 
