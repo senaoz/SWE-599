@@ -551,3 +551,15 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 
 - **Attribution.** 20 of the 548 positives in the expanded lists (3.6%) entered through the graph, i.e. 6.3% of the 315 Qwen3 missed. The replacement pushed 8 positives out.
 - **Reading.** With a strong dense first stage and a leakage-controlled graph, co-citation expansion gives a small, non-significant recall gain. The canary shows the method works when the signal is present.
+
+### 2026-10-13 — System overview diagram updated with Phase 5
+
+- **Merge.** `origin/main` (which had gained the system overview diagram, 31bc5cc) was merged into `v2-phase5` with a merge commit (7ad061c).
+- **Diagram.** `docs/figures/system_overview.svg` gains a Phase 5 row: notebooks 07–10 and a results box.
+  - Qwen3 recall@100 64.0%; co-citation expansion +0.8 [−0.4, +2.1], not significant.
+  - Random graph −0.8, kNN graph +0.3, canary +5.8.
+  - Reachability 54.7% (62.9% with recorded dates).
+  - The two leak findings.
+- **Also changed.** The deployed app moves to row 5. The BOUN note now says 1,605 of its 4,608 papers lack an abstract. The evidence arrow points to notebook 11.
+- **Rendering.** Checked in the browser.
+- **Caveat.** The README embeds this diagram, so the Phase 5 numbers now appear on the README page. The README text itself is unchanged.
