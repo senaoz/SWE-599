@@ -652,3 +652,16 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **What.** Branch `v2-phase5` (PR senaoz/SWE-599#3, 56 commits) was merged into `main` with a merge commit, `73b07d3`.
 - **Why a merge commit.** As for PR #1: this log cites individual commit hashes, which a squash merge would orphan.
 - **State after the merge.** Phase 5 notebooks 07–12, `src/corpus.py`, `cograph.py`, `retrieval.py`, `expansion.py`, `rerank.py` and the 22 unit tests are on `main`. Open work: Phase 6B (next), Phase 4 and Phase 6 in `research/audit/TODO.md`.
+
+### 2026-10-14 — MTPLX (Qwen3.8-27B) as a candidate stage-2 model for the app: setup and smoke test
+
+- **What.** The user chose to replace the app's stage-2 Llama 3.2 3B with MTPLX serving `Youssofal/Qwen3.8-27B-MTPLX-Optimized-Speed-FP16`. Stage 1 keeps Ollama `qwen3:embedding`. No `backend/` code is changed yet.
+- **Server.** `mtplx serve` on `127.0.0.1:38757` (bound to localhost; port picked at random below the macOS ephemeral range), with an API key. The key lives in the macOS Keychain (`mtplx-api-key`) and in a mode-600 key file for the server; the server log is mode 600 because MTPLX prints the key at start-up. The first key was printed to the session once, so it was rotated before any test.
+- **Memory.** The MTPLX desktop app had started its own server on port 8000 with the same 19.3 GiB model; with both loaded, requests were refused with HTTP 507 (2.8 GiB free, swap 17.7 of 18.4 GB). The port-8000 server was stopped (user decision).
+- **Smoke test** (scratch scripts, not a benchmark): the app's prompt and parsing copied verbatim from `_llm_generate`, sent as one user message to `/v1/chat/completions`.
+  - 10 true pairs (a BOUN researcher and a cached external work they later cited; context = their 5 most TF-IDF-similar papers published before the citing paper) and 10 random-researcher pairs on the same works.
+  - Thinking off: 0 of 20 answers were `RELEVANT`, so the app would drop every researcher. Median 6.9 s per call.
+  - Thinking on: 3 of 10 true pairs and 0 of 10 random pairs were `RELEVANT` (all at 0.45). Median 31.1 s per call; the reasoning goes to a separate field and the answer line stays parseable.
+  - On 20 other pairs (Phase 5 works with TF-IDF-close or random researchers) with thinking off, 5 of 20 answers started with prose instead of the verdict; the app's parser maps those to 0.0.
+  - The number after `IRRELEVANT` still ranks: mean 0.135 on true vs 0.045 on random pairs (thinking off), but the app discards it.
+- **Implication.** With the current prompt and parser, the 27B model would act as a near-total filter. Any switch needs a prompt/parser change and must be evaluated in Phase 6B before deployment; 20 pairs are a smoke test, not evidence.
