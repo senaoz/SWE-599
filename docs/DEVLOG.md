@@ -580,3 +580,25 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   - Within-list AUC: Llama 0.663 vs Qwen3-Embedding 0.761.
 - **Docs.** Results were added to both diagrams and to `APP_NOTES.md`. `TODO.md` ticks 5.8 and 5.9 for Llama; Qwen3-Reranker-4B (downloaded, revision 22e6836, 8.04 GB) is still to run.
 - **README.** The superseded v1 poster was removed and the correction notice no longer mentions it [cd8cdd0, 333325e]. Both were pushed to `origin/v2-phase5` with the senaoz token, because the active gh account is sena-maesta.
+
+### 2026-10-14 — Qwen3-Reranker-4B as the second stage (`v2/12_qwen3_reranker.ipynb`) [1071f25, 0193bab, e55008c, 97b663f]
+
+- **Download** (user-approved). `Qwen/Qwen3-Reranker-4B`, revision 22e6836, 8.04 GB. File sizes match the Hub; the SHA-256 of shard 1 matches its LFS id.
+- **Check** (`scripts/check_qwen3_reranker.py`, 17 dev pairs).
+  - Model-card reference implementation, fp16 vs fp32: max difference 0.006, Spearman 1.000, no NaNs.
+  - sentence-transformers CrossEncoder vs reference: max difference 0.021, Spearman 0.998.
+  - Speed per pair: reference fp16 0.54 s, sentence-transformers 0.79 s, fp32 1.11 s.
+  - **Decision:** the reference implementation in fp16, batch 8 (batches 4, 8 and 16 differed by less than 0.02 s per pair).
+  - The instruction was fixed before any result: "Given the title and abstract of a scientific paper, retrieve papers that it cites".
+- **Run.** 17,939 pairs, all ok, in 256.9 min (0.859 s per pair). Swap was nearly full (25.8 of 26.6 GB) late in the run, which slowed it.
+- **Results** (test, 118 queries).
+  - Within-list AUC: Qwen3-Reranker 0.824, Qwen3-Embedding 0.761, Llama 0.663.
+  - Dev α = 0.8 (nDCG@10 0.344 → 0.393 on dev).
+  - **Fused**, Qwen3-Embedding list:
+    - nDCG@10 0.340 → 0.360 (+0.021 [+0.001, +0.041], p = 0.044, Holm 0.22);
+    - R-precision 25.1 → 28.3 (+3.2 [+1.2, +5.2], p = 0.008, Holm 0.040);
+    - MRR 0.608 → 0.629.
+  - **Reranker alone:** +0.002 nDCG@10, not significant.
+  - **Expanded list, fused:** +0.015 nDCG@10 (not significant), R-precision +2.7 (Holm 0.083). No graph-recovered positive in the fused top 10.
+- **Reading.** A trained reranker, unlike the small general LLM, gives a modest gain when fused with the embedding score. The pretraining-contamination caveat applies.
+- **Docs.** Diagrams, `TODO.md` and `APP_NOTES.md` were updated.
