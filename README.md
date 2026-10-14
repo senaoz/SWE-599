@@ -14,12 +14,6 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 >
 > The results below are from the rebuilt, leak-free v2 benchmark and supersede v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
 
-<img width="3300" height="2333" alt="599poster (v1 results, superseded)" src="https://github.com/user-attachments/assets/1e51a466-e63a-4aa7-9801-2d2195c4cfb7" />
-
-*Poster from May 2026; its results are the superseded v1 numbers.*
-
-------
-
 ![System overview: v1 audit, v2 pipeline, local models, results and the deployed app](docs/figures/system_overview.svg)
 
 Researchers miss relevant work from institutions they don't routinely follow. I built a system that monitors new papers from selected institutions via [OpenAlex](https://openalex.org) and recommends them to Boğaziçi researchers, and I used it to ask a research question:
