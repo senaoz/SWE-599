@@ -36,6 +36,11 @@ Each entry gives the date it was noted, what to do, and why.
   - Fused with the embedding score (weight chosen on dev), it changes nothing measurable (−0.004, n.s.).
   - Within a list, it separates cited from other papers worse than the embedding (AUC 0.66 vs 0.76).
   - The task (paper → cited paper) and prompt differ from the app's (paper → researcher, with the researcher's top-3 papers), so this is evidence, not a test of the app. The direct test is Phase 6B. Until then, the stage-2 LLM call is a cost with no demonstrated benefit.
+- **2026-10-14 — A trained reranker as a stage-2 option** (`research/v2/12_qwen3_reranker.ipynb`). Qwen3-Reranker-4B (local, about 8 GB in fp16), fused with the embedding score at α = 0.8 chosen on dev, beats the embedding alone on the same 118 queries.
+  - R-precision: +3.2 points (Holm p = 0.040).
+  - nDCG@10: +0.021 (not significant after Holm).
+  - Within-list AUC: 0.82, against 0.76 for the embedding.
+  - Cost on an M1 Max: 0.46–0.86 s per pair (memory-dependent), against about 0.2–0.35 s for Llama 3.2 3B. Worth testing as the app's stage 2 in Phase 6B.
 
 ## Ideas
 
