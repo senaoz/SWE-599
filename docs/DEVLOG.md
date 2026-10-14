@@ -563,3 +563,20 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Also changed.** The deployed app moves to row 5. The BOUN note now says 1,605 of its 4,608 papers lack an abstract. The evidence arrow points to notebook 11.
 - **Rendering.** Checked in the browser.
 - **Caveat.** The README embeds this diagram, so the Phase 5 numbers now appear on the README page. The README text itself is unchanged.
+
+### 2026-10-13 — End-to-end pointwise reranking (`v2/11_end_to_end.ipynb`) [eece963, 8f23f84]
+
+- **What.** Pointwise Llama 3.2 3B (the v2 prompt and text, temperature 0, logprob score) scores every candidate in two top-100 lists per query: Qwen3-Embedding's list and the co-citation expanded list from notebook 10.
+  - The final score is α · Llama + (1 − α) · Qwen3-Embedding, both min-max normalized within the list. α was chosen on dev.
+  - New module `src/rerank.py` with a per-(query, document) score cache, plus 3 unit tests (22 tests in total).
+- **Run.** 17,939 pairs (108 per query), all status ok.
+  - The first background run stopped when the previous Claude session ended, after 3,052 pairs.
+  - The resumed run reused the cache and scored the remaining 14,887 in 87.4 min (0.352 s per call, against 0.193 s in v2).
+  - A rerun to fix the results table (it rounded p-values to 0.000) made no new calls.
+- **Results** (test, 118 queries):
+  - **Llama alone**: nDCG@10 0.340 → 0.175 (−0.164 [−0.204, −0.126], Holm p = 3.1e-11); R-precision 25.1% → 14.3%.
+  - **Fused** (α = 0.1): −0.004 [−0.009, +0.001], p = 0.24.
+  - The expanded lists give the same picture; the fused ranking puts no graph-recovered positive into the top 10 or 20.
+  - Within-list AUC: Llama 0.663 vs Qwen3-Embedding 0.761.
+- **Docs.** Results were added to both diagrams and to `APP_NOTES.md`. `TODO.md` ticks 5.8 and 5.9 for Llama; Qwen3-Reranker-4B (downloaded, revision 22e6836, 8.04 GB) is still to run.
+- **README.** The superseded v1 poster was removed and the correction notice no longer mentions it [cd8cdd0, 333325e]. Both were pushed to `origin/v2-phase5` with the senaoz token, because the active gh account is sena-maesta.
