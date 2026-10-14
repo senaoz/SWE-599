@@ -646,3 +646,9 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   - 2026-10-12 "Fallback citer search and the co-citation graph": 23 query duplicates once the manual list of Checkpoint A is included (20 before).
   - First-stage MRR of Qwen3 is 0.609 over the full candidate ranking (notebook 09) and 0.608 within the top-100 list (notebooks 11–12). The two are computed over different lists.
 - **Left as is (intentional overlap):** the README findings vs SUMMARY, the README results vs BEFORE_AFTER, and dated status notes that repeat DEVLOG facts.
+
+### 2026-10-14 — PR #3 merged into `main` [73b07d3]
+
+- **What.** Branch `v2-phase5` (PR senaoz/SWE-599#3, 56 commits) was merged into `main` with a merge commit, `73b07d3`.
+- **Why a merge commit.** As for PR #1: this log cites individual commit hashes, which a squash merge would orphan.
+- **State after the merge.** Phase 5 notebooks 07–12, `src/corpus.py`, `cograph.py`, `retrieval.py`, `expansion.py`, `rerank.py` and the 22 unit tests are on `main`. Open work: Phase 6B (next), Phase 4 and Phase 6 in `research/audit/TODO.md`.
