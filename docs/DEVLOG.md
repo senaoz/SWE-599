@@ -699,3 +699,14 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   - The cosine `MATCH_THRESHOLD` no longer applies to LLM scores; `LLM_MIN_SCORE` (default 0.0) is the LLM's own cut-off, to be tuned in Phase 6B.
   - Matches are labelled `qwen+<LLM model id>` instead of `qwen+llama`.
 - **Check** (same 20 pairs as the smoke test, through `score_researcher`, thinking off): 20 of 20 replies parsed. True pairs scored 0.2 (5), 0.1 (1) and 0.0 (4); random pairs all 0.0. Within a pair, the true researcher scored higher in 6 of 10 and tied in 4. Median 7.75 s per call. Scores are coarse (only 0, 0.1, 0.2 seen), so many ties; this is a smoke test, not an evaluation.
+
+### 2026-10-14 — Stage-2 prompt variants on MTPLX (scratch experiment, not a benchmark)
+
+- **Pairs.** 159 cached works from 2018 on that a BOUN researcher cited (Phase 5 caches, no new fetch). For each work: the earliest citing researcher (context = their 5 most TF-IDF-similar papers published before the citing paper) and a hard negative (the non-citer with the highest TF-IDF match, same date cut-off). Split by sha256 of the work id, 30 dev and 30 holdout works, fixed before any run. The 60 work ids are in `research/audit/prompt_dev_works.json` and must be excluded from the Phase 6B test set.
+- **Variants** (thinking off, temperature 0): P0 the current score-only prompt; P1 a 0–100 rubric with a "method, tool or dataset" band and a no-abstract note; P2 P1 with longer text (1,500 / 400 characters instead of 400 / 200).
+- **Metric.** Share of pairs where the citer scores above the hard negative (ties count 0.5); 95% bootstrap CIs over works; paired Wilcoxon.
+- **Dev** (30 pairs): P0 0.533 [0.400, 0.667], P1 0.600 [0.467, 0.717], P2 0.567 [0.433, 0.683]. P1 − P0 +0.067 [−0.033, +0.167], Wilcoxon p = 0.2059032107320683; P2 − P0 +0.033 [−0.083, +0.150], p = 0.5637028616507731. P1 was chosen on dev.
+- **Holdout** (30 pairs, run once): P0 0.617 [0.467, 0.750], P1 0.683 [0.533, 0.833]; P1 − P0 +0.067 [+0.000, +0.150], 6 pairs differ, Wilcoxon p = 0.10247043485974945. Not significant.
+- **Score scale.** All 120 dev replies and all 120 holdout replies parsed. P1 replies cluster on band values (dev citers: 0 ×8, 25 ×12, 45 ×8, 35 ×1, 65 ×1), so ties stay common (14 of 30 dev pairs) and most cited works are rated "same broad field, different topic".
+- **Reference.** The TF-IDF stage-1 proxy ranks the citer above the negative in 4 of 30 dev and 5 of 30 holdout pairs, but the negatives were chosen to be TF-IDF's hardest, so this is not a fair comparison.
+- **Speed.** Median 7.6–8.9 s per call on dev and 3.6–4.4 s on holdout (less memory pressure later in the run).
