@@ -267,8 +267,8 @@
   <text class="ink t" x="1146" y="588" text-anchor="end">−0.8 · +0.3</text>
   <text class="v1 t" x="760" y="606">canary (query's own references added)</text>
   <text class="v1 t" x="1146" y="606" text-anchor="end">+5.8 [+3.6, +8.2]</text>
-  <text class="ink t" x="760" y="624">rerank, nDCG@10: Llama 3B · Qwen3-Reranker-4B</text>
-  <text class="ink t" x="1146" y="624" text-anchor="end">−0.164 · +0.021 (fused)</text>
+  <text class="ink t" x="760" y="624">second stage, nDCG@10</text>
+  <text class="ink t" x="1146" y="624" text-anchor="end">Llama −0.164 · Qwen3-Reranker +0.021</text>
   <text class="muted t" x="760" y="644">Positives reachable through the graph: 54.7% (62.9% with raw dates)</text>
   <text class="muted t" x="760" y="662">Leaks caught: a 2012 copy with 10/10 refs; 24% year-only dates</text>
 
