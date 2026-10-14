@@ -73,3 +73,48 @@ def query_metrics(order: np.ndarray, positive_idx: list[int]) -> tuple[dict, lis
     out["mrr"] = float(1.0 / ranks.min()) if len(ranks) else 0.0
     out["rprec"] = float((ranks <= n).sum() / n * 100)
     return out, ranks.tolist()
+
+
+def load_phase5(research) -> dict:
+    """Everything notebooks 10–11 share: graph, labels, texts, candidate masks.
+
+    Same construction as notebook 09 (candidates published before the query plus its
+    positives, minus corpus records that duplicate the query).
+    """
+    import json
+
+    import scipy.sparse as sp
+
+    from src.cograph import CoGraph, day, query_duplicates
+    from src.corpus import WORKS
+    from src.eval_v2 import paper_text
+    from src.openalex import normalize_work
+
+    cfg = json.loads((research / "v2" / "config.json").read_text())
+    fields = tuple({"t": "title", "a": "abstract", "c": "concepts"}[c] for c in cfg["fields"])
+    labels = json.loads((research / "v2" / "corpus" / "labels.json").read_text())
+    gdir = research / "data" / "v2" / "corpus" / "graph"
+    meta = json.loads((gdir / "meta.json").read_text())
+    g = CoGraph(C=sp.load_npz(gdir / "C.npz").tocsr(), doc_ids=meta["doc_ids"], citer_ids=meta["citer_ids"],
+                citer_day=np.array(meta["citer_day"]), is_query=np.array(meta["is_query"]),
+                is_query_dup=np.array(meta["is_query_dup"]))
+    works = {}
+    with WORKS.open() as f:
+        for line in f:
+            w = json.loads(line)
+            works[w["id"]] = w
+    doc_ids, idx = g.doc_ids, g.doc_index
+    docs = {d: normalize_work(works[d]) for d in doc_ids}
+    qids = sorted(labels)
+    self_dups = query_duplicates({d: works[d] for d in doc_ids}, {q: works[q] for q in qids})
+    excl = {q: [idx[d] for d, (qq, _) in self_dups.items() if qq == q] for q in qids}
+    doc_days = np.array([day(docs[d]["publication_date"]) for d in doc_ids])
+    pos_idx = {q: [idx[p] for p in labels[q]["positives"]] for q in qids}
+    return {
+        "cfg": cfg, "tag": f"{cfg['fields']}_{cfg['max_chars']}_{cfg['query_max_chars']}",
+        "labels": labels, "g": g, "works": works, "doc_ids": doc_ids, "idx": idx, "qids": qids,
+        "doc_texts": [paper_text(docs[d], fields, cfg["max_chars"]) for d in doc_ids],
+        "query_texts": [paper_text(normalize_work(works[q]), fields, cfg["query_max_chars"]) for q in qids],
+        "pos_idx": pos_idx,
+        "masks": {q: candidate_mask(doc_days, day(labels[q]["date"]), pos_idx[q], excl[q]) for q in qids},
+    }
