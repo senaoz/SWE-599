@@ -689,3 +689,13 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 ### 2026-10-15 — Correction
 
 - "BOUN data rebuilt and audited": OpenAlex spend was about **$0.015**, not $0.016 (the rate-limit header showed $0.9853 of the $1 daily budget left after all list calls; single-work calls were $0).
+### 2026-10-14 — App stage 2 moved to MTPLX with a score-only prompt (branch `app-mtplx-stage2`) [e8b9cca, d926d4c, 02a8429, fc54e0a]
+
+- **What.** Stage 2 of the app calls Qwen3.8-27B on the local MTPLX server (`127.0.0.1:38757`, OpenAI `/v1/chat/completions`, temperature 0, thinking off by default) through a new `backend/services/llm.py`. Stage 1 is unchanged (Ollama `qwen3:embedding`).
+- **Why.** The smoke test with the old prompt (entry "MTPLX (Qwen3.8-27B) as a candidate stage-2 model", on branch `v2-phase6b`) showed the old `RELEVANT/IRRELEVANT` prompt plus first-token parser would drop nearly every researcher.
+- **Changes.**
+  - Prompt asks for one number in [0, 1], with no example value.
+  - Parser drops `<think>` blocks and accepts only a single number in [0, 1] on the last line; otherwise the Stage 1 score is kept and the reply is logged. 20 unit tests in `backend/tests/test_llm.py`.
+  - The cosine `MATCH_THRESHOLD` no longer applies to LLM scores; `LLM_MIN_SCORE` (default 0.0) is the LLM's own cut-off, to be tuned in Phase 6B.
+  - Matches are labelled `qwen+<LLM model id>` instead of `qwen+llama`.
+- **Check** (same 20 pairs as the smoke test, through `score_researcher`, thinking off): 20 of 20 replies parsed. True pairs scored 0.2 (5), 0.1 (1) and 0.0 (4); random pairs all 0.0. Within a pair, the true researcher scored higher in 6 of 10 and tied in 4. Median 7.75 s per call. Scores are coarse (only 0, 0.1, 0.2 seen), so many ties; this is a smoke test, not an evaluation.
