@@ -73,17 +73,21 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 ## Phase 5: Full-corpus retrieval + leakage-controlled graph expansion
 
-> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done and Checkpoint A decisions applied: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5 and conservative dates, 14 unit tests pass, 54.7% of test positives reachable (canary 100%). Notebook 09 (5.1) done. Next: notebook 10 (graph expansion, canary and ablations, random graph), CHECKPOINT B report first.
+> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done and Checkpoint A decisions applied: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5 and conservative dates, 14 unit tests pass, 54.7% of test positives reachable (canary 100%). Notebooks 09 (5.1) and 10 (5.4–5.7) done. Next: notebook 11 (5.8 end-to-end pointwise rerank, 5.9 attribution), needs approval.
 
 * [x] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
    * *`v2/09_full_corpus_retrieval.ipynb`: 11,967-work corpus, 118 test queries. Qwen3 recall@100 is 64.0% [58.7, 69.4], BM25 38.7%; the degree-only probe gets 2.4% (random 1.3%).*
 * [x] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
 * [x] 5.3 Unit tests for each leakage rule (small synthetic graph).
    * *`research/tests/test_cograph.py`, 11 tests; run inside `v2/08_build_corpus_graph.ipynb`.*
-* [ ] 5.4 Leakage canary run (query refs included on purpose) and normal run; report the gap.
-* [ ] 5.5 Random-graph control with the same degree distribution.
-* [ ] 5.6 GRIT-style expansion (seed top t%, replace bottom b%; tune t, b on dev).
-* [ ] 5.7 LADR-style variant (lexical seeds + kNN graph exploration).
+* [x] 5.4 Leakage canary run (query refs included on purpose) and normal run; report the gap.
+   * *`v2/10_graph_expansion.ipynb`: canary +5.8 [+3.6, +8.2] recall@100 vs +0.8 [−0.4, +2.1] under all rules; rule-by-rule ablations +0.8 to +1.1.*
+* [x] 5.5 Random-graph control with the same degree distribution.
+   * *Curveball rewiring of pool citers, 5 seeds: −0.5 to −0.9 recall@100.*
+* [x] 5.6 GRIT-style expansion (seed top t%, replace bottom b%; tune t, b on dev).
+   * *Dev choice t = 5, b = 10%, raw counts; test +0.8 points recall@100, not significant (Holm p = 1.0).*
+* [x] 5.7 LADR-style variant (lexical seeds + kNN graph exploration).
+   * *BM25 seeds + Qwen3 kNN (k = 32): 62.3% vs 64.0% exhaustive, scoring 12.5% of candidates.*
 * [ ] 5.8 LLM reranker on the expanded lists; end-to-end MRR / nDCG.
 * [ ] 5.9 Attribution: share of recovered positives found via the graph.
 * CHECKPOINT 5: before/after table for the cascade.
