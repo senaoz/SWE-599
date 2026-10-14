@@ -31,6 +31,12 @@ Each entry gives the date it was noted, what to do, and why.
   - Log how often LLM output fails to parse, and what the code does then.
 - **2026-10-11 — Failure handling.** When the LLM call fails, record it explicitly instead of silently using the embedding order. v1's fallback quietly favored a fixed order.
 
+- **2026-10-13 — Phase 5 evidence on a pointwise stage 2** (`research/v2/11_end_to_end.ipynb`). Pointwise Llama 3.2 3B was used to rerank Qwen3-Embedding's top 100 over a 11,967-paper corpus (118 test queries).
+  - Used alone, it lowers nDCG@10 from 0.340 to 0.175.
+  - Fused with the embedding score (weight chosen on dev), it changes nothing measurable (−0.004, n.s.).
+  - Within a list, it separates cited from other papers worse than the embedding (AUC 0.66 vs 0.76).
+  - The task (paper → cited paper) and prompt differ from the app's (paper → researcher, with the researcher's top-3 papers), so this is evidence, not a test of the app. The direct test is Phase 6B. Until then, the stage-2 LLM call is a cost with no demonstrated benefit.
+
 ## Ideas
 
 - Offer the v2 pointwise and cross-encoder scorers as cheaper stage-2 options once the benchmark ranks them.

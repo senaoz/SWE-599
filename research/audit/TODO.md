@@ -73,7 +73,7 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 ## Phase 5: Full-corpus retrieval + leakage-controlled graph expansion
 
-> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done and Checkpoint A decisions applied: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5 and conservative dates, 14 unit tests pass, 54.7% of test positives reachable (canary 100%). Notebooks 09 (5.1) and 10 (5.4–5.7) done. Next: notebook 11 (5.8 end-to-end pointwise rerank, 5.9 attribution), needs approval.
+> **Status (2026-10-12).** Design approved: `PHASE5_DESIGN.md` (branch `v2-phase5`). P0 probe done (`scripts/probe_openalex_p0.py`, 7 calls on 4 dev queries). P1–P3 done (`v2/07_fetch_citers_corpus.ipynb`): 10,663 citers, corpus of 9,706 works (1,176 positives), 62% of positive slots reachable through an allowed citer. Notebook 08 done and Checkpoint A decisions applied: 11,967-work corpus, labels for 48 dev / 118 test queries, graph with rules R1–R5 and conservative dates, 14 unit tests pass, 54.7% of test positives reachable (canary 100%). Notebooks 09 (5.1), 10 (5.4–5.7) and 11 (5.8–5.9, Llama) done. Next: Qwen3-Reranker-4B in notebook 11 (downloaded, needs a check run), then CHECKPOINT 5 and the PR.
 
 * [x] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
    * *`v2/09_full_corpus_retrieval.ipynb`: 11,967-work corpus, 118 test queries. Qwen3 recall@100 is 64.0% [58.7, 69.4], BM25 38.7%; the degree-only probe gets 2.4% (random 1.3%).*
@@ -88,8 +88,10 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
    * *Dev choice t = 5, b = 10%, raw counts; test +0.8 points recall@100, not significant (Holm p = 1.0).*
 * [x] 5.7 LADR-style variant (lexical seeds + kNN graph exploration).
    * *BM25 seeds + Qwen3 kNN (k = 32): 62.3% vs 64.0% exhaustive, scoring 12.5% of candidates.*
-* [ ] 5.8 LLM reranker on the expanded lists; end-to-end MRR / nDCG.
-* [ ] 5.9 Attribution: share of recovered positives found via the graph.
+* [x] 5.8 LLM reranker on the expanded lists; end-to-end MRR / nDCG.
+   * *`v2/11_end_to_end.ipynb`: pointwise Llama 3.2 3B on Qwen3-Embedding and expanded top-100 lists. Llama alone: nDCG@10 0.340 → 0.175 (Holm p = 3.1e-11); fused (α = 0.1, dev): −0.004, n.s. Qwen3-Reranker-4B is still to run.*
+* [x] 5.9 Attribution: share of recovered positives found via the graph.
+   * *First stage: 20 of 548 positives in the expanded top 100 (3.6%) came via the graph. After fused reranking, none reach the top 10 or 20.*
 * CHECKPOINT 5: before/after table for the cascade.
 
 ## Phase 6 (optional): Human-centered trust study
