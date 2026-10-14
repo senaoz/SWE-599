@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">Ranking primer for SWE-599</title>
+  <desc id="d">Three ways an LLM can rank candidates (pointwise, pairwise, listwise) and how each was used in this project; the four ranking metrics with one worked example; and the multi-stage pipeline of Phase 5 (full-corpus retrieval, co-citation expansion, pointwise reranking).</desc>
+  <style>
+    .bg { fill: #fcfcfb; }
+    .box { fill: #ffffff; stroke: #d9d7cf; stroke-width: 1; }
+    .ink { fill: #1f1f1e; }
+    .muted { fill: #5f5e5a; }
+    .title { font-size: 20px; font-weight: 650; }
+    .sec { font-size: 15px; font-weight: 650; }
+    .h { font-size: 15px; font-weight: 650; }
+    .t { font-size: 12px; }
+    .s { font-size: 11px; }
+    .mono { font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .line { stroke: #8c8a83; stroke-width: 1.4; fill: none; }
+    .head { fill: #8c8a83; }
+    .blue { fill: #2a78d6; } .blues { stroke: #2a78d6; }
+    .aqua { fill: #1baf7a; } .aquas { stroke: #1baf7a; }
+    .orange { fill: #eb6834; } .oranges { stroke: #eb6834; }
+    .yellow { fill: #c98500; } .yellows { stroke: #c98500; }
+    .chip { fill: #eef4fc; stroke: #2a78d6; stroke-width: 1; }
+    .chipA { fill: #e9f7f1; stroke: #1baf7a; stroke-width: 1; }
+    .chipO { fill: #fdf0ea; stroke: #eb6834; stroke-width: 1; }
+    .hit { fill: #1baf7a; } .miss { fill: #d9d7cf; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a19; }
+      .box { fill: #232322; stroke: #3f3e3a; }
+      .ink { fill: #f3f2ed; }
+      .muted { fill: #b6b4ab; }
+      .line { stroke: #8f8d85; } .head { fill: #8f8d85; }
+      .blue { fill: #4a8fe6; } .blues { stroke: #4a8fe6; }
+      .aqua { fill: #2cc28c; } .aquas { stroke: #2cc28c; }
+      .orange { fill: #f07a4c; } .oranges { stroke: #f07a4c; }
+      .yellow { fill: #e0a21f; } .yellows { stroke: #e0a21f; }
+      .chip { fill: #1f2c3d; stroke: #4a8fe6; }
+      .chipA { fill: #1b3329; stroke: #2cc28c; }
+      .chipO { fill: #3a261d; stroke: #f07a4c; }
+      .hit { fill: #2cc28c; } .miss { fill: #3f3e3a; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="head"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="760" rx="14"/>
+  <text class="ink title" x="40" y="40">How ranking works in this project</text>
+  <text class="muted t" x="40" y="62">Task: given a query paper, put the papers it actually cites at the top of a candidate list.</text>
+
+  <!-- Section 1: approaches -->
+  <text class="ink sec" x="40" y="100">1 · Three ways an LLM can rank candidates</text>
+
+  <rect class="box" x="40" y="114" width="360" height="190" rx="10"/>
+  <rect class="blue" x="40" y="114" width="360" height="5" rx="2"/>
+  <text class="blue h" x="58" y="144">Pointwise</text>
+  <text class="ink t" x="58" y="166">Scores each candidate on its own (0–10).</text>
+  <rect class="chip" x="58" y="180" width="60" height="34" rx="5"/><text class="ink mono" x="76" y="202">8.1</text>
+  <rect class="chip" x="128" y="180" width="60" height="34" rx="5"/><text class="ink mono" x="146" y="202">2.4</text>
+  <rect class="chip" x="198" y="180" width="60" height="34" rx="5"/><text class="ink mono" x="216" y="202">6.7</text>
+  <text class="muted s" x="270" y="196">one call per</text>
+  <text class="muted s" x="270" y="210">candidate</text>
+  <text class="ink t" x="58" y="240">Order cannot leak in. Best LLM variant in v2.</text>
+  <text class="muted t" x="58" y="260">Used: Llama 3.2 3B pointwise (notebook 11);</text>
+  <text class="muted t" x="58" y="276">the deployed app's stage 2 works the same way;</text>
+  <text class="muted t" x="58" y="292">Qwen3-Reranker-4B is a trained pointwise reranker.</text>
+
+  <rect class="box" x="420" y="114" width="360" height="190" rx="10"/>
+  <rect class="aqua" x="420" y="114" width="360" height="5" rx="2"/>
+  <text class="aqua h" x="438" y="144">Pairwise</text>
+  <text class="ink t" x="438" y="166">Asks which of two candidates is better.</text>
+  <rect class="chipA" x="438" y="180" width="44" height="34" rx="5"/><text class="ink mono" x="452" y="202">A</text>
+  <text class="ink t" x="490" y="202">vs</text>
+  <rect class="chipA" x="512" y="180" width="44" height="34" rx="5"/><text class="ink mono" x="526" y="202">B</text>
+  <rect class="chipA" x="590" y="180" width="44" height="34" rx="5"/><text class="ink mono" x="604" y="202">B</text>
+  <text class="ink t" x="642" y="202">vs</text>
+  <rect class="chipA" x="664" y="180" width="44" height="34" rx="5"/><text class="ink mono" x="678" y="202">C</text>
+  <text class="ink t" x="438" y="240">Many calls: up to n(n−1)/2 comparisons.</text>
+  <text class="muted t" x="438" y="260">Not tested in this project.</text>
+
+  <rect class="box" x="800" y="114" width="360" height="190" rx="10"/>
+  <rect class="orange" x="800" y="114" width="360" height="5" rx="2"/>
+  <text class="orange h" x="818" y="144">Listwise</text>
+  <text class="ink t" x="818" y="166">Sees the whole list, returns an order.</text>
+  <rect class="chipO" x="818" y="180" width="150" height="10" rx="3"/>
+  <rect class="chipO" x="818" y="194" width="130" height="10" rx="3"/>
+  <rect class="chipO" x="818" y="208" width="110" height="10" rx="3"/>
+  <text class="ink mono" x="990" y="203">[3, 1, 7, …]</text>
+  <text class="ink t" x="818" y="240">Llama 3.2 3B copies the input order:</text>
+  <text class="ink t" x="818" y="258">positives first → MRR 0.95; last → 0.33.</text>
+  <text class="muted t" x="818" y="276">v1's "win" came from this; in v2 it ranks</text>
+  <text class="muted t" x="818" y="292">last of 13 methods (R-precision 43.9%).</text>
+
+  <!-- Section 2: metrics -->
+  <text class="ink sec" x="40" y="342">2 · Metrics, on one example: 2 cited papers, ranked list</text>
+  <g>
+    <rect class="hit" x="560" y="327" width="22" height="22" rx="4"/><text class="ink s" x="566" y="343">1</text>
+    <rect class="miss" x="588" y="327" width="22" height="22" rx="4"/><text class="ink s" x="594" y="343">2</text>
+    <rect class="hit" x="616" y="327" width="22" height="22" rx="4"/><text class="ink s" x="622" y="343">3</text>
+    <rect class="miss" x="644" y="327" width="22" height="22" rx="4"/><text class="ink s" x="650" y="343">4</text>
+    <rect class="miss" x="672" y="327" width="22" height="22" rx="4"/><text class="ink s" x="678" y="343">5</text>
+    <text class="muted s" x="706" y="343">green = a paper the query really cites</text>
+  </g>
+
+  <rect class="box" x="40" y="362" width="265" height="128" rx="10"/>
+  <text class="ink h" x="58" y="390">R-precision</text>
+  <text class="muted t" x="58" y="410">Share of the top n that are cited,</text>
+  <text class="muted t" x="58" y="426">n = number of cited papers.</text>
+  <text class="ink mono" x="58" y="452">top 2 → 1 of 2 = 50%</text>
+  <text class="muted s" x="58" y="476">v2 primary metric (MRR saturates)</text>
+
+  <rect class="box" x="325" y="362" width="265" height="128" rx="10"/>
+  <text class="ink h" x="343" y="390">MRR</text>
+  <text class="muted t" x="343" y="410">1 / rank of the first cited paper.</text>
+  <text class="muted t" x="343" y="426">Only the first hit counts.</text>
+  <text class="ink mono" x="343" y="452">first hit at 1 → 1.0</text>
+  <text class="muted s" x="343" y="476">chance on v2 pools: 0.56</text>
+
+  <rect class="box" x="610" y="362" width="265" height="128" rx="10"/>
+  <text class="ink h" x="628" y="390">nDCG@k</text>
+  <text class="muted t" x="628" y="410">Hits count less the lower they sit,</text>
+  <text class="muted t" x="628" y="426">divided by the best possible order.</text>
+  <text class="ink mono" x="628" y="452">@3: 1.5 / 1.63 = 0.92</text>
+  <text class="muted s" x="628" y="476">Phase 5 uses nDCG@10</text>
+
+  <rect class="box" x="895" y="362" width="265" height="128" rx="10"/>
+  <text class="ink h" x="913" y="390">Recall@k</text>
+  <text class="muted t" x="913" y="410">Share of all cited papers that</text>
+  <text class="muted t" x="913" y="426">appear in the top k.</text>
+  <text class="ink mono" x="913" y="452">@3 → 2 of 2 = 100%</text>
+  <text class="muted s" x="913" y="476">Phase 5 first stage: recall@100</text>
+
+  <!-- Section 3: pipeline -->
+  <text class="ink sec" x="40" y="530">3 · Multi-stage retrieval in Phase 5 (test, 118 queries)</text>
+
+  <rect class="box" x="40" y="546" width="250" height="150" rx="10"/>
+  <rect class="muted" x="40" y="546" width="4" height="150" rx="2"/>
+  <text class="ink h" x="58" y="572">Corpus</text>
+  <text class="muted t" x="58" y="594">11,967 papers from OpenAlex:</text>
+  <text class="muted t" x="58" y="610">every positive + works cited by</text>
+  <text class="muted t" x="58" y="626">≥ 5 "citer" papers</text>
+  <text class="ink t" x="58" y="652">~11k candidates per query</text>
+  <text class="muted s" x="58" y="672">(v2 pools: at most 42)</text>
+  <line class="line" x1="290" y1="620" x2="318" y2="620" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="322" y="546" width="260" height="150" rx="10"/>
+  <rect class="blue" x="322" y="546" width="4" height="150" rx="2"/>
+  <text class="ink h" x="340" y="572">Stage 1: retrieval</text>
+  <text class="muted t" x="340" y="594">BM25, TF-IDF, embeddings</text>
+  <text class="muted t" x="340" y="610">score all candidates; keep top 100</text>
+  <text class="ink t" x="340" y="638">Qwen3-Embedding recall@100: 64.0%</text>
+  <text class="ink t" x="340" y="656">BM25: 38.7%</text>
+  <text class="muted s" x="340" y="680">notebook 09</text>
+  <line class="line" x1="582" y1="620" x2="610" y2="620" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="614" y="546" width="260" height="150" rx="10"/>
+  <rect class="aqua" x="614" y="546" width="4" height="150" rx="2"/>
+  <text class="ink h" x="632" y="572">Graph expansion</text>
+  <text class="muted t" x="632" y="594">replace the bottom 10 with papers</text>
+  <text class="muted t" x="632" y="610">co-cited with the top 5 (leak rules on)</text>
+  <text class="ink t" x="632" y="638">+0.8 recall@100, not significant</text>
+  <text class="ink t" x="632" y="656">canary (leak on purpose): +5.8</text>
+  <text class="muted s" x="632" y="680">notebook 10</text>
+  <line class="line" x1="874" y1="620" x2="902" y2="620" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="906" y="546" width="254" height="150" rx="10"/>
+  <rect class="yellow" x="906" y="546" width="4" height="150" rx="2"/>
+  <text class="ink h" x="924" y="572">Stage 2: reranking</text>
+  <text class="muted t" x="924" y="594">pointwise score for each of</text>
+  <text class="muted t" x="924" y="610">the 100, then re-sort</text>
+  <text class="ink t" x="924" y="638">Llama 3.2 3B (running)</text>
+  <text class="ink t" x="924" y="656">Qwen3-Reranker-4B (next)</text>
+  <text class="muted s" x="924" y="680">notebook 11 · nDCG@10, MRR</text>
+
+  <text class="muted s" x="40" y="726">Reranking can only reorder the 100 it is given, so stage 1 sets the ceiling: 36% of cited papers never reach stage 2.</text>
+  <text class="muted s" x="40" y="744">Leakage rules: no query references, duplicates, later or query citers in the graph; each rule has a unit test.</text>
+</svg>
