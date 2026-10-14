@@ -1,0 +1,2383 @@
+{
+ "https://openalex.org/W2167102709": {
+  "split": "test",
+  "date": "2021-08-03",
+  "title": "Understanding the Demographics of Twitter Users",
+  "positives": [
+   "https://openalex.org/W1498404717",
+   "https://openalex.org/W1814023381",
+   "https://openalex.org/W2105795805",
+   "https://openalex.org/W2122369144",
+   "https://openalex.org/W2136160543"
+  ]
+ },
+ "https://openalex.org/W2396764674": {
+  "split": "test",
+  "date": "2021-08-03",
+  "title": "Language Matters In Twitter: A Large Scale Study",
+  "positives": [
+   "https://openalex.org/W2000200507",
+   "https://openalex.org/W2001653897",
+   "https://openalex.org/W2002374079",
+   "https://openalex.org/W2046804949",
+   "https://openalex.org/W2071393163",
+   "https://openalex.org/W2101196063",
+   "https://openalex.org/W2119188105",
+   "https://openalex.org/W2122218759",
+   "https://openalex.org/W2140173168"
+  ]
+ },
+ "https://openalex.org/W2560103719": {
+  "split": "dev",
+  "date": "2021-08-04",
+  "title": "Topic Modeling in Twitter: Aggregating Tweets by Conversations",
+  "positives": [
+   "https://openalex.org/W1532325895",
+   "https://openalex.org/W157541337",
+   "https://openalex.org/W1880262756",
+   "https://openalex.org/W2004192095",
+   "https://openalex.org/W2063904635",
+   "https://openalex.org/W2140124448",
+   "https://openalex.org/W4213009331"
+  ]
+ },
+ "https://openalex.org/W2997681568": {
+  "split": "test",
+  "date": "2020-01-06",
+  "title": "Challenges to the Reproducibility of Machine Learning Models in Health Care",
+  "positives": [
+   "https://openalex.org/W1897139626",
+   "https://openalex.org/W2144981148",
+   "https://openalex.org/W2889242407"
+  ]
+ },
+ "https://openalex.org/W3000241061": {
+  "split": "test",
+  "date": "2020-05-01",
+  "title": "Measuring the Macroeconomic Impact of Carbon Taxes",
+  "positives": [
+   "https://openalex.org/W2117648550",
+   "https://openalex.org/W2135860498",
+   "https://openalex.org/W2988533513",
+   "https://openalex.org/W2996766501",
+   "https://openalex.org/W3123132961"
+  ]
+ },
+ "https://openalex.org/W3000477794": {
+  "split": "test",
+  "date": "2020-01-13",
+  "title": "Clinical Impact of Metagenomic Next-Generation Sequencing of Plasma Cell-Free DNA for the Diagnosis of Infectious Diseases: A Multicenter Retrospective Cohort Study",
+  "positives": [
+   "https://openalex.org/W2901531873",
+   "https://openalex.org/W2911464243",
+   "https://openalex.org/W2913649768",
+   "https://openalex.org/W2930465847",
+   "https://openalex.org/W2950076417",
+   "https://openalex.org/W2953017819",
+   "https://openalex.org/W2958994975",
+   "https://openalex.org/W2980649941",
+   "https://openalex.org/W4211037082"
+  ]
+ },
+ "https://openalex.org/W3005073185": {
+  "split": "test",
+  "date": "2020-02-05",
+  "title": "\"How do I fool you?\"",
+  "positives": [
+   "https://openalex.org/W1484413656",
+   "https://openalex.org/W1996796871",
+   "https://openalex.org/W2026338082",
+   "https://openalex.org/W2118022153",
+   "https://openalex.org/W2367397349",
+   "https://openalex.org/W2516809705",
+   "https://openalex.org/W2551317447",
+   "https://openalex.org/W2618851150",
+   "https://openalex.org/W2959587146",
+   "https://openalex.org/W2962843949"
+  ]
+ },
+ "https://openalex.org/W3005119027": {
+  "split": "test",
+  "date": "2020-02-05",
+  "title": "2019 Novel Coronavirus—Important Information for Clinicians",
+  "positives": [
+   "https://openalex.org/W3000834295",
+   "https://openalex.org/W3003465021",
+   "https://openalex.org/W3003668884",
+   "https://openalex.org/W3003749070"
+  ]
+ },
+ "https://openalex.org/W3005336040": {
+  "split": "test",
+  "date": "2020-02-07",
+  "title": "EV-101: A Phase I Study of Single-Agent Enfortumab Vedotin in Patients With Nectin-4–Positive Solid Tumors, Including Metastatic Urothelial Carcinoma",
+  "positives": [
+   "https://openalex.org/W1820014750",
+   "https://openalex.org/W2012034410",
+   "https://openalex.org/W2109108939",
+   "https://openalex.org/W2128201178",
+   "https://openalex.org/W2136437408",
+   "https://openalex.org/W2152762320",
+   "https://openalex.org/W2302699227",
+   "https://openalex.org/W2308167615",
+   "https://openalex.org/W2588916311",
+   "https://openalex.org/W2806532569",
+   "https://openalex.org/W2966500633"
+  ]
+ },
+ "https://openalex.org/W3006594177": {
+  "split": "test",
+  "date": "2020-02-11",
+  "title": "Deep learning computer vision algorithm for detecting kidney stone composition",
+  "positives": [
+   "https://openalex.org/W1879634492",
+   "https://openalex.org/W2049740628",
+   "https://openalex.org/W2071684395",
+   "https://openalex.org/W2095048684",
+   "https://openalex.org/W2194775991",
+   "https://openalex.org/W2557738935",
+   "https://openalex.org/W2885387858"
+  ]
+ },
+ "https://openalex.org/W3008125026": {
+  "split": "test",
+  "date": "2020-02-28",
+  "title": "COVID-19—New Insights on a Rapidly Changing Epidemic",
+  "positives": [
+   "https://openalex.org/W3005119027",
+   "https://openalex.org/W3005347918",
+   "https://openalex.org/W3008028633",
+   "https://openalex.org/W3008696669",
+   "https://openalex.org/W3008962515",
+   "https://openalex.org/W3165656738"
+  ]
+ },
+ "https://openalex.org/W3008591352": {
+  "split": "test",
+  "date": "2020-02-18",
+  "title": "MLPerf: An Industry Standard Benchmark Suite for Machine Learning Performance",
+  "positives": [
+   "https://openalex.org/W2515080096",
+   "https://openalex.org/W2979245724",
+   "https://openalex.org/W2985232804",
+   "https://openalex.org/W3043571714"
+  ]
+ },
+ "https://openalex.org/W3010209825": {
+  "split": "dev",
+  "date": "2020-03-11",
+  "title": "Coronavirus Disease 2019 (COVID-19): Protecting Hospitals From the Invisible",
+  "positives": [
+   "https://openalex.org/W2791818497",
+   "https://openalex.org/W3003465021",
+   "https://openalex.org/W3004239190",
+   "https://openalex.org/W3006750069",
+   "https://openalex.org/W3008116551",
+   "https://openalex.org/W3008827533",
+   "https://openalex.org/W3035011439"
+  ]
+ },
+ "https://openalex.org/W3010574983": {
+  "split": "dev",
+  "date": "2020-03-12",
+  "title": "Supporting the Health Care Workforce During the COVID-19 Global Epidemic",
+  "positives": [
+   "https://openalex.org/W2971605747",
+   "https://openalex.org/W3008125026",
+   "https://openalex.org/W3008696669",
+   "https://openalex.org/W3010449299"
+  ]
+ },
+ "https://openalex.org/W3010608205": {
+  "split": "test",
+  "date": "2020-03-06",
+  "title": "Robust Metrics and Sensitivity Analyses for Meta-analyses of Heterogeneous Effects",
+  "positives": [
+   "https://openalex.org/W1784175517",
+   "https://openalex.org/W2001585245",
+   "https://openalex.org/W2126728600",
+   "https://openalex.org/W2155982020",
+   "https://openalex.org/W2902529531",
+   "https://openalex.org/W2921134459",
+   "https://openalex.org/W2953047910"
+  ]
+ },
+ "https://openalex.org/W3011104356": {
+  "split": "test",
+  "date": "2020-03-13",
+  "title": "Why Test for Proportional Hazards?",
+  "positives": [
+   "https://openalex.org/W1593442063",
+   "https://openalex.org/W1973885323",
+   "https://openalex.org/W1981922048",
+   "https://openalex.org/W2087147904",
+   "https://openalex.org/W2129750583",
+   "https://openalex.org/W2146699219",
+   "https://openalex.org/W2760699482",
+   "https://openalex.org/W3147894994"
+  ]
+ },
+ "https://openalex.org/W3011988020": {
+  "split": "test",
+  "date": "2020-04-01",
+  "title": "The Low Earth Orbit Satellite Population and Impacts of the SpaceX Starlink Constellation",
+  "positives": [
+   "https://openalex.org/W2098893304",
+   "https://openalex.org/W2150375650",
+   "https://openalex.org/W2800887248",
+   "https://openalex.org/W2810161522",
+   "https://openalex.org/W2918029340",
+   "https://openalex.org/W3000990043",
+   "https://openalex.org/W3009989658"
+  ]
+ },
+ "https://openalex.org/W3012753807": {
+  "split": "test",
+  "date": "2020-03-25",
+  "title": "Postacute Care Preparedness for COVID-19",
+  "positives": [
+   "https://openalex.org/W2063203508",
+   "https://openalex.org/W2956027529",
+   "https://openalex.org/W2996035929",
+   "https://openalex.org/W3006422665",
+   "https://openalex.org/W3009379198"
+  ]
+ },
+ "https://openalex.org/W3013030269": {
+  "split": "test",
+  "date": "2020-03-30",
+  "title": "Social media for rapid knowledge dissemination: early experience from the COVID ‐19 pandemic",
+  "positives": [
+   "https://openalex.org/W2037454769",
+   "https://openalex.org/W2062697398",
+   "https://openalex.org/W2088217755",
+   "https://openalex.org/W2138011822",
+   "https://openalex.org/W2476960546",
+   "https://openalex.org/W2620666811",
+   "https://openalex.org/W2756309993",
+   "https://openalex.org/W2792919964",
+   "https://openalex.org/W2912771962",
+   "https://openalex.org/W2955846893",
+   "https://openalex.org/W2963667645",
+   "https://openalex.org/W3008028633"
+  ]
+ },
+ "https://openalex.org/W3013984585": {
+  "split": "test",
+  "date": "2020-03-27",
+  "title": "Use of Rapid Online Surveys to Assess People's Perceptions During Infectious Disease Outbreaks: A Cross-sectional Survey on COVID-19",
+  "positives": [
+   "https://openalex.org/W1997520987",
+   "https://openalex.org/W2134740567",
+   "https://openalex.org/W2135710687",
+   "https://openalex.org/W2274622689",
+   "https://openalex.org/W2902724961",
+   "https://openalex.org/W2994611897",
+   "https://openalex.org/W3007446911",
+   "https://openalex.org/W3008443627",
+   "https://openalex.org/W3008827533",
+   "https://openalex.org/W3008928028"
+  ]
+ },
+ "https://openalex.org/W3014043262": {
+  "split": "test",
+  "date": "2020-03-26",
+  "title": "Turbulent Gas Clouds and Respiratory Pathogen Emissions",
+  "positives": [
+   "https://openalex.org/W1557580289",
+   "https://openalex.org/W2113076742",
+   "https://openalex.org/W2521419085",
+   "https://openalex.org/W3010449299"
+  ]
+ },
+ "https://openalex.org/W3014206579": {
+  "split": "test",
+  "date": "2020-06-01",
+  "title": "COVID-19 and Kawasaki Disease: Novel Virus and Novel Case",
+  "positives": [
+   "https://openalex.org/W1782330119",
+   "https://openalex.org/W2011628706",
+   "https://openalex.org/W2120492141",
+   "https://openalex.org/W2604027935",
+   "https://openalex.org/W2903769804",
+   "https://openalex.org/W3001195213",
+   "https://openalex.org/W3008028633",
+   "https://openalex.org/W3010819577",
+   "https://openalex.org/W3032625844",
+   "https://openalex.org/W3033853571"
+  ]
+ },
+ "https://openalex.org/W3014475226": {
+  "split": "test",
+  "date": "2020-04-03",
+  "title": "Addressing Social Determinants of Health",
+  "positives": [
+   "https://openalex.org/W2837443799",
+   "https://openalex.org/W2896936987",
+   "https://openalex.org/W2981869278"
+  ]
+ },
+ "https://openalex.org/W3014542727": {
+  "split": "dev",
+  "date": "2020-04-01",
+  "title": "Mental Health Needs of Health Care Workers Providing Frontline COVID-19 Care",
+  "positives": [
+   "https://openalex.org/W3011508296",
+   "https://openalex.org/W3011677404",
+   "https://openalex.org/W3011839538",
+   "https://openalex.org/W3012832369",
+   "https://openalex.org/W3014851843"
+  ]
+ },
+ "https://openalex.org/W3014667363": {
+  "split": "dev",
+  "date": "2020-03-31",
+  "title": "Spatial-temporal distribution of COVID-19 in China and its prediction: A data-driven modeling analysis",
+  "positives": [
+   "https://openalex.org/W1976036024",
+   "https://openalex.org/W2022101730",
+   "https://openalex.org/W2117005850",
+   "https://openalex.org/W2147166346",
+   "https://openalex.org/W2470441796",
+   "https://openalex.org/W3004397688",
+   "https://openalex.org/W3004705239",
+   "https://openalex.org/W3006177842",
+   "https://openalex.org/W3009462729",
+   "https://openalex.org/W3035011439"
+  ]
+ },
+ "https://openalex.org/W3014721972": {
+  "split": "test",
+  "date": "2020-04-28",
+  "title": "Consensus statement on the use of clozapine during the COVID-19 pandemic",
+  "positives": [
+   "https://openalex.org/W2053700034",
+   "https://openalex.org/W2461169273",
+   "https://openalex.org/W2584668464",
+   "https://openalex.org/W2800034999",
+   "https://openalex.org/W2804222503",
+   "https://openalex.org/W3000056581"
+  ]
+ },
+ "https://openalex.org/W3014754999": {
+  "split": "test",
+  "date": "2020-04-06",
+  "title": "The COVID-19 Pandemic in the US",
+  "positives": [
+   "https://openalex.org/W2099966695",
+   "https://openalex.org/W3008696669",
+   "https://openalex.org/W3012846954",
+   "https://openalex.org/W3013701895",
+   "https://openalex.org/W3014043262",
+   "https://openalex.org/W4250572795"
+  ]
+ },
+ "https://openalex.org/W3014846055": {
+  "split": "test",
+  "date": "2020-04-06",
+  "title": "Sample Pooling as a Strategy to Detect Community Transmission of SARS-CoV-2",
+  "positives": [
+   "https://openalex.org/W2128538941",
+   "https://openalex.org/W3001195213",
+   "https://openalex.org/W3007298159",
+   "https://openalex.org/W3009332494",
+   "https://openalex.org/W3023701338"
+  ]
+ },
+ "https://openalex.org/W3014937314": {
+  "split": "test",
+  "date": "2020-04-07",
+  "title": "Understanding and Addressing Sources of Anxiety Among Health Care Professionals During the COVID-19 Pandemic",
+  "positives": [
+   "https://openalex.org/W2112928886",
+   "https://openalex.org/W3010574983",
+   "https://openalex.org/W3012832369",
+   "https://openalex.org/W3013604172"
+  ]
+ },
+ "https://openalex.org/W3014945260": {
+  "split": "dev",
+  "date": "2020-04-03",
+  "title": "The Coronavirus and the Risks to the Elderly in Long-Term Care",
+  "positives": [
+   "https://openalex.org/W2151860978",
+   "https://openalex.org/W2808686043",
+   "https://openalex.org/W2910013470",
+   "https://openalex.org/W3008028633",
+   "https://openalex.org/W3010860326"
+  ]
+ },
+ "https://openalex.org/W3015259921": {
+  "split": "dev",
+  "date": "2020-04-14",
+  "title": "Coronavirus Disease 2019 (COVID-19) and Mental Health for Children and Adolescents",
+  "positives": [
+   "https://openalex.org/W2163544197",
+   "https://openalex.org/W2186263672",
+   "https://openalex.org/W2924258081",
+   "https://openalex.org/W2954213852"
+  ]
+ },
+ "https://openalex.org/W3015637290": {
+  "split": "test",
+  "date": "2020-01-01",
+  "title": "Regulatory responses to medical machine learning",
+  "positives": [
+   "https://openalex.org/W2164675774",
+   "https://openalex.org/W2516720184",
+   "https://openalex.org/W2789431369",
+   "https://openalex.org/W2884786908",
+   "https://openalex.org/W2911771661",
+   "https://openalex.org/W3141199462"
+  ]
+ },
+ "https://openalex.org/W3015695051": {
+  "split": "test",
+  "date": "2020-04-15",
+  "title": "Use of Temporary Mechanical Circulatory Support for Management of Cardiogenic Shock Before and After the United Network for Organ Sharing Donor Heart Allocation System Changes",
+  "positives": [
+   "https://openalex.org/W2106703370",
+   "https://openalex.org/W2908255804",
+   "https://openalex.org/W2922103361",
+   "https://openalex.org/W2963718678",
+   "https://openalex.org/W2982753732",
+   "https://openalex.org/W2984895516",
+   "https://openalex.org/W3005459416"
+  ]
+ },
+ "https://openalex.org/W3016048022": {
+  "split": "dev",
+  "date": "2020-02-01",
+  "title": "33.1 A 74 TMACS/W CMOS-RRAM Neurosynaptic Core with Dynamically Reconfigurable Dataflow and In-situ Transposable Weights for Probabilistic Graphical Models",
+  "positives": [
+   "https://openalex.org/W2794288888",
+   "https://openalex.org/W2898994846",
+   "https://openalex.org/W2913334599",
+   "https://openalex.org/W2921329602"
+  ]
+ },
+ "https://openalex.org/W3016783820": {
+  "split": "test",
+  "date": "2020-04-18",
+  "title": "The relative transmissibility of asymptomatic COVID-19 infections among close contacts",
+  "positives": [
+   "https://openalex.org/W3006961006",
+   "https://openalex.org/W3008827533",
+   "https://openalex.org/W3010781325",
+   "https://openalex.org/W3011945457",
+   "https://openalex.org/W3012188173",
+   "https://openalex.org/W3014394727",
+   "https://openalex.org/W3026590265"
+  ]
+ },
+ "https://openalex.org/W3018157127": {
+  "split": "test",
+  "date": "2020-04-24",
+  "title": "Ventilator Triage Policies During the COVID-19 Pandemic at U.S. Hospitals Associated With Members of the Association of Bioethics Program Directors",
+  "positives": [
+   "https://openalex.org/W1975543319",
+   "https://openalex.org/W1980345065",
+   "https://openalex.org/W2092309176",
+   "https://openalex.org/W2106476759",
+   "https://openalex.org/W2114360396",
+   "https://openalex.org/W3009438848",
+   "https://openalex.org/W3012690896",
+   "https://openalex.org/W3012762625",
+   "https://openalex.org/W3013680672",
+   "https://openalex.org/W3122560950"
+  ]
+ },
+ "https://openalex.org/W3021845694": {
+  "split": "dev",
+  "date": "2020-05-11",
+  "title": "Ethics and governance for digital disease surveillance",
+  "positives": [
+   "https://openalex.org/W2098792649",
+   "https://openalex.org/W2790990365",
+   "https://openalex.org/W2891242909",
+   "https://openalex.org/W3013215798",
+   "https://openalex.org/W3021970994"
+  ]
+ },
+ "https://openalex.org/W3022131485": {
+  "split": "test",
+  "date": "2020-05-10",
+  "title": "Updated overall survival and final progression-free survival data for patients with treatment-naive advanced ALK-positive non-small-cell lung cancer in the ALEX study",
+  "positives": [
+   "https://openalex.org/W2588675203",
+   "https://openalex.org/W2624310346",
+   "https://openalex.org/W2803802743",
+   "https://openalex.org/W2923683745",
+   "https://openalex.org/W2925139051",
+   "https://openalex.org/W2944943858",
+   "https://openalex.org/W2947825648",
+   "https://openalex.org/W2994642443"
+  ]
+ },
+ "https://openalex.org/W3022358203": {
+  "split": "test",
+  "date": "2020-05-01",
+  "title": "Risk of QT Interval Prolongation Associated With Use of Hydroxychloroquine With or Without Concomitant Azithromycin Among Hospitalized Patients Testing Positive for Coronavirus Disease 2019 (COVID-19)",
+  "positives": [
+   "https://openalex.org/W2022501241",
+   "https://openalex.org/W2119425860",
+   "https://openalex.org/W2481024015",
+   "https://openalex.org/W2889057765",
+   "https://openalex.org/W3005212621",
+   "https://openalex.org/W3012454642",
+   "https://openalex.org/W3019235900",
+   "https://openalex.org/W3020239101",
+   "https://openalex.org/W4293111375"
+  ]
+ },
+ "https://openalex.org/W3022992685": {
+  "split": "test",
+  "date": "2020-05-08",
+  "title": "Sex and Gender Differences in Health: What the COVID-19 Pandemic Can Teach Us",
+  "positives": [
+   "https://openalex.org/W2528191300",
+   "https://openalex.org/W2549356601",
+   "https://openalex.org/W2897722618",
+   "https://openalex.org/W3005295566",
+   "https://openalex.org/W3012849736",
+   "https://openalex.org/W3014048910",
+   "https://openalex.org/W3017817496"
+  ]
+ },
+ "https://openalex.org/W3023284086": {
+  "split": "test",
+  "date": "2020-04-29",
+  "title": "Construction of a Machine Learning Dataset through Collaboration: The RSNA 2019 Brain CT Hemorrhage Challenge",
+  "positives": [
+   "https://openalex.org/W2899381700",
+   "https://openalex.org/W2911436281",
+   "https://openalex.org/W2914203365",
+   "https://openalex.org/W2948346016",
+   "https://openalex.org/W2981941315"
+  ]
+ },
+ "https://openalex.org/W3023399464": {
+  "split": "test",
+  "date": "2020-05-11",
+  "title": "Opportunities From the Coronavirus Disease 2019 Pandemic for Transforming Psychiatric Care With Telehealth",
+  "positives": [
+   "https://openalex.org/W2169337111",
+   "https://openalex.org/W2172334265",
+   "https://openalex.org/W2531890346",
+   "https://openalex.org/W2555993651",
+   "https://openalex.org/W2909914933",
+   "https://openalex.org/W2972598474"
+  ]
+ },
+ "https://openalex.org/W3023568869": {
+  "split": "test",
+  "date": "2020-05-08",
+  "title": "Simple model for the electric field and spatial distribution of ions in a microdroplet",
+  "positives": [
+   "https://openalex.org/W1706435611",
+   "https://openalex.org/W1976697508",
+   "https://openalex.org/W1982943325",
+   "https://openalex.org/W2512351034",
+   "https://openalex.org/W2765239306",
+   "https://openalex.org/W2890988943",
+   "https://openalex.org/W2902877829",
+   "https://openalex.org/W2906661443",
+   "https://openalex.org/W3006793855"
+  ]
+ },
+ "https://openalex.org/W3023613004": {
+  "split": "test",
+  "date": "2020-04-28",
+  "title": "Why do people believe COVID-19 conspiracy theories?",
+  "positives": [
+   "https://openalex.org/W1428768901",
+   "https://openalex.org/W1482406218",
+   "https://openalex.org/W2016520072",
+   "https://openalex.org/W2099696437",
+   "https://openalex.org/W2180627577",
+   "https://openalex.org/W2593816498",
+   "https://openalex.org/W2731369199",
+   "https://openalex.org/W2775645248",
+   "https://openalex.org/W2799996710",
+   "https://openalex.org/W3003294360",
+   "https://openalex.org/W3027404439"
+  ]
+ },
+ "https://openalex.org/W3023659554": {
+  "split": "test",
+  "date": "2020-04-29",
+  "title": "National Response to COVID-19 in the Republic of Korea and Lessons Learned for Other Countries",
+  "positives": [
+   "https://openalex.org/W2055741149",
+   "https://openalex.org/W2773415640",
+   "https://openalex.org/W2787894137",
+   "https://openalex.org/W2936961514",
+   "https://openalex.org/W3004912618",
+   "https://openalex.org/W3111973348",
+   "https://openalex.org/W3185956067"
+  ]
+ },
+ "https://openalex.org/W3023789437": {
+  "split": "test",
+  "date": "2020-05-10",
+  "title": "Psychological distress among health professional students during the COVID-19 outbreak",
+  "positives": [
+   "https://openalex.org/W2180610815",
+   "https://openalex.org/W2981587395",
+   "https://openalex.org/W3012832369"
+  ]
+ },
+ "https://openalex.org/W3024520728": {
+  "split": "test",
+  "date": "2020-05-12",
+  "title": "Rural-Urban Differences in Cardiovascular Mortality in the US, 1999-2017",
+  "positives": [
+   "https://openalex.org/W2122628094",
+   "https://openalex.org/W2462712634",
+   "https://openalex.org/W2614856259",
+   "https://openalex.org/W2988207191",
+   "https://openalex.org/W2990547440"
+  ]
+ },
+ "https://openalex.org/W3024634942": {
+  "split": "test",
+  "date": "2020-05-12",
+  "title": "Open Development and Clinical Validation of Multiple 3D-Printed Nasopharyngeal Collection Swabs: Rapid Resolution of a Critical COVID-19 Testing Bottleneck",
+  "positives": [
+   "https://openalex.org/W1972978214",
+   "https://openalex.org/W2023085501",
+   "https://openalex.org/W2154842668",
+   "https://openalex.org/W2479757823",
+   "https://openalex.org/W2538639213",
+   "https://openalex.org/W2939126206",
+   "https://openalex.org/W3006961006",
+   "https://openalex.org/W3014235447",
+   "https://openalex.org/W3015245337",
+   "https://openalex.org/W3016437870"
+  ]
+ },
+ "https://openalex.org/W3025818509": {
+  "split": "test",
+  "date": "2020-05-13",
+  "title": "Geographic access to United States SARS-CoV-2 testing sites highlights healthcare disparities and may bias transmission estimates",
+  "positives": [
+   "https://openalex.org/W2901299564",
+   "https://openalex.org/W2997529933",
+   "https://openalex.org/W3007298159",
+   "https://openalex.org/W3012284084",
+   "https://openalex.org/W3015807396",
+   "https://openalex.org/W3134795544"
+  ]
+ },
+ "https://openalex.org/W3026441981": {
+  "split": "test",
+  "date": "2020-05-20",
+  "title": "Impact of the COVID-19 Epidemic on Stroke Care and Potential Solutions",
+  "positives": [
+   "https://openalex.org/W2561019068",
+   "https://openalex.org/W2761249896",
+   "https://openalex.org/W2809543242",
+   "https://openalex.org/W3006110666",
+   "https://openalex.org/W3007497549",
+   "https://openalex.org/W3013177246",
+   "https://openalex.org/W3016127017"
+  ]
+ },
+ "https://openalex.org/W3027407129": {
+  "split": "test",
+  "date": "2020-05-22",
+  "title": "Genomic Profiling of Smoldering Multiple Myeloma Identifies Patients at a High Risk of Disease Progression",
+  "positives": [
+   "https://openalex.org/W1968121313",
+   "https://openalex.org/W1974983065",
+   "https://openalex.org/W2009802594",
+   "https://openalex.org/W2060630093",
+   "https://openalex.org/W2120579447",
+   "https://openalex.org/W2808202754",
+   "https://openalex.org/W2885104676"
+  ]
+ },
+ "https://openalex.org/W3028673138": {
+  "split": "test",
+  "date": "2020-06-02",
+  "title": "Coronavirus Disease 2019 Pandemic: Impact Caused by School Closure and National Lockdown on Pediatric Visits and Admissions for Viral and Nonviral Infections—a Time Series Analysis",
+  "positives": [
+   "https://openalex.org/W2110132657",
+   "https://openalex.org/W2111366073",
+   "https://openalex.org/W2119863846",
+   "https://openalex.org/W2416547532",
+   "https://openalex.org/W2725206096",
+   "https://openalex.org/W2801044224",
+   "https://openalex.org/W3014361632",
+   "https://openalex.org/W3014805882"
+  ]
+ },
+ "https://openalex.org/W3029037073": {
+  "split": "test",
+  "date": "2020-05-27",
+  "title": "Digital contact tracing for COVID-19",
+  "positives": [
+   "https://openalex.org/W2044712330",
+   "https://openalex.org/W2067326326",
+   "https://openalex.org/W2278572312",
+   "https://openalex.org/W2743781491",
+   "https://openalex.org/W2889526077",
+   "https://openalex.org/W2889977852",
+   "https://openalex.org/W2963423786",
+   "https://openalex.org/W3013215798",
+   "https://openalex.org/W3016097752",
+   "https://openalex.org/W3040720680",
+   "https://openalex.org/W3111973348"
+  ]
+ },
+ "https://openalex.org/W3029822774": {
+  "split": "dev",
+  "date": "2020-05-28",
+  "title": "Screen Time for Children and Adolescents During the Coronavirus Disease 2019 Pandemic",
+  "positives": [
+   "https://openalex.org/W2089031929",
+   "https://openalex.org/W2143426475",
+   "https://openalex.org/W3014180232",
+   "https://openalex.org/W3018912761"
+  ]
+ },
+ "https://openalex.org/W3030508559": {
+  "split": "dev",
+  "date": "2020-04-25",
+  "title": "Teachable Machine: Approachable Web-Based Tool for Exploring Machine Learning Classification",
+  "positives": [
+   "https://openalex.org/W161531308",
+   "https://openalex.org/W1984342914",
+   "https://openalex.org/W2003238113",
+   "https://openalex.org/W2026259539",
+   "https://openalex.org/W2149802704",
+   "https://openalex.org/W2345597971",
+   "https://openalex.org/W2807746307",
+   "https://openalex.org/W2808506583",
+   "https://openalex.org/W2943819053"
+  ]
+ },
+ "https://openalex.org/W3030790076": {
+  "split": "dev",
+  "date": "2020-04-25",
+  "title": "From Human-Human Collaboration to Human-AI Collaboration",
+  "positives": [
+   "https://openalex.org/W2141373701",
+   "https://openalex.org/W2613716520",
+   "https://openalex.org/W2759280883",
+   "https://openalex.org/W2897228760",
+   "https://openalex.org/W3002070941",
+   "https://openalex.org/W3029504795",
+   "https://openalex.org/W4288083546",
+   "https://openalex.org/W4288086169"
+  ]
+ },
+ "https://openalex.org/W3032229289": {
+  "split": "test",
+  "date": "2020-06-03",
+  "title": "Potential Implications of COVID-19 for the 2020-2021 Residency Application Cycle",
+  "positives": [
+   "https://openalex.org/W2156870008",
+   "https://openalex.org/W2899695489",
+   "https://openalex.org/W2910022183",
+   "https://openalex.org/W2924932186",
+   "https://openalex.org/W3001994114"
+  ]
+ },
+ "https://openalex.org/W3034731061": {
+  "split": "dev",
+  "date": "2020-06-12",
+  "title": "Wastewater-Based Epidemiology: Global Collaborative to Maximize Contributions in the Fight Against COVID-19",
+  "positives": [
+   "https://openalex.org/W1539936102",
+   "https://openalex.org/W2168420558",
+   "https://openalex.org/W2985729324",
+   "https://openalex.org/W3004280078",
+   "https://openalex.org/W3008443627",
+   "https://openalex.org/W3008962515",
+   "https://openalex.org/W3012284084",
+   "https://openalex.org/W3014221525",
+   "https://openalex.org/W3018003915"
+  ]
+ },
+ "https://openalex.org/W3036748492": {
+  "split": "test",
+  "date": "2020-06-18",
+  "title": "Disparities in Coronavirus 2019 Reported Incidence, Knowledge, and Behavior Among US Adults",
+  "positives": [
+   "https://openalex.org/W2095310139",
+   "https://openalex.org/W2102346413",
+   "https://openalex.org/W2431687448",
+   "https://openalex.org/W3014199470",
+   "https://openalex.org/W4250401101"
+  ]
+ },
+ "https://openalex.org/W3036799909": {
+  "split": "dev",
+  "date": "2020-06-20",
+  "title": "The comparative politics of COVID-19: The need to understand government responses",
+  "positives": [
+   "https://openalex.org/W2035122798",
+   "https://openalex.org/W2133707401",
+   "https://openalex.org/W2416231412",
+   "https://openalex.org/W2899067839",
+   "https://openalex.org/W2963123500",
+   "https://openalex.org/W3024823352",
+   "https://openalex.org/W3029368900",
+   "https://openalex.org/W4249856768"
+  ]
+ },
+ "https://openalex.org/W3037480398": {
+  "split": "test",
+  "date": "2020-05-09",
+  "title": "Latent bias and the implementation of artificial intelligence in medicine",
+  "positives": [
+   "https://openalex.org/W2789970635",
+   "https://openalex.org/W2899768131",
+   "https://openalex.org/W2902802452",
+   "https://openalex.org/W2905546739",
+   "https://openalex.org/W2910707576",
+   "https://openalex.org/W2955890777",
+   "https://openalex.org/W2981869278",
+   "https://openalex.org/W2994823183",
+   "https://openalex.org/W2996550193"
+  ]
+ },
+ "https://openalex.org/W3038961070": {
+  "split": "test",
+  "date": "2020-07-06",
+  "title": "Global resource shortages during COVID-19: Bad news for low-income countries",
+  "positives": [
+   "https://openalex.org/W1967642370",
+   "https://openalex.org/W2140533556",
+   "https://openalex.org/W2167329719",
+   "https://openalex.org/W2526284155",
+   "https://openalex.org/W3003837931",
+   "https://openalex.org/W3012804303",
+   "https://openalex.org/W3013747613",
+   "https://openalex.org/W3013799958",
+   "https://openalex.org/W3016231275"
+  ]
+ },
+ "https://openalex.org/W3039756956": {
+  "split": "dev",
+  "date": "2020-07-01",
+  "title": "Unmuting Medical Students’ Education: Utilizing Telemedicine During the COVID-19 Pandemic and Beyond",
+  "positives": [
+   "https://openalex.org/W2259727343",
+   "https://openalex.org/W2397940508",
+   "https://openalex.org/W2532031923",
+   "https://openalex.org/W2545671072",
+   "https://openalex.org/W2911229711",
+   "https://openalex.org/W2921189350",
+   "https://openalex.org/W2938197299",
+   "https://openalex.org/W3009063690",
+   "https://openalex.org/W3013432401",
+   "https://openalex.org/W3013473357",
+   "https://openalex.org/W3015857697",
+   "https://openalex.org/W3175333387"
+  ]
+ },
+ "https://openalex.org/W3041087842": {
+  "split": "test",
+  "date": "2020-01-01",
+  "title": "Towards the new era of wastewater treatment of China: Development history, current status, and future directions",
+  "positives": [
+   "https://openalex.org/W1974742732",
+   "https://openalex.org/W2260274902",
+   "https://openalex.org/W2261707892",
+   "https://openalex.org/W2507906162",
+   "https://openalex.org/W2510449158"
+  ]
+ },
+ "https://openalex.org/W3042086946": {
+  "split": "test",
+  "date": "2020-07-13",
+  "title": "Airborne Transmission of SARS-CoV-2",
+  "positives": [
+   "https://openalex.org/W2010483931",
+   "https://openalex.org/W2282785290",
+   "https://openalex.org/W3012556938",
+   "https://openalex.org/W3014043262",
+   "https://openalex.org/W3014615840",
+   "https://openalex.org/W3015401053",
+   "https://openalex.org/W3021112975",
+   "https://openalex.org/W3021139057",
+   "https://openalex.org/W3026590265",
+   "https://openalex.org/W3032742287"
+  ]
+ },
+ "https://openalex.org/W3043486170": {
+  "split": "test",
+  "date": "2020-07-13",
+  "title": "Online Antenatal Care During the COVID-19 Pandemic: Opportunities and Challenges",
+  "positives": [
+   "https://openalex.org/W1513513040",
+   "https://openalex.org/W2082028214",
+   "https://openalex.org/W2316214124",
+   "https://openalex.org/W2767579371",
+   "https://openalex.org/W2945647424",
+   "https://openalex.org/W3013942622",
+   "https://openalex.org/W3015858823",
+   "https://openalex.org/W3021043315",
+   "https://openalex.org/W3024611904",
+   "https://openalex.org/W3025155600",
+   "https://openalex.org/W4321132039"
+  ]
+ },
+ "https://openalex.org/W3046976329": {
+  "split": "test",
+  "date": "2020-08-04",
+  "title": "PySWMM: The Python Interface to Stormwater Management Model (SWMM)",
+  "positives": [
+   "https://openalex.org/W2092320033",
+   "https://openalex.org/W2278386660",
+   "https://openalex.org/W2439427483",
+   "https://openalex.org/W2583056202",
+   "https://openalex.org/W2948891646",
+   "https://openalex.org/W2999494194"
+  ]
+ },
+ "https://openalex.org/W3048459274": {
+  "split": "test",
+  "date": "2020-07-01",
+  "title": "COVID-19 and Health Code: How Digital Platforms Tackle the Pandemic in China",
+  "positives": [
+   "https://openalex.org/W2184763095",
+   "https://openalex.org/W2773044688",
+   "https://openalex.org/W2801313916",
+   "https://openalex.org/W2887516688",
+   "https://openalex.org/W4249673087"
+  ]
+ },
+ "https://openalex.org/W3048790054": {
+  "split": "test",
+  "date": "2020-08-14",
+  "title": "Influenza in the COVID-19 Era",
+  "positives": [
+   "https://openalex.org/W3011305849",
+   "https://openalex.org/W3015772943",
+   "https://openalex.org/W3015807396",
+   "https://openalex.org/W3016078659",
+   "https://openalex.org/W3017190864",
+   "https://openalex.org/W3039047323",
+   "https://openalex.org/W343490654"
+  ]
+ },
+ "https://openalex.org/W3049066843": {
+  "split": "dev",
+  "date": "2020-08-28",
+  "title": "The future of health professions education: Emerging trends in the United States",
+  "positives": [
+   "https://openalex.org/W1980913700",
+   "https://openalex.org/W1981665776",
+   "https://openalex.org/W2002676798",
+   "https://openalex.org/W2060025512",
+   "https://openalex.org/W2347158520",
+   "https://openalex.org/W2718856342",
+   "https://openalex.org/W2757875050",
+   "https://openalex.org/W2794359168",
+   "https://openalex.org/W2924275561",
+   "https://openalex.org/W2945729446",
+   "https://openalex.org/W3049066843"
+  ]
+ },
+ "https://openalex.org/W3081158114": {
+  "split": "dev",
+  "date": "2020-08-28",
+  "title": "Computational social science: Obstacles and opportunities",
+  "positives": [
+   "https://openalex.org/W2047843729",
+   "https://openalex.org/W2105584013",
+   "https://openalex.org/W2108260468",
+   "https://openalex.org/W2109882182",
+   "https://openalex.org/W2159397589",
+   "https://openalex.org/W2779695425",
+   "https://openalex.org/W2806125611",
+   "https://openalex.org/W2898441677",
+   "https://openalex.org/W2956603544",
+   "https://openalex.org/W2969656656",
+   "https://openalex.org/W2981869278"
+  ]
+ },
+ "https://openalex.org/W3081182880": {
+  "split": "test",
+  "date": "2020-08-27",
+  "title": "Community-Level Factors Associated With Racial And Ethnic Disparities In COVID-19 Rates In Massachusetts",
+  "positives": [
+   "https://openalex.org/W2795565022",
+   "https://openalex.org/W2885261459",
+   "https://openalex.org/W3013763896",
+   "https://openalex.org/W3015807396",
+   "https://openalex.org/W3015937556",
+   "https://openalex.org/W3016535995",
+   "https://openalex.org/W3020264722",
+   "https://openalex.org/W3021626303",
+   "https://openalex.org/W3023031160",
+   "https://openalex.org/W3025818509",
+   "https://openalex.org/W3026564589",
+   "https://openalex.org/W3031713996",
+   "https://openalex.org/W3042399949"
+  ]
+ },
+ "https://openalex.org/W3081830235": {
+  "split": "dev",
+  "date": "2020-08-28",
+  "title": "Cardiovascular and Renal Outcomes with Empagliflozin in Heart Failure",
+  "positives": [
+   "https://openalex.org/W2626446274",
+   "https://openalex.org/W2903431537",
+   "https://openalex.org/W2913306188",
+   "https://openalex.org/W2919368874",
+   "https://openalex.org/W2921866736",
+   "https://openalex.org/W2974260792",
+   "https://openalex.org/W3008610985"
+  ]
+ },
+ "https://openalex.org/W3083734146": {
+  "split": "dev",
+  "date": "2020-09-08",
+  "title": "Assessment of Brain Injury Using Portable, Low-Field Magnetic Resonance Imaging at the Bedside of Critically Ill Patients",
+  "positives": [
+   "https://openalex.org/W1651940060",
+   "https://openalex.org/W2061622865",
+   "https://openalex.org/W2103990597",
+   "https://openalex.org/W2104953089",
+   "https://openalex.org/W2186925649",
+   "https://openalex.org/W3015925195",
+   "https://openalex.org/W3016127017",
+   "https://openalex.org/W3016811145",
+   "https://openalex.org/W3021636121"
+  ]
+ },
+ "https://openalex.org/W3085680681": {
+  "split": "test",
+  "date": "2020-09-16",
+  "title": "Suddenly Becoming a “Virtual Doctor”: Experiences of Psychiatrists Transitioning to Telemedicine During the COVID-19 Pandemic",
+  "positives": [
+   "https://openalex.org/W2051399804",
+   "https://openalex.org/W2170754611",
+   "https://openalex.org/W2611645165",
+   "https://openalex.org/W2885679975",
+   "https://openalex.org/W2896391874",
+   "https://openalex.org/W2903507753",
+   "https://openalex.org/W2911973457",
+   "https://openalex.org/W2923841173",
+   "https://openalex.org/W2927158062",
+   "https://openalex.org/W2938766056",
+   "https://openalex.org/W3014842153",
+   "https://openalex.org/W3015064335"
+  ]
+ },
+ "https://openalex.org/W3085695825": {
+  "split": "dev",
+  "date": "2020-09-14",
+  "title": "Rapid Increase in Telemental Health Within the Department of Veterans Affairs During the COVID-19 Pandemic",
+  "positives": [
+   "https://openalex.org/W2306592406",
+   "https://openalex.org/W2398003476",
+   "https://openalex.org/W3012340346"
+  ]
+ },
+ "https://openalex.org/W3085853817": {
+  "split": "dev",
+  "date": "2020-09-11",
+  "title": "Utilization of Social Determinants of Health ICD-10 Z-Codes Among Hospitalized Patients in the United States, 2016–2017",
+  "positives": [
+   "https://openalex.org/W1526809015",
+   "https://openalex.org/W2153782867",
+   "https://openalex.org/W2225155599",
+   "https://openalex.org/W2300479610",
+   "https://openalex.org/W2547364066",
+   "https://openalex.org/W2768403358",
+   "https://openalex.org/W2920906063",
+   "https://openalex.org/W2967550003",
+   "https://openalex.org/W2998340908"
+  ]
+ },
+ "https://openalex.org/W3086038539": {
+  "split": "test",
+  "date": "2020-09-21",
+  "title": "What has changed? The Impact of Covid Pandemic on the Technology and Innovation Management Research Agenda",
+  "positives": [
+   "https://openalex.org/W2123544761",
+   "https://openalex.org/W2140631583",
+   "https://openalex.org/W2937283264",
+   "https://openalex.org/W3002251739",
+   "https://openalex.org/W3124672479",
+   "https://openalex.org/W3169641577"
+  ]
+ },
+ "https://openalex.org/W3087217556": {
+  "split": "test",
+  "date": "2020-09-22",
+  "title": "Geographic Distribution of US Cohorts Used to Train Deep Learning Algorithms",
+  "positives": [
+   "https://openalex.org/W2076056672",
+   "https://openalex.org/W2811374795",
+   "https://openalex.org/W2981869278",
+   "https://openalex.org/W2988716771"
+  ]
+ },
+ "https://openalex.org/W3089283105": {
+  "split": "test",
+  "date": "2020-09-23",
+  "title": "Cardiovascular Outcomes with Ertugliflozin in Type 2 Diabetes",
+  "positives": [
+   "https://openalex.org/W2016471508",
+   "https://openalex.org/W2060499368",
+   "https://openalex.org/W2146264128",
+   "https://openalex.org/W2412117889",
+   "https://openalex.org/W2424539745",
+   "https://openalex.org/W2606281213",
+   "https://openalex.org/W2626446274",
+   "https://openalex.org/W2761588741",
+   "https://openalex.org/W2790570046",
+   "https://openalex.org/W2890465901",
+   "https://openalex.org/W2900413769",
+   "https://openalex.org/W2939222610"
+  ]
+ },
+ "https://openalex.org/W3091818265": {
+  "split": "test",
+  "date": "2020-10-13",
+  "title": "Priorities for addressing the impact of the COVID-19 pandemic on college student mental health",
+  "positives": [
+   "https://openalex.org/W2521643022",
+   "https://openalex.org/W2924994353",
+   "https://openalex.org/W3012876125"
+  ]
+ },
+ "https://openalex.org/W3091913409": {
+  "split": "test",
+  "date": "2020-10-08",
+  "title": "A cross-country database of COVID-19 testing",
+  "positives": [
+   "https://openalex.org/W2944615367",
+   "https://openalex.org/W3008443627",
+   "https://openalex.org/W3012925204",
+   "https://openalex.org/W3093931808"
+  ]
+ },
+ "https://openalex.org/W3091955191": {
+  "split": "test",
+  "date": "2020-10-12",
+  "title": "The COVID-19 Pandemic and the $16 Trillion Virus",
+  "positives": [
+   "https://openalex.org/W2149759828",
+   "https://openalex.org/W2580433265",
+   "https://openalex.org/W3027112175",
+   "https://openalex.org/W3080158060",
+   "https://openalex.org/W4320288076"
+  ]
+ },
+ "https://openalex.org/W3092051159": {
+  "split": "test",
+  "date": "2020-10-05",
+  "title": "Long-term Health Consequences of COVID-19",
+  "positives": [
+   "https://openalex.org/W2345746030",
+   "https://openalex.org/W3015487282",
+   "https://openalex.org/W3029172496",
+   "https://openalex.org/W3037268105",
+   "https://openalex.org/W3041493976",
+   "https://openalex.org/W3043552652",
+   "https://openalex.org/W3044231852",
+   "https://openalex.org/W3045277594",
+   "https://openalex.org/W3047833576",
+   "https://openalex.org/W3086851050"
+  ]
+ },
+ "https://openalex.org/W3092384992": {
+  "split": "test",
+  "date": "2020-10-07",
+  "title": "Randomized Phase III KEYNOTE-181 Study of Pembrolizumab Versus Chemotherapy in Advanced Esophageal Cancer",
+  "positives": [
+   "https://openalex.org/W2076668534",
+   "https://openalex.org/W2099526120",
+   "https://openalex.org/W2119293400",
+   "https://openalex.org/W2561345138",
+   "https://openalex.org/W2767857925",
+   "https://openalex.org/W2889646458",
+   "https://openalex.org/W2900604868",
+   "https://openalex.org/W2906166963"
+  ]
+ },
+ "https://openalex.org/W3092519226": {
+  "split": "test",
+  "date": "2020-10-07",
+  "title": "Interferon-γ Release Assay for Accurate Detection of Severe Acute Respiratory Syndrome Coronavirus 2 T-Cell Response",
+  "positives": [
+   "https://openalex.org/W2141090053",
+   "https://openalex.org/W3020213656",
+   "https://openalex.org/W3030789693",
+   "https://openalex.org/W3037718428",
+   "https://openalex.org/W3044311014",
+   "https://openalex.org/W3047159181",
+   "https://openalex.org/W3048775784",
+   "https://openalex.org/W3109331896"
+  ]
+ },
+ "https://openalex.org/W3092899113": {
+  "split": "dev",
+  "date": "2020-10-16",
+  "title": "Updated science-wide author databases of standardized citation indicators",
+  "positives": [
+   "https://openalex.org/W2170240176",
+   "https://openalex.org/W2466671976",
+   "https://openalex.org/W2968900048",
+   "https://openalex.org/W3001554335"
+  ]
+ },
+ "https://openalex.org/W3093847671": {
+  "split": "dev",
+  "date": "2020-10-24",
+  "title": "pyOptSparse: A Python framework for large-scale constrained nonlinear optimization of sparse systems",
+  "positives": [
+   "https://openalex.org/W1969551552",
+   "https://openalex.org/W2805376890",
+   "https://openalex.org/W2895596740",
+   "https://openalex.org/W2898266816",
+   "https://openalex.org/W2899428095",
+   "https://openalex.org/W2918809447",
+   "https://openalex.org/W3003257820"
+  ]
+ },
+ "https://openalex.org/W3093851884": {
+  "split": "dev",
+  "date": "2020-10-22",
+  "title": "21cmFAST v3: A Python-integrated C code for generating 3D realizations of the cosmic 21cm signal.",
+  "positives": [
+   "https://openalex.org/W1786098785",
+   "https://openalex.org/W1921567268",
+   "https://openalex.org/W2004336411",
+   "https://openalex.org/W2066071309",
+   "https://openalex.org/W2071952242",
+   "https://openalex.org/W2148806080",
+   "https://openalex.org/W2795698549",
+   "https://openalex.org/W2938541803",
+   "https://openalex.org/W2975967743",
+   "https://openalex.org/W3011854858",
+   "https://openalex.org/W3040408189",
+   "https://openalex.org/W3093851884"
+  ]
+ },
+ "https://openalex.org/W3093985629": {
+  "split": "test",
+  "date": "2020-10-26",
+  "title": "Prevalence and Characteristics of Telehealth Utilization in the United States",
+  "positives": [
+   "https://openalex.org/W2013123075",
+   "https://openalex.org/W2028552006",
+   "https://openalex.org/W2113732706",
+   "https://openalex.org/W2770140675",
+   "https://openalex.org/W2902601633"
+  ]
+ },
+ "https://openalex.org/W3095855647": {
+  "split": "dev",
+  "date": "2020-11-04",
+  "title": "Real-world evidence of tisagenlecleucel for pediatric acute lymphoblastic leukemia and non-Hodgkin lymphoma",
+  "positives": [
+   "https://openalex.org/W1967517831",
+   "https://openalex.org/W2105400883",
+   "https://openalex.org/W2567664749",
+   "https://openalex.org/W2760653955",
+   "https://openalex.org/W2787301955",
+   "https://openalex.org/W2793787928",
+   "https://openalex.org/W2808092337",
+   "https://openalex.org/W2891902322",
+   "https://openalex.org/W2903062212",
+   "https://openalex.org/W2905654445",
+   "https://openalex.org/W2990473850",
+   "https://openalex.org/W2990978976",
+   "https://openalex.org/W3006233208"
+  ]
+ },
+ "https://openalex.org/W3097527510": {
+  "split": "test",
+  "date": "2020-11-01",
+  "title": "Failure to demonstrate efficacy of aducanumab: An analysis of the EMERGE and ENGAGE trials as reported by Biogen, December 2019",
+  "positives": [
+   "https://openalex.org/W2015484447",
+   "https://openalex.org/W2605316169",
+   "https://openalex.org/W2772872651",
+   "https://openalex.org/W2787612390",
+   "https://openalex.org/W2791314414",
+   "https://openalex.org/W2891635225",
+   "https://openalex.org/W2937097483",
+   "https://openalex.org/W3097155025",
+   "https://openalex.org/W3111988300"
+  ]
+ },
+ "https://openalex.org/W3098413331": {
+  "split": "test",
+  "date": "2020-11-21",
+  "title": "Older Adults and the Mental Health Effects of COVID-19",
+  "positives": [
+   "https://openalex.org/W2905099661",
+   "https://openalex.org/W2912992939",
+   "https://openalex.org/W3024850888",
+   "https://openalex.org/W3042638980",
+   "https://openalex.org/W3046876776",
+   "https://openalex.org/W3048791385"
+  ]
+ },
+ "https://openalex.org/W3107851654": {
+  "split": "dev",
+  "date": "2020-11-23",
+  "title": "Diagnosis, Management, and Pathophysiology of Arterial and Venous Thrombosis in COVID-19",
+  "positives": [
+   "https://openalex.org/W3027918021",
+   "https://openalex.org/W3045875966",
+   "https://openalex.org/W3046262049",
+   "https://openalex.org/W3085046828",
+   "https://openalex.org/W3094167898"
+  ]
+ },
+ "https://openalex.org/W3110332236": {
+  "split": "test",
+  "date": "2020-10-15",
+  "title": "Prolonged Severe Acute Respiratory Syndrome Coronavirus 2 Replication in an Immunocompromised Patient",
+  "positives": [
+   "https://openalex.org/W1659618301",
+   "https://openalex.org/W2000937204",
+   "https://openalex.org/W2164105455",
+   "https://openalex.org/W2326558924",
+   "https://openalex.org/W2399907638",
+   "https://openalex.org/W2514591520",
+   "https://openalex.org/W2595587791",
+   "https://openalex.org/W2690421706",
+   "https://openalex.org/W3009696897",
+   "https://openalex.org/W3017015983",
+   "https://openalex.org/W3041319886",
+   "https://openalex.org/W3080083683"
+  ]
+ },
+ "https://openalex.org/W3111511147": {
+  "split": "test",
+  "date": "2020-12-15",
+  "title": "Trends in Use and Perceptions of Nicotine Vaping Among US Youth From 2017 to 2020",
+  "positives": [
+   "https://openalex.org/W2973529237",
+   "https://openalex.org/W2982785121",
+   "https://openalex.org/W2987981130",
+   "https://openalex.org/W2993153230",
+   "https://openalex.org/W2999484073",
+   "https://openalex.org/W3016313383"
+  ]
+ },
+ "https://openalex.org/W3113115421": {
+  "split": "test",
+  "date": "2020-12-15",
+  "title": "COVID‐19 Vaccines May Not Prevent Nasal SARS‐CoV‐2 Infection and Asymptomatic Transmission",
+  "positives": [
+   "https://openalex.org/W2147842782",
+   "https://openalex.org/W2336491233",
+   "https://openalex.org/W3014842906",
+   "https://openalex.org/W3029056825",
+   "https://openalex.org/W3042517887",
+   "https://openalex.org/W3046061621",
+   "https://openalex.org/W3054686440",
+   "https://openalex.org/W3089749249"
+  ]
+ },
+ "https://openalex.org/W3115577990": {
+  "split": "dev",
+  "date": "2020-12-23",
+  "title": "COVID-19 testing: One size does not fit all",
+  "positives": [
+   "https://openalex.org/W2053989303",
+   "https://openalex.org/W3001195213",
+   "https://openalex.org/W3029179736",
+   "https://openalex.org/W3047901670",
+   "https://openalex.org/W3082589942",
+   "https://openalex.org/W3090433892",
+   "https://openalex.org/W3165838540"
+  ]
+ },
+ "https://openalex.org/W3118748928": {
+  "split": "dev",
+  "date": "2020-12-28",
+  "title": "Performance Characteristics of a Rapid Severe Acute Respiratory Syndrome Coronavirus 2 Antigen Detection Assay at a Public Plaza Testing Site in San Francisco",
+  "positives": [
+   "https://openalex.org/W3023118558",
+   "https://openalex.org/W3047901670",
+   "https://openalex.org/W3080540097",
+   "https://openalex.org/W3088808345",
+   "https://openalex.org/W3090433892",
+   "https://openalex.org/W3092462291",
+   "https://openalex.org/W3092667563",
+   "https://openalex.org/W3096602582",
+   "https://openalex.org/W3165838540"
+  ]
+ },
+ "https://openalex.org/W3119231619": {
+  "split": "test",
+  "date": "2021-01-10",
+  "title": "Genetic Variants of SARS-CoV-2—What Do They Mean?",
+  "positives": [
+   "https://openalex.org/W3008891488",
+   "https://openalex.org/W3039901154",
+   "https://openalex.org/W3047109359",
+   "https://openalex.org/W3101992496",
+   "https://openalex.org/W3102258632",
+   "https://openalex.org/W3116925452",
+   "https://openalex.org/W4412271071"
+  ]
+ },
+ "https://openalex.org/W3125293084": {
+  "split": "dev",
+  "date": "2021-01-26",
+  "title": "Recalibrating the Use of Race in Medical Research",
+  "positives": [
+   "https://openalex.org/W2034993403",
+   "https://openalex.org/W2049320250",
+   "https://openalex.org/W2061924563",
+   "https://openalex.org/W2107513291",
+   "https://openalex.org/W2135617416",
+   "https://openalex.org/W2148029531",
+   "https://openalex.org/W2906964061",
+   "https://openalex.org/W3110492358"
+  ]
+ },
+ "https://openalex.org/W3127736057": {
+  "split": "test",
+  "date": "2021-02-09",
+  "title": "The Design Process for Google's Training Chips: TPUv2 and TPUv3",
+  "positives": [
+   "https://openalex.org/W2002555321",
+   "https://openalex.org/W2123586642",
+   "https://openalex.org/W2163605009",
+   "https://openalex.org/W2169631286",
+   "https://openalex.org/W2606722458",
+   "https://openalex.org/W2763421725",
+   "https://openalex.org/W2902907165",
+   "https://openalex.org/W2983995785",
+   "https://openalex.org/W3036878841",
+   "https://openalex.org/W3046354018"
+  ]
+ },
+ "https://openalex.org/W3128019209": {
+  "split": "dev",
+  "date": "2020-10-14",
+  "title": "The Limit of Detection Matters: The Case for Benchmarking Severe Acute Respiratory Syndrome Coronavirus 2 Testing",
+  "positives": [
+   "https://openalex.org/W2096810075",
+   "https://openalex.org/W2126455462",
+   "https://openalex.org/W2235070360",
+   "https://openalex.org/W2273591444",
+   "https://openalex.org/W2311761069",
+   "https://openalex.org/W2752140764",
+   "https://openalex.org/W2807846569",
+   "https://openalex.org/W3010604545",
+   "https://openalex.org/W3019218218",
+   "https://openalex.org/W3024182635",
+   "https://openalex.org/W3024634942"
+  ]
+ },
+ "https://openalex.org/W3129524127": {
+  "split": "dev",
+  "date": "2021-02-25",
+  "title": "Market design to accelerate COVID-19 vaccine supply",
+  "positives": [
+   "https://openalex.org/W2765463321",
+   "https://openalex.org/W3003853215",
+   "https://openalex.org/W3045196307",
+   "https://openalex.org/W3086390437",
+   "https://openalex.org/W3091955191",
+   "https://openalex.org/W3111573772",
+   "https://openalex.org/W3123638799"
+  ]
+ },
+ "https://openalex.org/W3129777601": {
+  "split": "dev",
+  "date": "2021-03-01",
+  "title": "Jupyter: Thinking and Storytelling With Code and Data",
+  "positives": [
+   "https://openalex.org/W1972401826",
+   "https://openalex.org/W2068917173",
+   "https://openalex.org/W2141373701",
+   "https://openalex.org/W2141394518",
+   "https://openalex.org/W2472803348",
+   "https://openalex.org/W2765308866"
+  ]
+ },
+ "https://openalex.org/W3130107591": {
+  "split": "test",
+  "date": "2021-02-03",
+  "title": "Patients With Uncomplicated Coronavirus Disease 2019 (COVID-19) Have Long-Term Persistent Symptoms and Functional Impairment Similar to Patients with Severe COVID-19: A Cautionary Tale During a Global Pandemic",
+  "positives": [
+   "https://openalex.org/W2087686765",
+   "https://openalex.org/W2728990317",
+   "https://openalex.org/W3026773347",
+   "https://openalex.org/W3041493976",
+   "https://openalex.org/W3044231852",
+   "https://openalex.org/W3045277594",
+   "https://openalex.org/W3104706339",
+   "https://openalex.org/W3107476667",
+   "https://openalex.org/W3108848052"
+  ]
+ },
+ "https://openalex.org/W3130637442": {
+  "split": "test",
+  "date": "2021-02-19",
+  "title": "Follow-up Survey of US Adult Reports of Mental Health, Substance Use, and Suicidal Ideation During the COVID-19 Pandemic, September 2020",
+  "positives": [
+   "https://openalex.org/W3040719338",
+   "https://openalex.org/W3048791385",
+   "https://openalex.org/W3081882923",
+   "https://openalex.org/W3098413331",
+   "https://openalex.org/W3112159824"
+  ]
+ },
+ "https://openalex.org/W3131728774": {
+  "split": "dev",
+  "date": "2021-02-24",
+  "title": "OncoTree: A Cancer Classification System for Precision Oncology",
+  "positives": [
+   "https://openalex.org/W1940241680",
+   "https://openalex.org/W2104885590",
+   "https://openalex.org/W2114843025",
+   "https://openalex.org/W2159583324",
+   "https://openalex.org/W2310716991",
+   "https://openalex.org/W2339658711",
+   "https://openalex.org/W2614443510",
+   "https://openalex.org/W3007436541",
+   "https://openalex.org/W3047347765",
+   "https://openalex.org/W3217485783"
+  ]
+ },
+ "https://openalex.org/W3136348767": {
+  "split": "test",
+  "date": "2021-03-15",
+  "title": "The Valencia consensus-based adaptation of the IASP complex regional pain syndrome diagnostic criteria",
+  "positives": [
+   "https://openalex.org/W176292192",
+   "https://openalex.org/W2014774699",
+   "https://openalex.org/W2118519935",
+   "https://openalex.org/W2143077460",
+   "https://openalex.org/W2164513741",
+   "https://openalex.org/W2905788968"
+  ]
+ },
+ "https://openalex.org/W3137634582": {
+  "split": "test",
+  "date": "2021-03-25",
+  "title": "Chronic Immune-Related Adverse Events Following Adjuvant Anti–PD-1 Therapy for High-risk Resected Melanoma",
+  "positives": [
+   "https://openalex.org/W2752227448",
+   "https://openalex.org/W2797309423",
+   "https://openalex.org/W2891486030",
+   "https://openalex.org/W2893824814",
+   "https://openalex.org/W2939940798",
+   "https://openalex.org/W2953531214",
+   "https://openalex.org/W2971247105",
+   "https://openalex.org/W2988124258",
+   "https://openalex.org/W2997720498"
+  ]
+ },
+ "https://openalex.org/W3138513807": {
+  "split": "test",
+  "date": "2021-03-16",
+  "title": "LocusZoom.js: interactive and embeddable visualization of genetic association study results",
+  "positives": [
+   "https://openalex.org/W2142386149",
+   "https://openalex.org/W2163013660",
+   "https://openalex.org/W2901303766"
+  ]
+ },
+ "https://openalex.org/W3152052045": {
+  "split": "test",
+  "date": "2021-04-07",
+  "title": "SRQR and COREQ Reporting Guidelines for Qualitative Studies",
+  "positives": [
+   "https://openalex.org/W2081358848",
+   "https://openalex.org/W2138664283",
+   "https://openalex.org/W2168234388",
+   "https://openalex.org/W2331393505",
+   "https://openalex.org/W2790487467"
+  ]
+ },
+ "https://openalex.org/W3155295303": {
+  "split": "test",
+  "date": "2021-04-17",
+  "title": "Indoor Air Changes and Potential Implications for SARS-CoV-2 Transmission",
+  "positives": [
+   "https://openalex.org/W2146366241",
+   "https://openalex.org/W2157363636",
+   "https://openalex.org/W2158731622",
+   "https://openalex.org/W2724870722",
+   "https://openalex.org/W3094394723"
+  ]
+ },
+ "https://openalex.org/W3157008346": {
+  "split": "test",
+  "date": "2021-04-02",
+  "title": "Prevalence of chronic pain among adults in the United States",
+  "positives": [
+   "https://openalex.org/W2069426265",
+   "https://openalex.org/W2074806642",
+   "https://openalex.org/W2886130244",
+   "https://openalex.org/W2891660975",
+   "https://openalex.org/W2922602308"
+  ]
+ },
+ "https://openalex.org/W3159261082": {
+  "split": "test",
+  "date": "2021-04-29",
+  "title": "A megastudy of text-based nudges encouraging patients to get vaccinated at an upcoming doctor’s appointment",
+  "positives": [
+   "https://openalex.org/W1964895626",
+   "https://openalex.org/W2070257463",
+   "https://openalex.org/W2086310207",
+   "https://openalex.org/W2169683662",
+   "https://openalex.org/W2624183453",
+   "https://openalex.org/W2769065949",
+   "https://openalex.org/W3159261082"
+  ]
+ },
+ "https://openalex.org/W3159396736": {
+  "split": "test",
+  "date": "2022-01-12",
+  "title": "Congenital Adrenal Hyperplasia-Current Insights in Pathophysiology, Diagnostics, and Management.",
+  "positives": [
+   "https://openalex.org/W1574323651",
+   "https://openalex.org/W2102074210",
+   "https://openalex.org/W2144685588",
+   "https://openalex.org/W2767169304",
+   "https://openalex.org/W3027718462",
+   "https://openalex.org/W99101968"
+  ]
+ },
+ "https://openalex.org/W3159689317": {
+  "split": "test",
+  "date": "2021-04-28",
+  "title": "Effectiveness of Pfizer-BioNTech and Moderna Vaccines Against COVID-19 Among Hospitalized Adults Aged ≥65 Years — United States, January–March 2021",
+  "positives": [
+   "https://openalex.org/W3014199470",
+   "https://openalex.org/W3040719338",
+   "https://openalex.org/W3092722803",
+   "https://openalex.org/W3111255098",
+   "https://openalex.org/W3113734454",
+   "https://openalex.org/W3114735216",
+   "https://openalex.org/W3131688063",
+   "https://openalex.org/W3134397822"
+  ]
+ },
+ "https://openalex.org/W3161122389": {
+  "split": "test",
+  "date": "2021-05-18",
+  "title": "Prevalence of Gender-Diverse Youth in an Urban School District",
+  "positives": [
+   "https://openalex.org/W2875773841",
+   "https://openalex.org/W2902324068",
+   "https://openalex.org/W2904111615",
+   "https://openalex.org/W2911994102",
+   "https://openalex.org/W2980787800",
+   "https://openalex.org/W3087032668"
+  ]
+ },
+ "https://openalex.org/W3163163465": {
+  "split": "test",
+  "date": "2021-07-26",
+  "title": "Elite party cues increase vaccination intentions among Republicans",
+  "positives": [
+   "https://openalex.org/W2515179900",
+   "https://openalex.org/W3041476856",
+   "https://openalex.org/W3096589468",
+   "https://openalex.org/W3162103682",
+   "https://openalex.org/W3175929934",
+   "https://openalex.org/W4235402841"
+  ]
+ },
+ "https://openalex.org/W3167268391": {
+  "split": "dev",
+  "date": "2021-06-06",
+  "title": "Pharmacogene Variation Consortium: A Global Resource and Repository for Pharmacogene Variation",
+  "positives": [
+   "https://openalex.org/W2903466396",
+   "https://openalex.org/W2976816195",
+   "https://openalex.org/W4205141468",
+   "https://openalex.org/W4210643740",
+   "https://openalex.org/W4245269458"
+  ]
+ },
+ "https://openalex.org/W3173556047": {
+  "split": "test",
+  "date": "2021-07-01",
+  "title": "DataLad: distributed system for joint management of code, data, and their relationship",
+  "positives": [
+   "https://openalex.org/W2302501749",
+   "https://openalex.org/W2951103577",
+   "https://openalex.org/W3122320078",
+   "https://openalex.org/W3122463224",
+   "https://openalex.org/W3136966614"
+  ]
+ },
+ "https://openalex.org/W3178636644": {
+  "split": "test",
+  "date": "2021-06-01",
+  "title": "An Updated Comparison of Four Low Earth Orbit Satellite Constellation Systems to Provide Global Broadband",
+  "positives": [
+   "https://openalex.org/W2128296656",
+   "https://openalex.org/W2167774354",
+   "https://openalex.org/W2810753555",
+   "https://openalex.org/W2972130007",
+   "https://openalex.org/W3080292387"
+  ]
+ },
+ "https://openalex.org/W3183015861": {
+  "split": "dev",
+  "date": "2021-07-15",
+  "title": "Beware explanations from AI in health care",
+  "positives": [
+   "https://openalex.org/W139021537",
+   "https://openalex.org/W198744195",
+   "https://openalex.org/W2149033360",
+   "https://openalex.org/W2282821441",
+   "https://openalex.org/W3016012157",
+   "https://openalex.org/W3046238651",
+   "https://openalex.org/W3086667591",
+   "https://openalex.org/W3121368818",
+   "https://openalex.org/W3121705224"
+  ]
+ },
+ "https://openalex.org/W3186653455": {
+  "split": "test",
+  "date": "2021-07-14",
+  "title": "Cancer Misinformation and Harmful Information on Facebook and Other Social Media: A Brief Report",
+  "positives": [
+   "https://openalex.org/W1904811031",
+   "https://openalex.org/W2743558319",
+   "https://openalex.org/W2790166049",
+   "https://openalex.org/W2884174104",
+   "https://openalex.org/W2891163418",
+   "https://openalex.org/W2911551042",
+   "https://openalex.org/W2914029546",
+   "https://openalex.org/W2939846781",
+   "https://openalex.org/W2997474044"
+  ]
+ },
+ "https://openalex.org/W3191038217": {
+  "split": "dev",
+  "date": "2021-08-10",
+  "title": "Association of Myocarditis With BNT162b2 Messenger RNA COVID-19 Vaccine in a Case Series of Children",
+  "positives": [
+   "https://openalex.org/W2078712489",
+   "https://openalex.org/W2101598695",
+   "https://openalex.org/W3165142255",
+   "https://openalex.org/W3174110523",
+   "https://openalex.org/W3177443097",
+   "https://openalex.org/W3178327314"
+  ]
+ },
+ "https://openalex.org/W3194326451": {
+  "split": "dev",
+  "date": "2021-08-18",
+  "title": "Personalized Prediction Model to Risk Stratify Patients With Myelodysplastic Syndromes",
+  "positives": [
+   "https://openalex.org/W187238933",
+   "https://openalex.org/W1993236149",
+   "https://openalex.org/W2026134786",
+   "https://openalex.org/W2070152906",
+   "https://openalex.org/W2148564254",
+   "https://openalex.org/W2326726820",
+   "https://openalex.org/W2339658711",
+   "https://openalex.org/W2467917196",
+   "https://openalex.org/W2583113562",
+   "https://openalex.org/W2903490305",
+   "https://openalex.org/W4232645703"
+  ]
+ },
+ "https://openalex.org/W3194466815": {
+  "split": "test",
+  "date": "2021-08-18",
+  "title": "Confronting the Delta Variant of SARS-CoV-2, Summer 2021",
+  "positives": [
+   "https://openalex.org/W2130878567",
+   "https://openalex.org/W3132370527",
+   "https://openalex.org/W3184226105",
+   "https://openalex.org/W3190427561",
+   "https://openalex.org/W3192905420"
+  ]
+ },
+ "https://openalex.org/W3195542172": {
+  "split": "test",
+  "date": "2021-08-27",
+  "title": "Changes in Body Mass Index Among Children and Adolescents During the COVID-19 Pandemic",
+  "positives": [
+   "https://openalex.org/W2157037004",
+   "https://openalex.org/W2750550362",
+   "https://openalex.org/W2801461447",
+   "https://openalex.org/W2969212872",
+   "https://openalex.org/W3138631788",
+   "https://openalex.org/W44874218"
+  ]
+ },
+ "https://openalex.org/W3199710005": {
+  "split": "test",
+  "date": "2021-09-16",
+  "title": "THE CONCISE GUIDE TO PHARMACOLOGY 2021/22: G protein‐coupled receptors",
+  "positives": [
+   "https://openalex.org/W1964980325",
+   "https://openalex.org/W2067742087",
+   "https://openalex.org/W2073440202",
+   "https://openalex.org/W2086554492",
+   "https://openalex.org/W2319877145",
+   "https://openalex.org/W2403436069",
+   "https://openalex.org/W3113427701"
+  ]
+ },
+ "https://openalex.org/W3200660426": {
+  "split": "test",
+  "date": "2021-09-16",
+  "title": "THE CONCISE GUIDE TO PHARMACOLOGY 2021/22: Ion channels",
+  "positives": [
+   "https://openalex.org/W1122249044",
+   "https://openalex.org/W2078167209",
+   "https://openalex.org/W2753287403",
+   "https://openalex.org/W4249626749"
+  ]
+ },
+ "https://openalex.org/W3201742503": {
+  "split": "test",
+  "date": "2021-10-05",
+  "title": "The Otolaryngology Residency Program Preference Signaling Experience",
+  "positives": [
+   "https://openalex.org/W2133813601",
+   "https://openalex.org/W2910022183",
+   "https://openalex.org/W3042956058",
+   "https://openalex.org/W3080088024",
+   "https://openalex.org/W3092104817",
+   "https://openalex.org/W3094423518"
+  ]
+ },
+ "https://openalex.org/W3202634790": {
+  "split": "test",
+  "date": "2021-10-07",
+  "title": "New strategies to improve minimap2 alignment accuracy",
+  "positives": [
+   "https://openalex.org/W2144560237",
+   "https://openalex.org/W2582800429",
+   "https://openalex.org/W2789843538",
+   "https://openalex.org/W2952590645",
+   "https://openalex.org/W3042374389",
+   "https://openalex.org/W3042377559",
+   "https://openalex.org/W3088711112",
+   "https://openalex.org/W3092652421",
+   "https://openalex.org/W3177485564"
+  ]
+ },
+ "https://openalex.org/W3212282753": {
+  "split": "test",
+  "date": "2021-11-10",
+  "title": "STROCSS 2021: Strengthening the reporting of cohort, cross-sectional and case-control studies in surgery",
+  "positives": [
+   "https://openalex.org/W2033465810",
+   "https://openalex.org/W2057652972",
+   "https://openalex.org/W2097387720",
+   "https://openalex.org/W2342064264",
+   "https://openalex.org/W2739695028",
+   "https://openalex.org/W2741989018",
+   "https://openalex.org/W2751909729",
+   "https://openalex.org/W2989427582",
+   "https://openalex.org/W3022423927"
+  ]
+ },
+ "https://openalex.org/W3217126890": {
+  "split": "test",
+  "date": "2021-11-24",
+  "title": "Long-Term Outcomes With Nivolumab Plus Ipilimumab or Nivolumab Alone Versus Ipilimumab in Patients With Advanced Melanoma",
+  "positives": [
+   "https://openalex.org/W2110847259",
+   "https://openalex.org/W2128758225",
+   "https://openalex.org/W2155104279",
+   "https://openalex.org/W2166662937",
+   "https://openalex.org/W2607272476",
+   "https://openalex.org/W2753432434",
+   "https://openalex.org/W2948155539",
+   "https://openalex.org/W3043703771",
+   "https://openalex.org/W3166516266",
+   "https://openalex.org/W3172878008"
+  ]
+ },
+ "https://openalex.org/W4200103238": {
+  "split": "dev",
+  "date": "2021-12-15",
+  "title": "Measurable Residual Disease Response and Prognosis in Treatment-Naïve Acute Myeloid Leukemia With Venetoclax and Azacitidine",
+  "positives": [
+   "https://openalex.org/W1556454749",
+   "https://openalex.org/W2109065151",
+   "https://openalex.org/W2124159210",
+   "https://openalex.org/W2128541003",
+   "https://openalex.org/W2147083172",
+   "https://openalex.org/W2559537906",
+   "https://openalex.org/W2783450169",
+   "https://openalex.org/W2794480810",
+   "https://openalex.org/W3033959915",
+   "https://openalex.org/W3048827006",
+   "https://openalex.org/W3096212403"
+  ]
+ },
+ "https://openalex.org/W4200150166": {
+  "split": "dev",
+  "date": "2021-12-17",
+  "title": "NeRF",
+  "positives": [
+   "https://openalex.org/W2009422376",
+   "https://openalex.org/W2026058811",
+   "https://openalex.org/W2122572959",
+   "https://openalex.org/W2145178170",
+   "https://openalex.org/W2238402354",
+   "https://openalex.org/W2471962767",
+   "https://openalex.org/W2962785568"
+  ]
+ },
+ "https://openalex.org/W4205754343": {
+  "split": "dev",
+  "date": "2021-09-08",
+  "title": "International Committee for Monitoring Assisted Reproductive Technologies world report: assisted reproductive technology, 2014",
+  "positives": [
+   "https://openalex.org/W1975423932",
+   "https://openalex.org/W2161012397",
+   "https://openalex.org/W2399828993",
+   "https://openalex.org/W3004948551",
+   "https://openalex.org/W4206138109"
+  ]
+ },
+ "https://openalex.org/W4206038052": {
+  "split": "test",
+  "date": "2022-01-07",
+  "title": "Overview of Sankey flow diagrams: Focusing on symptom trajectories in older adults with advanced cancer",
+  "positives": [
+   "https://openalex.org/W2113464761",
+   "https://openalex.org/W2507337634",
+   "https://openalex.org/W2765986225",
+   "https://openalex.org/W2885492917",
+   "https://openalex.org/W3036051596",
+   "https://openalex.org/W3040101804",
+   "https://openalex.org/W3154240602",
+   "https://openalex.org/W3165308602",
+   "https://openalex.org/W3180230891"
+  ]
+ },
+ "https://openalex.org/W4213177438": {
+  "split": "test",
+  "date": "2022-02-15",
+  "title": "First-in-Human Phase I/IB Dose-Finding Study of Adagrasib (MRTX849) in Patients With Advanced KRAS G12C Solid Tumors (KRYSTAL-1)",
+  "positives": [
+   "https://openalex.org/W2180481128",
+   "https://openalex.org/W2233032895",
+   "https://openalex.org/W2262414037",
+   "https://openalex.org/W2982602983",
+   "https://openalex.org/W3011999459",
+   "https://openalex.org/W3087229737"
+  ]
+ },
+ "https://openalex.org/W4213187648": {
+  "split": "test",
+  "date": "2022-02-14",
+  "title": "AI-synthesized faces are indistinguishable from real faces and more trustworthy",
+  "positives": [
+   "https://openalex.org/W1923201318",
+   "https://openalex.org/W2099334376",
+   "https://openalex.org/W2148919498",
+   "https://openalex.org/W2325939864",
+   "https://openalex.org/W2738406145",
+   "https://openalex.org/W2803402906",
+   "https://openalex.org/W3034577585",
+   "https://openalex.org/W3143336910"
+  ]
+ },
+ "https://openalex.org/W4220831878": {
+  "split": "test",
+  "date": "2022-03-04",
+  "title": "NeuralHydrology — A Python library for Deep Learning research in hydrology",
+  "positives": [
+   "https://openalex.org/W2800819102",
+   "https://openalex.org/W2989857225",
+   "https://openalex.org/W3024702011",
+   "https://openalex.org/W3092026988",
+   "https://openalex.org/W3092762910",
+   "https://openalex.org/W90362087"
+  ]
+ },
+ "https://openalex.org/W4220920296": {
+  "split": "test",
+  "date": "2022-03-23",
+  "title": "Quantifying Regional Methane Emissions in the New Mexico Permian Basin with a Comprehensive Aerial Survey",
+  "positives": [
+   "https://openalex.org/W2018546748",
+   "https://openalex.org/W2556131455",
+   "https://openalex.org/W2808857148",
+   "https://openalex.org/W2894247026",
+   "https://openalex.org/W3016238740",
+   "https://openalex.org/W3019335541",
+   "https://openalex.org/W3090739047",
+   "https://openalex.org/W3092958676",
+   "https://openalex.org/W3120004878",
+   "https://openalex.org/W3172331002",
+   "https://openalex.org/W3177036778",
+   "https://openalex.org/W3187580681"
+  ]
+ },
+ "https://openalex.org/W4220921782": {
+  "split": "test",
+  "date": "2022-03-25",
+  "title": "Use of At-Home COVID-19 Tests — United States, August 23, 2021–March 12, 2022",
+  "positives": [
+   "https://openalex.org/W3025818509",
+   "https://openalex.org/W3122572428",
+   "https://openalex.org/W3127899647",
+   "https://openalex.org/W3199276442",
+   "https://openalex.org/W4205148896",
+   "https://openalex.org/W4206513796",
+   "https://openalex.org/W4207020509"
+  ]
+ },
+ "https://openalex.org/W4221055872": {
+  "split": "test",
+  "date": "2022-03-21",
+  "title": "Wordcraft: Story Writing With Large Language Models",
+  "positives": [
+   "https://openalex.org/W2373570000",
+   "https://openalex.org/W2941884113",
+   "https://openalex.org/W2963614567",
+   "https://openalex.org/W3088082662",
+   "https://openalex.org/W3163363684",
+   "https://openalex.org/W3175938739",
+   "https://openalex.org/W3212496002",
+   "https://openalex.org/W4285225959"
+  ]
+ },
+ "https://openalex.org/W4225165463": {
+  "split": "test",
+  "date": "2022-04-27",
+  "title": "PromptMaker: Prompt-based Prototyping with Large Language Models",
+  "positives": [
+   "https://openalex.org/W2047463693",
+   "https://openalex.org/W2053859636",
+   "https://openalex.org/W2085299741",
+   "https://openalex.org/W2933377349",
+   "https://openalex.org/W2970837303",
+   "https://openalex.org/W3030508559",
+   "https://openalex.org/W3032875465",
+   "https://openalex.org/W3161120666"
+  ]
+ },
+ "https://openalex.org/W4225632556": {
+  "split": "test",
+  "date": "2021-11-05",
+  "title": "Daprodustat for the Treatment of Anemia in Patients Not Undergoing Dialysis",
+  "positives": [
+   "https://openalex.org/W2098124630",
+   "https://openalex.org/W2790701104",
+   "https://openalex.org/W2791792946",
+   "https://openalex.org/W2799655697",
+   "https://openalex.org/W2900365689",
+   "https://openalex.org/W3006132236",
+   "https://openalex.org/W3159725307",
+   "https://openalex.org/W3169380769"
+  ]
+ },
+ "https://openalex.org/W4242865819": {
+  "split": "test",
+  "date": "2020-10-14",
+  "title": "Electronic cigarettes for smoking cessation",
+  "positives": [
+   "https://openalex.org/W2125435699",
+   "https://openalex.org/W2172224821",
+   "https://openalex.org/W2747717603",
+   "https://openalex.org/W2806348441",
+   "https://openalex.org/W2806909877",
+   "https://openalex.org/W2948298121",
+   "https://openalex.org/W2995780846",
+   "https://openalex.org/W3021277181",
+   "https://openalex.org/W4229960188",
+   "https://openalex.org/W4235792988"
+  ]
+ },
+ "https://openalex.org/W4247191450": {
+  "split": "test",
+  "date": "2020-03-23",
+  "title": "Coronavirus disease 2019: the harms of exaggerated information and non-evidence-based measures",
+  "positives": [
+   "https://openalex.org/W1534533078",
+   "https://openalex.org/W1933155703",
+   "https://openalex.org/W2156349196",
+   "https://openalex.org/W2160924279",
+   "https://openalex.org/W2981907242",
+   "https://openalex.org/W3003415761",
+   "https://openalex.org/W3006028839",
+   "https://openalex.org/W3008028633",
+   "https://openalex.org/W3008491765",
+   "https://openalex.org/W3009521460"
+  ]
+ },
+ "https://openalex.org/W4281608419": {
+  "split": "dev",
+  "date": "2022-06-02",
+  "title": "Long-term Outcomes of Adding Lutein/Zeaxanthin and ω-3 Fatty Acids to the AREDS Supplements on Age-Related Macular Degeneration Progression",
+  "positives": [
+   "https://openalex.org/W2062407374",
+   "https://openalex.org/W2066137233",
+   "https://openalex.org/W2092648747",
+   "https://openalex.org/W2105811828",
+   "https://openalex.org/W2137649425",
+   "https://openalex.org/W2160226180",
+   "https://openalex.org/W2317242858",
+   "https://openalex.org/W2419255724",
+   "https://openalex.org/W2598520882",
+   "https://openalex.org/W3095756663"
+  ]
+ },
+ "https://openalex.org/W4286218372": {
+  "split": "dev",
+  "date": "2022-07-19",
+  "title": "Omicron mutations enhance infectivity and reduce antibody neutralization of SARS-CoV-2 virus-like particles",
+  "positives": [
+   "https://openalex.org/W3020828664",
+   "https://openalex.org/W3104722250",
+   "https://openalex.org/W3210408195",
+   "https://openalex.org/W4200505933"
+  ]
+ },
+ "https://openalex.org/W4286383196": {
+  "split": "test",
+  "date": "2022-07-21",
+  "title": "Monkeypox Virus Infection in Humans across 16 Countries — April–June 2022",
+  "positives": [
+   "https://openalex.org/W2761794775",
+   "https://openalex.org/W2790799671",
+   "https://openalex.org/W2809783981",
+   "https://openalex.org/W2890756572",
+   "https://openalex.org/W2921532547",
+   "https://openalex.org/W3005209336",
+   "https://openalex.org/W3006150186",
+   "https://openalex.org/W3019117051",
+   "https://openalex.org/W4211060053",
+   "https://openalex.org/W4281666791",
+   "https://openalex.org/W4281769264",
+   "https://openalex.org/W58724200"
+  ]
+ },
+ "https://openalex.org/W4292549392": {
+  "split": "dev",
+  "date": "2022-08-20",
+  "title": "Oral Nirmatrelvir and Ritonavir in Nonhospitalized Vaccinated Patients With Coronavirus Disease 2019",
+  "positives": [
+   "https://openalex.org/W2735301415",
+   "https://openalex.org/W3208400521",
+   "https://openalex.org/W4200051875",
+   "https://openalex.org/W4200206478",
+   "https://openalex.org/W4207079197",
+   "https://openalex.org/W4212904481"
+  ]
+ },
+ "https://openalex.org/W4294068833": {
+  "split": "test",
+  "date": "2022-09-01",
+  "title": "Deep learning for twelve hour precipitation forecasts",
+  "positives": [
+   "https://openalex.org/W1485009520",
+   "https://openalex.org/W2259421489",
+   "https://openalex.org/W2594633041",
+   "https://openalex.org/W2760103357",
+   "https://openalex.org/W2767478600",
+   "https://openalex.org/W2802316400",
+   "https://openalex.org/W2998557500",
+   "https://openalex.org/W3013229294",
+   "https://openalex.org/W3163465001",
+   "https://openalex.org/W3202525453"
+  ]
+ },
+ "https://openalex.org/W4306722800": {
+  "split": "dev",
+  "date": "2022-10-18",
+  "title": "Interpreting area under the receiver operating characteristic curve",
+  "positives": [
+   "https://openalex.org/W1144300234",
+   "https://openalex.org/W2019273574",
+   "https://openalex.org/W2054193584",
+   "https://openalex.org/W2157026796",
+   "https://openalex.org/W2226880313",
+   "https://openalex.org/W2498993605",
+   "https://openalex.org/W2762658547",
+   "https://openalex.org/W2996480032",
+   "https://openalex.org/W4220836183",
+   "https://openalex.org/W4224243048"
+  ]
+ },
+ "https://openalex.org/W4309411030": {
+  "split": "test",
+  "date": "2022-11-18",
+  "title": "Three-Year Update of Tisagenlecleucel in Pediatric and Young Adult Patients With Relapsed/Refractory Acute Lymphoblastic Leukemia in the ELIANA Trial",
+  "positives": [
+   "https://openalex.org/W1967517831",
+   "https://openalex.org/W2757776684",
+   "https://openalex.org/W2787301955",
+   "https://openalex.org/W2905241205",
+   "https://openalex.org/W3119718700",
+   "https://openalex.org/W3138004978",
+   "https://openalex.org/W3214897392",
+   "https://openalex.org/W4200086437"
+  ]
+ },
+ "https://openalex.org/W4311204752": {
+  "split": "test",
+  "date": "2022-12-12",
+  "title": "Target Trial Emulation",
+  "positives": [
+   "https://openalex.org/W1973885323",
+   "https://openalex.org/W2062359643",
+   "https://openalex.org/W2298338128",
+   "https://openalex.org/W2594910862",
+   "https://openalex.org/W3094209984",
+   "https://openalex.org/W3130126061",
+   "https://openalex.org/W3164540769"
+  ]
+ },
+ "https://openalex.org/W4327681325": {
+  "split": "test",
+  "date": "2023-03-01",
+  "title": "Using ChatGPT to evaluate cancer myths and misconceptions: artificial intelligence and cancer information",
+  "positives": [
+   "https://openalex.org/W2970416896",
+   "https://openalex.org/W2981869278",
+   "https://openalex.org/W3021999948",
+   "https://openalex.org/W3087533146",
+   "https://openalex.org/W3186653455"
+  ]
+ },
+ "https://openalex.org/W4380769213": {
+  "split": "test",
+  "date": "2023-06-15",
+  "title": "Art and the science of generative AI",
+  "positives": [
+   "https://openalex.org/W2924260403",
+   "https://openalex.org/W2939088842",
+   "https://openalex.org/W2963820570",
+   "https://openalex.org/W3082653114"
+  ]
+ },
+ "https://openalex.org/W4384662964": {
+  "split": "dev",
+  "date": "2023-07-18",
+  "title": "ChatGPT outperforms crowd workers for text-annotation tasks",
+  "positives": [
+   "https://openalex.org/W2158428778",
+   "https://openalex.org/W2251617662",
+   "https://openalex.org/W2979864122",
+   "https://openalex.org/W4301183006",
+   "https://openalex.org/W4318919287",
+   "https://openalex.org/W4321455981",
+   "https://openalex.org/W4327811957",
+   "https://openalex.org/W4384662964",
+   "https://openalex.org/W4385570519",
+   "https://openalex.org/W4388735460",
+   "https://openalex.org/W632139601"
+  ]
+ },
+ "https://openalex.org/W4385289063": {
+  "split": "test",
+  "date": "2023-07-26",
+  "title": "MERF: Memory-Efficient Radiance Fields for Real-time View Synthesis in Unbounded Scenes",
+  "positives": [
+   "https://openalex.org/W2122572959",
+   "https://openalex.org/W2963557767",
+   "https://openalex.org/W3214712237",
+   "https://openalex.org/W4286615883"
+  ]
+ },
+ "https://openalex.org/W4385620388": {
+  "split": "dev",
+  "date": "2023-08-07",
+  "title": "Creation and Adoption of Large Language Models in Medicine",
+  "positives": [
+   "https://openalex.org/W4323355078",
+   "https://openalex.org/W4361289889",
+   "https://openalex.org/W4367311208",
+   "https://openalex.org/W4377010360",
+   "https://openalex.org/W4385381606"
+  ]
+ },
+ "https://openalex.org/W4387079708": {
+  "split": "test",
+  "date": "2023-09-26",
+  "title": "compleasm: a faster and more accurate reimplementation of BUSCO",
+  "positives": [
+   "https://openalex.org/W2102652793",
+   "https://openalex.org/W2107772251",
+   "https://openalex.org/W2155628349",
+   "https://openalex.org/W3007075333",
+   "https://openalex.org/W3014607123",
+   "https://openalex.org/W3104062656",
+   "https://openalex.org/W4220999759",
+   "https://openalex.org/W4316926647"
+  ]
+ },
+ "https://openalex.org/W4388303860": {
+  "split": "dev",
+  "date": "2023-11-01",
+  "title": "The Importance of Financial Literacy: Opening a New Field",
+  "positives": [
+   "https://openalex.org/W1549162356",
+   "https://openalex.org/W2911796160",
+   "https://openalex.org/W3125678016",
+   "https://openalex.org/W3167224830"
+  ]
+ },
+ "https://openalex.org/W4389523957": {
+  "split": "test",
+  "date": "2023-01-01",
+  "title": "Is ChatGPT a General-Purpose Natural Language Processing Task Solver?",
+  "positives": [
+   "https://openalex.org/W2552383788",
+   "https://openalex.org/W2748618181",
+   "https://openalex.org/W2798456655",
+   "https://openalex.org/W2880875857",
+   "https://openalex.org/W2891416139",
+   "https://openalex.org/W4221143046",
+   "https://openalex.org/W4281483047",
+   "https://openalex.org/W4304194220",
+   "https://openalex.org/W4319165821",
+   "https://openalex.org/W4385567181"
+  ]
+ },
+ "https://openalex.org/W4392515871": {
+  "split": "dev",
+  "date": "2024-03-04",
+  "title": "The STROCSS 2024 guideline: strengthening the reporting of cohort, cross-sectional, and case–control studies in surgery",
+  "positives": [
+   "https://openalex.org/W2033465810",
+   "https://openalex.org/W2057652972",
+   "https://openalex.org/W2252491773",
+   "https://openalex.org/W2342064264",
+   "https://openalex.org/W2739695028",
+   "https://openalex.org/W2741989018",
+   "https://openalex.org/W2751909729",
+   "https://openalex.org/W2989427582",
+   "https://openalex.org/W3185797914",
+   "https://openalex.org/W3212080866"
+  ]
+ },
+ "https://openalex.org/W4399940463": {
+  "split": "test",
+  "date": "2024-06-21",
+  "title": "ADMET-AI: a machine learning ADMET platform for evaluation of large-scale chemical libraries",
+  "positives": [
+   "https://openalex.org/W2009867031",
+   "https://openalex.org/W2593436234",
+   "https://openalex.org/W2767891136",
+   "https://openalex.org/W2775175656",
+   "https://openalex.org/W2966357564",
+   "https://openalex.org/W2968734407",
+   "https://openalex.org/W3015208165",
+   "https://openalex.org/W3109916301",
+   "https://openalex.org/W3154258817",
+   "https://openalex.org/W3158755582",
+   "https://openalex.org/W4310709716"
+  ]
+ }
+}

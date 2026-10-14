@@ -8,7 +8,7 @@ python research/audit/verify_v1.py
 
 ## What could and could not be checked
 
-The v1 intermediate caches are no longer available: `eval_sets.pkl`, `rankings.pkl`, `priority_followed.pkl` and `openalex_reference_works_raw.pkl`. `research/data/cleaned/boun.csv` is a different corpus; none of the 174 query papers or their 1,811 references are in it. So the audit uses two sources:
+The v1 intermediate caches are no longer available: `eval_sets.pkl`, `rankings.pkl`, `priority_followed.pkl` and `openalex_reference_works_raw.pkl`. `research/data/cleaned/boun.csv` is a different corpus; none of the 174 query papers or their 1,811 reference slots (1,729 distinct works) are in it. So the audit uses two sources:
 
 - **Code.** The notebook source, `src/`, and the cell outputs saved in `v1/03_cited_paper_ranking_out.ipynb` and `v1/01_fetch_and_preprocessing.ipynb`.
 - **Saved rankings.** `rankings_*.json`, covering 100 queries. Each file stores only the **top-n_positives** candidate indices per query. In v1, candidate index `< n_positives` means positive.
@@ -80,7 +80,7 @@ Candidate number 3 is index 2. Because the minimum n is 3, index 2 is always a p
 `src/similarity.py:312-318`: unranked candidates are appended in original order, and on any exception the function returns `[(i, 0.0) for i in range(n)]`.
 - **Llama.** 3 queries hit the full fallback (W3081158114, W4220920296, W3037480398). All 3 return identity order and score MRR 1.0 by construction. Llama's MRR without them is 0.836, versus 0.841 with them. The fallback is a small part of Llama's lead.
 - **Qwen3 → Llama.** 3 *different* queries fall back (W3018157127, W3128019209, W3014721972). There, the fallback returns the stage-1 order with zero scores.
-- **Cause.** The saved notebook output shows repeated `403 Client Error: Forbidden` from `localhost:11434/api/chat` in a later run. The origin header likely needs fixing before any v2 run.
+- **Cause.** The saved notebook output shows repeated `403 Client Error: Forbidden` from `localhost:11434/api/chat` in a later run. The origin header likely needs fixing before any v2 run. *(Moot: v2 dropped Ollama for llama-server; see `docs/DEVLOG.md`, 2026-10-11/12.)*
 
 ## F4 — Field asymmetry (confirmed from code; counts not checkable)
 

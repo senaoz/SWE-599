@@ -1,6 +1,6 @@
 # Development log (SWE 599, Spring 2026)
 
-Week-by-week working notes kept during the project. The research summary and final results are in the [main README](../README.md); where numbers here differ, the README and final report are authoritative.
+Week-by-week working notes kept during the project. The research summary and final results are in the [main README](../README.md); where numbers here differ, the README is authoritative. The May 2026 final report carries the superseded v1 numbers (see the October 2026 entries).
 
 ## Week 1: Data Fetching & Benchmark Dataset
 
@@ -388,3 +388,261 @@ Example, test query `W2997681568`, `random` benchmark, seed 0, 12 candidates. He
 - with positives last, it outputs `["12","10","11","9",…,"1"]` and scores R-precision 100.
 
 The same candidates thus get opposite outcomes from order alone. For this query, Qwen3 ranks the 4 positives at 1, 2, 4 and 5 regardless of order.
+
+### 2026-10-12 — PR #1 merged into `main` [e232e49]
+
+- **What.** Branch `v2-audit` (PR senaoz/SWE-599#1) was merged into `main` with a merge commit, `e232e49`.
+- **Why a merge commit.** This log cites individual commit hashes; a squash merge would have orphaned them. Later phases keep using merge commits.
+- **State after the merge.** v1 stays frozen at tag `v1-results` (614cfb2); v2 notebooks 01–06, the audit documents and the README with v2 results are on `main`. Open work: Phases 4–6 in `research/audit/TODO.md`.
+
+### 2026-10-12 — README: how `random` and `concept` differ
+
+- **What.** Added a section to `README.md` (and a short version to `research/README.md`) that explains the two benchmarks with numbers and two test examples. Requested because the one-line description did not make the difference clear.
+- **Numbers** (all 168 queries, recomputed from `v2/eval_sets/`). Share of candidates that share a top-5 OpenAlex concept with their query: positives 73.5%, `random` negatives 29.5%, `concept` negatives 97.7%. Of the matching `concept` negatives, 68.7% match only through a level-0 field such as "Medicine" (positives: 33.2%). 7 of 168 queries have `concept` negatives topped up with random ones.
+- **New example.** Test query `W3138513807` (LocusZoom.js): all six `concept` negatives match only through "Computer science".
+- **Correction.** The 2026-10-12 note on `concept` negatives says six of the eight `concept` negatives of `W2997681568` match only through "Medicine" or "Health care", and its table lists six. The query has eight; two were missing from the table (2019, team-based continuity; 2020, immune-related adverse events, both "Medicine"). The correct count is **7 of 8**.
+
+### 2026-10-12 — Phase 5 design approved; OpenAlex probe (P0)
+
+- **Design.** `research/audit/PHASE5_DESIGN.md`, approved by the user with all ten recommended decisions. Main points:
+  - a citer pool from a per-query title search, published before the query;
+  - a candidate corpus of about 10k (all eligible positives plus works cited by at least *m* pool citers);
+  - rules R1–R5, each with an ablation; a degree-preserving random graph and a kNN graph as controls;
+  - pointwise reranking of the full top-100 list.
+- **Why a citer pool.** In the v2 cache, 43.6% of the 1,247 positive slots have a cached citer that is not a query and predates the query (median 0). All such citers are themselves query references, so a graph built from them would be built around the answer key.
+- **OpenAlex pricing, checked in the docs.**
+  - With no key, the daily budget is $0.10 (`X-RateLimit-Limit-USD: 0.1`, 1,000 credits).
+  - A list/filter call costs $0.0001 (1 credit); a **search costs $0.001 (10 credits)**. So without a key the limit is 100 searches a day.
+  - `per_page` maxes out at **100**, not 200. The proposal's citer-paging estimates assumed 200 and are corrected here.
+  - A free API key gives $1 a day.
+- **Probe.** `research/scripts/probe_openalex_p0.py`: 4 dev queries, 7 calls, $0.0052, responses cached in `data/v2/probe/`.
+  - A 100-id OR filter works: 99 of 100 cached ids returned (one is no longer in OpenAlex), URL 1,610 chars. 91 of 99 have a DOI.
+  - Title search returns 97–8,349 matches per query (first page of 100 used). No query record and no same-title copy of the query appeared.
+  - **Positives with at least one pool citer: 7/7, 4/7, 7/7, 3/9 (21 of 30).** The two weaker queries are early COVID (2020-03, only 97 earlier matches) and AI-explanations in health care.
+  - A second result page for one query reached no new positive.
+  - Corpus size: the 396 pool citers cite 19,468 distinct works; 2,058 are cited by ≥ 2, 739 by ≥ 3 and 370 by ≥ 5.
+  - In a seeded sample of 100 such works, 92 are returned and 63 have a title and an abstract.
+  - Rough extrapolation to 168 queries, ignoring overlap: m = 5 gives about 15k works, about 10k eligible. *m* will be set from the real P2 counts.
+- **Cost of P1–P3:** 168 searches + about 170 list calls ≈ $0.19. That is two days without a key, or one run with a free key.
+
+### 2026-10-12 — Citer pool and candidate corpus (`v2/07_fetch_citers_corpus.ipynb`)
+
+- **Key.** A free OpenAlex API key (daily budget $1) is read from `OPENALEX_API_KEY`. The user keeps it in the macOS Keychain. `src/openalex.request` adds it to requests and strips URLs from every error, so the key cannot reach logs or notebooks; the notebook and log were checked for it.
+- **Cost.** 168 searches ($0.168) plus about 145 list calls, about 5 minutes.
+- **P1.** 1,726 of 1,733 v2 works are still in OpenAlex. Of the 7 that are gone, 4 are positives.
+- **P2, citer pool.** 10,663 distinct works.
+  - Median earlier matches per query is 195. 72 queries have fewer than 100 and 5 have none: OpenAlex search behaves like an AND over all title words.
+  - 2 query records and 13 same-title copies of queries came back. Five of the copies are earlier versions of the Cochrane review *Electronic cigarettes for smoking cessation* (2012–2018). These make rule R3 concrete.
+- **Coverage.** 62% of positive slots (dev 61.9%, test 62.3%) are cited by at least one pool citer that predates the query and is not a query record (same-title copies not yet removed).
+- **P3, corpus.** m = 5 was chosen by estimated size only.
+  - 12,895 works are cited by at least 5 pool citers (343 of them positives). 71.7% of the returned non-positives have a title and an abstract.
+  - Corpus: **9,706 works, 1,176 positives and 8,530 non-positives**, saved in `v2/corpus/corpus_manifest.json`.
+
+### 2026-10-12 — Where the BOUN papers fit (plan addendum)
+
+- **Finding.** BOUN (Boğaziçi) papers are used only in the deployed app and in v1 exploratory checks, never in the v1 cited-paper benchmark or in v2.
+  - **App:** `backend/services/seeder.py` extracts BOUN-affiliated authors from `research/data/cleaned/boun.csv` (4,608 papers). That gives 2,671 researchers and 7,803 researcher–paper rows (rechecked with the seeder's logic).
+  - **v1 checks:** the Week 1 pairs benchmark and the qualitative checks in `v1/02_similarity_evaluation.ipynb`.
+- **Consequence.** The benchmark measures paper → cited papers; the app recommends paper → researcher, with a pointwise stage 2. v2 is evidence about the app, not a test of it.
+- **Data check while verifying.** 1,605 of the 4,608 `boun.csv` rows have no abstract (3,003 do), so the app embeds those papers from title and concepts only. The file has not been audited otherwise.
+- **Plan.** Added Idea F (researcher-level evaluation with a time split) to `research/audit/IMPROVEMENT_IDEAS.md` and Phase 6B (6B.1–6B.4) to `research/audit/TODO.md`. Nothing is executed yet. Phase 5 is unchanged.
+
+### 2026-10-12 — Fallback citer search and the co-citation graph (`v2/07`, `v2/08`) [e14f50c, 5952b8b, 02acdbf]
+
+- **Decisions (user, 2026-10-12).** All three recommendations were approved:
+  1. a second citer search for low-result queries;
+  2. earlier versions of living reviews count as query duplicates;
+  3. drop the 5 lost positives from the labels.
+- **Fallback search** [e14f50c]. 72 queries had fewer than 100 title-search results. They got a second search on the first 6 content words of the title (72 searches, $0.072).
+  - The pool grew from 10,663 to 13,572 citers, and positive-slot coverage from 62% to 64.5%.
+  - m = 5 was kept as fixed before the fetch. Real eligibility was 71.5% (P0 estimate 63%), so the corpus came out at 12,096 records, not 10k.
+- **Graph code** [5952b8b]. `src/cograph.py` holds canonicalization, query-duplicate detection, the citer × document graph with per-query rule masks (R1–R5 plus canary), co-citation scores and Curveball rewiring.
+  - `research/tests/test_cograph.py` has 11 tests. pytest 9.1.1 was installed (new dependency, approved).
+- **R3 rule, settled by inspecting every match.**
+  - Token-overlap near-titles matched different papers, e.g. *On airborne transmission and control of SARS-CoV-2* for the query *Airborne Transmission of SARS-CoV-2*.
+  - The final rule is: DOI, exact title (any year), or digit-free character similarity ≥ 0.9 **with a shared author id**.
+  - The author condition is not applied to exact titles. A 2012 record titled *Electronic cigarettes for smoking cessation.* shares all 10 of the 2020 query's references but no author id, and a date-only rule would have allowed it.
+  - Result: 20 pool works duplicate a query (12 title, 7 near-title, 1 DOI), and 3 query records are in the pool.
+- **Notebook 08** [02acdbf].
+  - **Canonicalization:** 12,096 records → 11,968 works (119 duplicate groups); 11,967 are eligible candidates.
+  - **Labels:** 1,247 → 1,219 positive slots (5 dropped, 9 merged). Dev drops `W3012006042` (decision 6) and `W4388291555` (2 positives left), giving 48 dev / 118 test queries.
+  - **Graph:** 13,743 citer rows, 127,908 edges.
+- **Reachability** (share of test positives that an allowed citer cites):
+  - all rules: 63.4%;
+  - R3 off: 65.3%; **R4 off: 68.2%**; R5 off: 63.5%; R3–R5 off: 70.1%;
+  - canary: 100%, as required.
+- **Membership asymmetry.** Positives have a median of 2 pool citers (33.5% have none); non-positives have a median of 7, by construction. A degree-only probe is planned for notebook 09.
+
+### 2026-10-12 — Checkpoint A: leak diagnostics before the rule set is signed off
+
+Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together with whichever rule the user chooses.
+
+- **High-overlap citers.** Under all rules, 189 allowed citers (57 dev, 132 test) cite at least half of a query's positives. Most are legitimate (topic reviews, same-author earlier work), but two leak types show up:
+  1. **Imprecise dates.**
+     - 3,227 of 13,572 pool citers (24%) are dated YYYY-01-01, which is often a year-only date. 69 of the 189 high-overlap citers carry such dates; for example, COVID papers "dated" 2020-01-01 pass R4 for queries from February 2020.
+     - 3,479 citer rows cite a work dated after their own date, which is impossible if both dates were right.
+     - Reachability of test positives under each date rule:
+
+       | Date rule | Test reachability |
+       |---|---|
+       | current | 63.4% |
+       | Jan-1 dates moved to Dec-31 | 59.5% |
+       | effective date ≥ latest cited work's date | 57.7% |
+       | both | 54.7% |
+       | 365-day margin | 34.4% |
+
+       Citers with at least 50% overlap fall from 132 to 66 under "both".
+  2. **The same work under a different title.** The query *NeRF* (CACM, 2021) has the ECCV paper *NeRF: Representing Scenes as Neural Radiance Fields…* (two records) as a citer. The query *"How do I fool you?"* has its preprint as a citer. Title containment plus a shared author also catches unrelated papers (*Mip-NeRF*, *NeRF in the Wild*, an e-cigarette RCT), so it cannot be an automatic rule.
+- **Citer duplicates.** Pool citers are not deduplicated among themselves: canonicalization would merge 13,572 into 13,464, so 108 rows double-count co-citation edges.
+- **Checked and fine.** The dropped positive `W3012048021` is in no duplicate group, so the label was not lost through canonicalization.
+- **Assumption, not verified.** `fetch_works` treats any id missing from a successful response as permanently gone. 819 of 17,275 (4.7%) is in line with the ~5% seen in P0.
+
+### 2026-10-12 — Checkpoint A decisions applied (`v2/08_build_corpus_graph.ipynb`)
+
+- **Decisions (user).** All three were approved:
+  1. conservative citer dates for R4;
+  2. a manual, reviewed list of query duplicates with different titles;
+  3. merging duplicate citers.
+- **Code.** `src/cograph.py` gains `effective_day` (a YYYY-01-01 date counts as Dec 31; a citer is never earlier than the latest known date among its references) and `merge_duplicate_citers`. There are now 14 unit tests, all passing.
+- **Results** (test / dev reachability of positives):
+  - **all rules: 54.7% / 53.0%** (62.9% / 62.4% with recorded dates);
+  - R4 off: 68.1% / 67.0%;
+  - canary: 100%.
+- **Graph.** 13,569 pool records → 13,461 citer rows; 16 query-duplicate rows; 126,377 edges. 5,097 pool rows got a later date than recorded.
+- **Remaining high-overlap citers** (≥ 50% of a query's positives): 66 test and 30 dev rows, at most 80%, mostly topic reviews and commentaries. No exact copies are left.
+- **Meaning.** About 45% of test positives have no allowed citer, so co-citation expansion can recover at most about 55% of them. The data-quality finding stands on its own: a quarter of pool citers carry January-1 dates, and 5,097 rows had to move later.
+
+### 2026-10-12 — Full-corpus first stage (`v2/09_full_corpus_retrieval.ipynb`) [5bd3b69, c0a7c1f]
+
+- **What.** Every method ranks the whole 11,967-work corpus for the 166 Phase 5 queries.
+  - Candidates are the works published before the query, plus its own positives; 13 corpus records that duplicate a query are excluded for that query.
+  - Text and methods are as in v2, plus BM25 + Qwen3 RRF, a degree-only probe and a random ranker.
+  - New module: `src/retrieval.py`.
+- **Runtime.** Qwen3-8B embedded about 10,300 corpus texts in about 50 minutes (322 batches at about 9.4 s), after a 500-text timing probe (0.31 s/text). Everything else took minutes.
+- **Results** (test, 118 queries, recall@100 [95% CI]):
+  - Qwen3 **64.0 [58.7, 69.4]**, EmbeddingGemma 60.6, RRF 60.2, SPECTER2 57.5, MiniLM 55.4, TF-IDF 45.3, BM25 38.7;
+  - degree probe 2.4 [1.1, 3.9], random 1.3.
+  - Qwen3: nDCG@10 0.340, MRR 0.609, R-precision 25.1% (87.0% on the fixed v2 pools).
+- **Tests** (Holm). Qwen3 vs EmbeddingGemma on recall@100 is not significant (p_holm = 0.11); Qwen3 beats all others. RRF hurts Qwen3 (−3.9 points recall@100, −0.065 nDCG@10), as in v2.
+- **Membership check.** The degree-only probe is near random, so adding positives regardless of degree (decision 3) gives no exploitable signal. On the membership-symmetric positives (424 with ≥ 5 pool citers), Qwen3 recall@100 is 73.4% vs 63.1% on all positives of the same queries.
+- **Headroom for expansion.** 315 of 855 test positives are outside Qwen3's top 100; 151 of them (47.9%) are reachable through an allowed citer.
+
+### 2026-10-13 — Graph expansion with controls (`v2/10_graph_expansion.ipynb`) [d34f8fa, 237e399, 867d11f]
+
+- **What.** GRIT-style expansion of Qwen3's full-corpus top 100: seeds = top t; the bottom fraction b is replaced by the seeds' co-citation neighbours under all leakage rules.
+  - t, b and the normalization were chosen on dev (48 queries).
+  - Controls: 5 Curveball random graphs, a Qwen3 kNN graph, rule-by-rule ablations and the canary.
+  - Also an adaptive LADR-style run with BM25 seeds over a Qwen3 kNN graph.
+  - New module `src/expansion.py` with 5 unit tests (19 tests in total). No model or API calls; the whole notebook runs in about 35 s.
+- **Dev choice.** Raw counts, t = 5, b = 10%: +1.7 points recall@100 on dev. Larger b hurts (down to −5.2).
+- **Test** (118 queries, recall@100 difference from Qwen3's 64.0, paired bootstrap CI, Holm-corrected Wilcoxon):
+
+  | Condition | Difference |
+  |---|---|
+  | Co-citation, all rules | **+0.8 [−0.4, +2.1]**, p = 0.32 (Holm 1.0) |
+  | Random graphs | −0.5 to −0.9 |
+  | kNN graph | +0.3 [−0.6, +1.3] |
+  | R3 off | +0.8 |
+  | R4 with recorded dates | +1.0 |
+  | R4 off | +1.1 |
+  | R5 off | +1.0 |
+  | **Canary** | **+5.8 [+3.6, +8.2]** (Holm p = 1.6e-4) |
+  | LADR (k = 32) | −1.7 [−4.1, −0.0], scoring 12.5% of candidates |
+
+- **Attribution.** 20 of the 548 positives in the expanded lists (3.6%) entered through the graph, i.e. 6.3% of the 315 Qwen3 missed. The replacement pushed 8 positives out.
+- **Reading.** With a strong dense first stage and a leakage-controlled graph, co-citation expansion gives a small, non-significant recall gain. The canary shows the method works when the signal is present.
+
+### 2026-10-13 — System overview diagram updated with Phase 5
+
+- **Merge.** `origin/main` (which had gained the system overview diagram, 31bc5cc) was merged into `v2-phase5` with a merge commit (7ad061c).
+- **Diagram.** `docs/figures/system_overview.svg` gains a Phase 5 row: notebooks 07–10 and a results box.
+  - Qwen3 recall@100 64.0%; co-citation expansion +0.8 [−0.4, +2.1], not significant.
+  - Random graph −0.8, kNN graph +0.3, canary +5.8.
+  - Reachability 54.7% (62.9% with recorded dates).
+  - The two leak findings.
+- **Also changed.** The deployed app moves to row 5. The BOUN note now says 1,605 of its 4,608 papers lack an abstract. The evidence arrow points to notebook 11.
+- **Rendering.** Checked in the browser.
+- **Caveat.** The README embeds this diagram, so the Phase 5 numbers now appear on the README page. The README text itself is unchanged.
+
+### 2026-10-13 — End-to-end pointwise reranking (`v2/11_end_to_end.ipynb`) [eece963, 8f23f84]
+
+- **What.** Pointwise Llama 3.2 3B (the v2 prompt and text, temperature 0, logprob score) scores every candidate in two top-100 lists per query: Qwen3-Embedding's list and the co-citation expanded list from notebook 10.
+  - The final score is α · Llama + (1 − α) · Qwen3-Embedding, both min-max normalized within the list. α was chosen on dev.
+  - New module `src/rerank.py` with a per-(query, document) score cache, plus 3 unit tests (22 tests in total).
+- **Run.** 17,939 pairs (108 per query), all status ok.
+  - The first background run stopped when the previous Claude session ended, after 3,052 pairs.
+  - The resumed run reused the cache and scored the remaining 14,887 in 87.4 min (0.352 s per call, against 0.193 s in v2).
+  - A rerun to fix the results table (it rounded p-values to 0.000) made no new calls.
+- **Results** (test, 118 queries):
+  - **Llama alone**: nDCG@10 0.340 → 0.175 (−0.164 [−0.204, −0.126], Holm p = 3.1e-11); R-precision 25.1% → 14.3%.
+  - **Fused** (α = 0.1): −0.004 [−0.009, +0.001], p = 0.24.
+  - The expanded lists give the same picture; the fused ranking puts no graph-recovered positive into the top 10 or 20.
+  - Within-list AUC: Llama 0.663 vs Qwen3-Embedding 0.761.
+- **Docs.** Results were added to both diagrams and to `APP_NOTES.md`. `TODO.md` ticks 5.8 and 5.9 for Llama; Qwen3-Reranker-4B (downloaded, revision 22e6836, 8.04 GB) is still to run.
+- **README.** The superseded v1 poster was removed and the correction notice no longer mentions it [cd8cdd0, 333325e]. Both were pushed to `origin/v2-phase5` with the senaoz token, because the active gh account is sena-maesta.
+
+### 2026-10-14 — Qwen3-Reranker-4B as the second stage (`v2/12_qwen3_reranker.ipynb`) [1071f25, 0193bab, e55008c, 97b663f]
+
+- **Download** (user-approved). `Qwen/Qwen3-Reranker-4B`, revision 22e6836, 8.04 GB. File sizes match the Hub; the SHA-256 of shard 1 matches its LFS id.
+- **Check** (`scripts/check_qwen3_reranker.py`, 17 dev pairs).
+  - Model-card reference implementation, fp16 vs fp32: max difference 0.006, Spearman 1.000, no NaNs.
+  - sentence-transformers CrossEncoder vs reference: max difference 0.021, Spearman 0.998.
+  - Speed per pair: reference fp16 0.54 s, sentence-transformers 0.79 s, fp32 1.11 s.
+  - **Decision:** the reference implementation in fp16, batch 8 (batches 4, 8 and 16 differed by less than 0.02 s per pair).
+  - The instruction was fixed before any result: "Given the title and abstract of a scientific paper, retrieve papers that it cites".
+- **Run.** 17,939 pairs, all ok, in 256.9 min (0.859 s per pair). Swap was nearly full (25.8 of 26.6 GB) late in the run, which slowed it.
+- **Results** (test, 118 queries).
+  - Within-list AUC: Qwen3-Reranker 0.824, Qwen3-Embedding 0.761, Llama 0.663.
+  - Dev α = 0.8 (nDCG@10 0.344 → 0.393 on dev).
+  - **Fused**, Qwen3-Embedding list:
+    - nDCG@10 0.340 → 0.360 (+0.021 [+0.001, +0.041], p = 0.044, Holm 0.22);
+    - R-precision 25.1 → 28.3 (+3.2 [+1.2, +5.2], p = 0.008, Holm 0.040);
+    - MRR 0.608 → 0.629.
+  - **Reranker alone:** +0.002 nDCG@10, not significant.
+  - **Expanded list, fused:** +0.015 nDCG@10 (not significant), R-precision +2.7 (Holm 0.083). No graph-recovered positive in the fused top 10.
+- **Reading.** A trained reranker, unlike the small general LLM, gives a modest gain when fused with the embedding score. The pretraining-contamination caveat applies.
+- **Docs.** Diagrams, `TODO.md` and `APP_NOTES.md` were updated.
+
+### 2026-10-14 — README Phase 5 section and a consistency pass over all documents [55e2a45]
+
+- **README.** The user approved the Phase 5 numbers and asked for a README section (55e2a45). It sits after the v2 results, with figures 09 and 12. The limitations, next steps and app description were updated to match. This supersedes the 2026-10-13 note that "the README text itself is unchanged".
+- **Consistency pass** (user request). Three read-only agents compared every document and every notebook's Findings with their sources: notebook outputs, stats files, code and config. Each finding was then checked by hand.
+- **Fixes in the documents:**
+  - **`README_APP.md`.** The app uses `qwen3-embedding` (not nomic). Stage 1 keeps the top 10 researchers (not 20). Stage 2 sees the researcher's top 5 papers (not 3) and answers `IRRELEVANT <score>`. There are about 7,800 researcher–paper rows (4,608 papers). The v1 research section and its invalidated hit rates were replaced by links. Source: `backend/config.py`, `backend/services/matching.py`.
+  - **`APP_NOTES.md`.**
+    - Jan → llama-server.
+    - "v1 found" → "the audit (F1, F2) found".
+    - Graph work is Phase 5, not Phase 4.
+    - The 2026-10-13 entry said "top-3 papers"; it is top 5 (`RAG_CONTEXT_PAPERS`).
+    - Superseded entries are marked; the ideas are rewritten.
+  - **`research/README.md`.**
+    - EmbeddingGemma runs in-process (its GGUF lacks the Dense layers); the stray ini section is removed.
+    - The tree and intro now cover notebooks 07–12, `tests/` and `scripts/`.
+    - `run.py` is gone, `PHASE5_DESIGN.md` is added, and the duplicated `random`/`concept` paragraph is replaced by a link.
+    - The seed spread lives in the notebook, not in `v2/stats/`.
+  - **`README.md`.** Repository tree updated; Phase 5 spans notebooks 09–12; MiniLM is within 3.7 / **4.3** points (the mean per-query difference); SPECTER2 vs MiniLM Holm p ≥ **0.84**.
+  - **Other files.**
+    - `SUMMARY.md`: Phase 5 paragraph, limitations and next steps.
+    - `BEFORE_AFTER.md`: PR #1 merged; Holm p ≤ 3.4e-19.
+    - `TODO.md`: status notes; 14 (22) tests; 5.9 attribution for both rerankers; CHECKPOINT 5; 7.3.
+    - `IMPROVEMENT_IDEAS.md`: Idea C and full-corpus Idea D status; Phase 5 pitch sentence. It records that expansion does *not* lift end-to-end MRR, contrary to the original sentence.
+    - `PHASE5_DESIGN.md`: 174 excluded query records (not 168); dev 48/118; notebook 12 and `rerank.py`.
+    - `AUDIT.md`: 1,811 reference slots = 1,729 distinct works; the Ollama header note is moot.
+    - System diagram: the Phase 5 row is labelled 07–12.
+- **Fixes in notebook Findings** (markdown only, no reruns):
+  - 03: Qwen3 at 81–89%.
+  - 03: the "199 of 200" and "40–52%" claims were checked against the dev run files and are correct; the source is now cited.
+  - 03: the `concept` statement is qualified.
+  - 05: p ≥ 0.84, 4.3, Holm p ≤ 3.4e-19.
+  - 06: top-1 at 94–97%.
+  - 07: six Cochrane versions (not five).
+  - 09: recall@5 was never reported; the dev wording is corrected.
+  - 10: reachability 55.1–70.1%.
+  - 11: Holm 0.48 added.
+  - 04: a Findings cell was added (it had none).
+- **Corrections to earlier entries in this log:**
+  - 2026-10-12 "Scope of the test runs": 13 methods, not 12.
+  - 2026-10-12 "Test runs, statistics and analyses complete": final Llama + MiniLM is 69.0 / 63.7 (preliminary 69.2 / 64.9) and Qwen3 → Llama 74.0 / 69.7 (preliminary 74.1 / 69.8). The other numbers match.
+  - 2026-10-12 "Fallback citer search and the co-citation graph": 23 query duplicates once the manual list of Checkpoint A is included (20 before).
+  - First-stage MRR of Qwen3 is 0.609 over the full candidate ranking (notebook 09) and 0.608 within the top-100 list (notebooks 11–12). The two are computed over different lists.
+- **Left as is (intentional overlap):** the README findings vs SUMMARY, the README results vs BEFORE_AFTER, and dated status notes that repeat DEVLOG facts.

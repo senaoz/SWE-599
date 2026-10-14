@@ -11,8 +11,8 @@ Global rules:
 
 Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–5 before December deadlines.
 
-> **Status (2026-10-12).** Ticks below reflect work on branch `v2-audit` (PR senaoz/SWE-599#1); dated details are in `docs/DEVLOG.md`.
-> - **Paths differ from this plan.** The research folder was reorganized. v1 results moved unchanged from `research/eval_dataset/week3/` to `research/v1/results/`, byte-identical to tag `v1-results`. v2 outputs live in `research/v2/` (notebooks `01`–`06`, `eval_sets/`, `runs/`, `stats/`, `figures/`).
+> **Status (2026-10-14).** Phases 0–3 and 7 were done on branch `v2-audit` (PR senaoz/SWE-599#1, merged); Phase 5 on `v2-phase5` (PR senaoz/SWE-599#3). Dated details are in `docs/DEVLOG.md`.
+> - **Paths differ from this plan.** The research folder was reorganized. v1 results moved unchanged from `research/eval_dataset/week3/` to `research/v1/results/`, byte-identical to tag `v1-results`. v2 outputs live in `research/v2/`: notebooks `01`–`06` (v2) and `07`–`12` (Phase 5), `eval_sets/`, `runs/`, `corpus/`, `runs_corpus/`, `stats/`, `figures/`.
 > - **Model server.** Ollama was replaced by local llama-server (GGUF) and sentence-transformers.
 
 ## Phase 0: Protect the baseline
@@ -73,16 +73,26 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 
 ## Phase 5: Full-corpus retrieval + leakage-controlled graph expansion
 
-* [ ] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
-* [ ] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
-* [ ] 5.3 Unit tests for each leakage rule (small synthetic graph).
-* [ ] 5.4 Leakage canary run (query refs included on purpose) and normal run; report the gap.
-* [ ] 5.5 Random-graph control with the same degree distribution.
-* [ ] 5.6 GRIT-style expansion (seed top t%, replace bottom b%; tune t, b on dev).
-* [ ] 5.7 LADR-style variant (lexical seeds + kNN graph exploration).
-* [ ] 5.8 LLM reranker on the expanded lists; end-to-end MRR / nDCG.
-* [ ] 5.9 Attribution: share of recovered positives found via the graph.
-* CHECKPOINT 5: before/after table for the cascade.
+> **Status (2026-10-14).** Done on branch `v2-phase5` (PR senaoz/SWE-599#3): notebooks 07–12 in `research/v2/`, design and decisions in `PHASE5_DESIGN.md`, dated details in `docs/DEVLOG.md`. Corpus: 13,572 citers, 11,967 candidate works (12,096 records before merging duplicates); labels for 48 dev / 118 test queries. Per-task results are in the notes below.
+
+* [x] 5.1 Full-corpus first stage over ~10k papers; recall at k up to 100.
+   * *`v2/09_full_corpus_retrieval.ipynb`: 11,967-work corpus, 118 test queries. Qwen3 recall@100 is 64.0% [58.7, 69.4], BM25 38.7%; the degree-only probe gets 2.4% (random 1.3%).*
+* [x] 5.2 Co-citation graph builder with leakage rules: no query outgoing citations; query removed as citer; dedupe preprint/published versions; only citers published before the query; only non-test citers.
+* [x] 5.3 Unit tests for each leakage rule (small synthetic graph).
+   * *`research/tests/test_cograph.py`, 14 tests (22 in total with `test_expansion.py` and `test_rerank.py`); run inside `v2/08_build_corpus_graph.ipynb`.*
+* [x] 5.4 Leakage canary run (query refs included on purpose) and normal run; report the gap.
+   * *`v2/10_graph_expansion.ipynb`: canary +5.8 [+3.6, +8.2] recall@100 vs +0.8 [−0.4, +2.1] under all rules; rule-by-rule ablations +0.8 to +1.1.*
+* [x] 5.5 Random-graph control with the same degree distribution.
+   * *Curveball rewiring of pool citers, 5 seeds: −0.5 to −0.9 recall@100.*
+* [x] 5.6 GRIT-style expansion (seed top t%, replace bottom b%; tune t, b on dev).
+   * *Dev choice t = 5, b = 10%, raw counts; test +0.8 points recall@100, not significant (Holm p = 1.0).*
+* [x] 5.7 LADR-style variant (lexical seeds + kNN graph exploration).
+   * *BM25 seeds + Qwen3 kNN (k = 32): 62.3% vs 64.0% exhaustive, scoring 12.5% of candidates.*
+* [x] 5.8 LLM reranker on the expanded lists; end-to-end MRR / nDCG.
+   * *`v2/11_end_to_end.ipynb`: pointwise Llama 3.2 3B on Qwen3-Embedding and expanded top-100 lists. Llama alone: nDCG@10 0.340 → 0.175 (Holm p = 3.1e-11); fused (α = 0.1, dev): −0.004, n.s. Qwen3-Reranker-4B (`v2/12_qwen3_reranker.ipynb`), fused α = 0.8: nDCG@10 +0.021 [+0.001, +0.041] (Holm 0.22), R-precision +3.2 [+1.2, +5.2] (Holm 0.040).*
+* [x] 5.9 Attribution: share of recovered positives found via the graph.
+   * *First stage: 20 of 548 positives in the expanded top 100 (3.6%) came via the graph. After fused reranking: Llama, none in the top 10 or 20; Qwen3-Reranker-4B, none in the top 10 and 3 in the top 20.*
+* CHECKPOINT 5: before/after table for the cascade. *(Shown 2026-10-14; the user approved the numbers, and they are in the README's Phase 5 section.)*
 
 ## Phase 6 (optional): Human-centered trust study
 
@@ -90,11 +100,21 @@ Suggested timing: Phase 0–1 before the Georgetown visit (~Oct 18). Phases 2–
 * [ ] 6.2 Design a small study: LLM recommendation with vs without explanation vs similarity score.
 * [ ] 6.3 Ethics/consent check with my advisor before recruiting anyone.
 
+## Phase 6B: Researcher-level evaluation on BOUN data (the app's task)
+
+Added 2026-10-12; see `IMPROVEMENT_IDEAS.md`, Idea F. Not started; each fetch or run needs approval first.
+
+* [ ] 6B.1 Data-quality audit of `research/data/cleaned/boun.csv`, reusing `audit/data_quality.py`: strong vs weak non-abstract flags, missing abstracts (1,605 of 4,608 rows have none), and a duplicate-record check.
+* [ ] 6B.2 Build the researcher-level eval set with a time split: profiles = BOUN papers before T; candidates = followed-institution papers before T; positives = candidates cited by the researcher's papers after T. Leakage rules and their unit tests as in Phase 5.
+* [ ] 6B.3 Benchmark profile aggregation (max vs mean) and the v2 stage-1 methods, then the deployed pointwise Llama stage 2 against stage 1 alone.
+* [ ] 6B.4 Relate the offline results to the app's thumbs-up/down feedback (with 6.1).
+* CHECKPOINT 6B: researcher-level results table; answer for `APP_NOTES.md` on whether stage 2 helps.
+
 ## Phase 7: Write-up
 
 * [x] 7.1 `research/audit/BEFORE_AFTER.md`: v1 vs v2 for every claim in the README.
 * [x] 7.2 Update README only after I approve the numbers; keep a "v1 audit" section.
    * *Approved 2026-10-12. The README carries a correction notice and links to AUDIT.md and BEFORE_AFTER.md.*
 * [x] 7.3 Fill in the TBD pitch sentences in IMPROVEMENT_IDEAS.md.
-   * *Filled where v2 has the numbers. Sentences that depend on Phase 4/5 keep their TBDs.*
+   * *Filled where v2 has the numbers (2026-10-12) and with Phase 5 numbers (2026-10-14). The sentence that depends on Phase 4.5 (human judgments) keeps its TBD.*
 * [x] 7.4 One-page summary for my MS advisor and PhD applications. *(`research/audit/SUMMARY.md`)*

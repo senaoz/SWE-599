@@ -7,18 +7,12 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 [One-page summary](research/audit/SUMMARY.md) · [Statistics](research/v2/stats/) · [v1 → v2 comparison](research/audit/BEFORE_AFTER.md) · [Audit of v1](research/audit/AUDIT.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md) · [Final report (PDF, v1)](SWE599_Final_2026S_OZ_Sena.pdf)
 
 
-> **Correction (October 2026).** The final report and poster (May 2026) present v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)):
+> **Correction (October 2026).** The final report (May 2026) presents v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)):
 > - candidates were always shown positives-first;
 > - the prompt's example pointed at a positive;
 > - positive candidates carried other papers' text.
 >
 > The results below are from the rebuilt, leak-free v2 benchmark and supersede v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
-
-<img width="3300" height="2333" alt="599poster (v1 results, superseded)" src="https://github.com/user-attachments/assets/1e51a466-e63a-4aa7-9801-2d2195c4cfb7" />
-
-*Poster from May 2026; its results are the superseded v1 numbers.*
-
-------
 
 ![System overview: v1 audit, v2 pipeline, local models, results and the deployed app](docs/figures/system_overview.svg)
 
@@ -38,13 +32,24 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
    - Qwen3's top 10 already holds about 90% of the true references.
    - Reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
 4. **Small embedding models are almost as good as large ones.**
-   - MiniLM (22M parameters) is within 3.7 / 4.4 points of Qwen3-8B.
-   - SPECTER2 and MiniLM are indistinguishable (p ≥ 0.94).
+   - MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B (mean per-query difference).
+   - SPECTER2 and MiniLM are indistinguishable (Holm p ≥ 0.84).
    - Among LLM variants, only pointwise scoring (78.8 / 73.9) beats the lexical baselines.
 
 ![R-precision with 95% confidence intervals, random benchmark](research/v2/figures/05_rprec_ci_random.svg)
 
 ![Listwise Llama under three candidate orders](research/v2/figures/06_position_bias.svg)
+
+---
+
+## Ranking in a nutshell
+
+The diagram below introduces the terms used in the rest of this README:
+- **Ranking approaches.** An LLM can score candidates *pointwise* (one at a time), *pairwise* (two at a time) or *listwise* (the whole list at once). Listwise ranking is where Llama 3.2 3B copied the input order.
+- **Metrics.** R-precision, MRR, nDCG@k and recall@k, each worked out on one small example.
+- **Phase 5 pipeline.** Full-corpus retrieval, then leakage-controlled co-citation expansion, then pointwise reranking (notebooks 09–12 in `research/v2/`).
+
+![Ranking approaches, metrics with a worked example, and the Phase 5 multi-stage pipeline](docs/figures/ranking_primer.svg)
 
 ---
 
@@ -60,6 +65,52 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
 | **Input** | The same text for every method: title + abstract + concepts, 600 characters per candidate and 1,500 for the query (chosen on dev). |
 | **Metrics** | **R-precision**: share of the top *n* that are true references, where *n* is the number of positives. This is the primary metric, because MRR saturates near 1.0 for the strong methods. Also reported: MRR, nDCG@*n*, average precision. |
 | **Models** | All local. Llama 3.2 3B Instruct (Q4_K_M) and Qwen3-Embedding-8B (Q4_K_M) are served by llama.cpp; MiniLM, SPECTER2, EmbeddingGemma and bge-reranker-base run via sentence-transformers. |
+
+### How `random` and `concept` differ
+
+The two benchmarks share everything except the negatives. Each query has the same positives, the same number of negatives (2*n*) and the same candidate pool: other queries' references, published before the query and with no shared author. Only the way negatives are drawn from that pool changes:
+
+- **`random`** samples negatives uniformly from the pool. Most of them come from unrelated topics, so a method only has to tell "this field" from "another field".
+- **`concept`** keeps only pool papers that share at least one of the query's top-5 OpenAlex concepts, then samples from those. For 7 of 168 queries too few papers match, and the remaining slots are filled with random negatives.
+
+Share of candidates that share at least one top-5 concept with their query (all 168 queries):
+
+| | Positives | `random` negatives | `concept` negatives |
+|---|---|---|---|
+| Share a top-5 concept | 73.5% | 29.5% | 97.7% |
+| …of those, only through a top-level field (e.g. "Medicine", "Computer science") | 33.2% | 79.1% | 68.7% |
+
+So `concept` negatives look like positives on the concept tags; in fact they match more often than the positives do. Most of them match only through a broad field label, though, so `concept` means **same field, not same topic**. It is a harder setting, not a true hard-negative benchmark. Every method scores lower on `concept`, by 1.9 (listwise Llama, already near chance) to 9.9 (TF-IDF) R-precision points.
+
+**Example 1** (test query, 2021): *LocusZoom.js: interactive and embeddable visualization of genetic association study results*. Top-5 concepts: Computer science, MIT License, Annotation, JavaScript, Visualization.
+
+| Role | Paper (year) | Shared top-5 concepts |
+|---|---|---|
+| Positive | LocusZoom: regional visualization of genome-wide association scan results (2010) | Computer science |
+| Positive | Tabix: fast retrieval of sequence features from generic TAB-delimited files (2011) | Computer science |
+| Positive | The NHGRI-EBI GWAS Catalog of published genome-wide association studies… (2018) | — |
+| `random` negative | Multipoint high-fidelity CFD-based aerodynamic shape optimization of a 10 MW wind turbine (2019) | — |
+| `random` negative | Epidemiology of COVID-19 Among Children in China (2020) | — |
+| `random` negative | A Practical Guide to Selection Bias in Instrumental Variable Analyses (2019) | — |
+| `concept` negative | What is Twitter, a social network or a news media? (2010) | Computer science |
+| `concept` negative | Roofline (2009) | Computer science |
+| `concept` negative | Bootstrap confidence intervals: when, which, what? A practical guide for medical statisticians (2000) | Computer science |
+
+All six `concept` negatives of this query match only through "Computer science"; none is about genetics or visualization. Three of six negatives are shown per benchmark.
+
+**Example 2** (test query, 2020): *Challenges to the Reproducibility of Machine Learning Models in Health Care*. Top-5 concepts: Medicine, Reproducibility, Machine learning, Health care, Artificial intelligence.
+
+| Role | Paper (year) | Shared top-5 concepts |
+|---|---|---|
+| Positive | Estimating the reproducibility of psychological science (2015) | Reproducibility |
+| Positive | Why Most Published Research Findings Are False (2005) | Medicine |
+| `random` negative | Within host RNA virus persistence: mechanisms and consequences (2017) | — |
+| `random` negative | Dissecting racial bias in an algorithm used to manage the health of populations (2019) | Health care |
+| `concept` negative | Interpretable Decision Sets (2016) | Machine learning, Artificial intelligence |
+| `concept` negative | Enfortumab Vedotin Antibody–Drug Conjugate Targeting Nectin-4… (2016) | Medicine |
+| `concept` negative | Optimizing CAR-T Cell Manufacturing Processes during Pivotal Clinical Trials (2019) | Medicine |
+
+Shown: 2 of 4 positives, 2 of 8 `random` and 3 of 8 `concept` negatives. Here 7 of the 8 `concept` negatives match only through "Medicine" or "Health care". Some `random` negatives (the racial-bias paper) are arguably as close to the query as any `concept` negative.
 
 Construction and runs: numbered notebooks in [`research/v2/`](research/v2/) (01 fetch → 02 build → 03 dev tuning → 04 test runs → 05 statistics → 06 analyses). Per-query runs: [`research/v2/runs/`](research/v2/runs/).
 
@@ -83,7 +134,7 @@ R-precision % [95% CI] and MRR. The chance level (a random ranking) is 33.3% R-p
 | Llama 3.2 3B, listwise, sliding window | 55.6 [53.5, 57.8] | 52.2 [49.9, 54.5] | 0.797 | 0.777 |
 | Llama 3.2 3B, listwise, full list | 43.9 [41.9, 46.0] | 42.0 [40.2, 43.9] | 0.662 | 0.638 |
 
-Significance tests and seed spread: [`research/v2/stats/`](research/v2/stats/). All figures (PDF and SVG): [`research/v2/figures/`](research/v2/figures/).
+Significance tests: [`research/v2/stats/`](research/v2/stats/); seed spread: [`05_stats.ipynb`](research/v2/05_stats.ipynb). All figures (PDF and SVG): [`research/v2/figures/`](research/v2/figures/).
 
 **Position bias** (listwise Llama, same 118 test queries and candidates, only the order changed; `random` / `concept`):
 
@@ -112,12 +163,55 @@ The order dependence also shows directly in the outputs. Across 1,177 shuffled t
 - **Candidate text.** On dev, adding abstracts helps lexical methods most (TF-IDF +16 points on `random`). Qwen3 is insensitive to the input fields, while bge-reranker and listwise Llama get worse with longer text.
 - **Seeds.** Across 5 shuffle seeds, the standard deviation of each LLM method's R-precision is 0.8–2.0 points. Full-list Llama's best seed (46.3 on `random`, 43.3 on `concept`) is still below every other method's mean.
 
+## Phase 5: full corpus, graph expansion and reranking (test split)
+
+v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes the task realistic: each query is ranked against **11,967 papers**, about 11k of them candidates per query. Notebooks `07`–`12` in [`research/v2/`](research/v2/); design and decisions in [PHASE5_DESIGN.md](research/audit/PHASE5_DESIGN.md).
+
+- **Corpus.** For each query, an OpenAlex title search found papers published before it ("citers"). The corpus is every eligible positive plus every work cited by at least 5 citers. Duplicate records are merged in the corpus, the labels and the graph.
+- **Co-citation graph under leakage rules.** The following never enter a query's graph, each rule with a unit test:
+  - the query's own references;
+  - copies or earlier versions of a query;
+  - citers dated on or after the query, using a conservative date because 24% of citers carry year-only Jan 1 dates;
+  - other query papers.
+
+  The checks found real leaks, for example a 2012 record of a Cochrane review that held all 10 references of a 2020 query.
+
+| Recall@100 (118 test queries) | % [95% CI] |
+|---|---|
+| Qwen3-Embedding-8B | **64.0** [58.7, 69.4] |
+| EmbeddingGemma · SPECTER2 · MiniLM | 60.6 · 57.5 · 55.4 |
+| TF-IDF · BM25 | 45.3 · 38.7 |
+| Degree-only probe · random | 2.4 · 1.3 |
+
+| Change to Qwen3-Embedding's top 100 | Effect on test |
+|---|---|
+| Co-citation expansion (bottom 10% replaced, all leakage rules) | recall@100 +0.8 [−0.4, +2.1], not significant |
+| Same expansion on degree-preserving random graphs | −0.5 to −0.9 |
+| Leakage canary (query's own references added on purpose) | +5.8 [+3.6, +8.2] |
+| Rerank with pointwise Llama 3.2 3B, alone | nDCG@10 0.340 → 0.175 (Holm p = 3.1·10⁻¹¹) |
+| Rerank with Llama 3.2 3B, fused with the embedding score | −0.004, not significant |
+| Rerank with Qwen3-Reranker-4B, fused (weight chosen on dev) | nDCG@10 0.340 → 0.360 (+0.021 [+0.001, +0.041], Holm p = 0.22); R-precision 25.1 → 28.3 (Holm p = 0.040) |
+
+**What this shows**
+1. **The full corpus is much harder.** Qwen3-Embedding's R-precision falls from 87.0% on the v2 pools to 25.1%, and over a third of cited papers fall outside the top 100.
+2. **Leakage-controlled co-citation expansion adds nothing significant on top of a strong dense first stage.**
+   - Only 54.7% of test positives are reachable through an allowed citer at all.
+   - The canary shows the method works when the signal is present.
+   - Relaxing the rules would have inflated reachability to 62.9–70.1%.
+3. **A small general LLM does not help as a reranker, even pointwise.** A model trained for reranking does, modestly, when fused with the embedding score.
+   - The reranker was released in 2025 and may have seen these papers in pretraining.
+   - The app's stage 2 is pointwise Llama, so this is evidence about the app, not a direct test of it ([APP_NOTES.md](APP_NOTES.md)).
+
+![Recall@k over the full corpus](research/v2/figures/09_full_corpus_recall.svg)
+
+![Second-stage reranking: Llama 3.2 3B vs Qwen3-Reranker-4B](research/v2/figures/12_qwen3_reranker.svg)
+
 ## Limitations
 
 - **Citation is a proxy for relevance.** Researchers may find uncited papers relevant and cited ones irrelevant. There are no human relevance judgments yet.
-- **Negatives are not same-topic hard negatives.** The `concept` match often rests on a broad field label such as "Medicine". Full-corpus retrieval with hard negatives is the next experiment.
-- **One small LLM.** Results are for Llama 3.2 3B (Q4_K_M). Larger or retrieval-tuned LLMs may behave differently.
-- **Pretraining contamination is untested.** Only one test query was published after Llama 3.2's December 2023 knowledge cutoff.
+- **v2 negatives are not same-topic hard negatives.** The `concept` match often rests on a broad field label such as "Medicine". Phase 5 ranks against a full corpus built from the queries' topical neighbourhoods instead.
+- **Few rerankers.** The LLM results are for Llama 3.2 3B (Q4_K_M). Phase 5 adds one retrieval-tuned model, Qwen3-Reranker-4B; larger general LLMs were not tested.
+- **Pretraining contamination is untested.** Only one test query was published after Llama 3.2's December 2023 knowledge cutoff. Qwen3-Reranker-4B (2025) postdates every query.
 - **Simplified embedding inputs.** Qwen3-Embedding and EmbeddingGemma run without their recommended instruction prefixes, and bge-reranker-base truncates query-candidate pairs at 512 tokens.
 - **Data quality** ([DATA_QUALITY.md](research/audit/DATA_QUALITY.md)).
   - 155 listed references no longer exist in OpenAlex.
@@ -133,10 +227,7 @@ Planned in [`research/audit/TODO.md`](research/audit/TODO.md), with the motivati
    - Graded labels from citation intent and influence instead of "cited = relevant".
    - Same-topic hard negatives.
    - Pooled human judgments for 20–30 queries, to measure how well the citation proxy agrees with researchers.
-2. **Full-corpus retrieval with leakage-controlled citation-graph expansion.**
-   - Rank a full corpus (about 10k papers) instead of fixed pools.
-   - Expand the first-stage list with co-citation neighbours, under explicit leakage rules: no query reference lists, no test-query citers, only earlier citers, deduplicated records.
-   - Controls: a leakage canary and a random-graph baseline.
+2. **Researcher-level evaluation on BOUN data.** The app's real task: are the external papers a Boğaziçi researcher later cites ranked near the top for them? This uses a time split, and the deployed pointwise stage 2 is compared with stage 1 alone and with Qwen3-Reranker (Phase 6B).
 3. **Human-centered evaluation.** The deployed system already records thumbs-up/down feedback on each paper–researcher match. The questions:
    - does offline ranking quality predict what researchers find useful?
    - how do researchers judge and trust LLM-produced recommendations compared with similarity scores?
@@ -149,7 +240,7 @@ A fully containerized recommender that runs the two-stage pipeline every six hou
 
 1. **Fetch** new papers from followed institutions (OpenAlex API, cursor-based incremental fetching).
 2. **Stage 1, Retrieve:** Qwen3 embeddings (`qwen3-embedding`, 4096-d, stored in PostgreSQL with pgvector); cosine similarity against ~7,800 Boğaziçi paper embeddings; top-10 researchers above a 0.3 threshold.
-3. **Stage 2, Rerank:** Llama 3.2 3B (Ollama) decides `RELEVANT <score>` / `IRRELEVANT <score>` for each candidate researcher. Falls back to Stage-1 scores if the LLM is unavailable. *The v2 benchmark finds that listwise LLM reranking lowers Qwen3's own ranking. This pointwise stage has not been benchmarked yet and is under review; see [`APP_NOTES.md`](APP_NOTES.md).*
+3. **Stage 2, Rerank:** Llama 3.2 3B (Ollama) decides `RELEVANT <score>` / `IRRELEVANT <score>` for each candidate researcher. Falls back to Stage-1 scores if the LLM is unavailable. *The v2 benchmark finds that listwise LLM reranking lowers Qwen3's own ranking. In Phase 5, pointwise Llama 3.2 3B reranking of a full-corpus list halves nDCG@10 when used alone and changes nothing when fused. The app's own task (paper → researcher) is not benchmarked yet; see [`APP_NOTES.md`](APP_NOTES.md).*
 4. **Serve** a React 19 + TypeScript interface: paper feed, researcher pages, institution following, relevance feedback, admin panel.
 
 Stack: FastAPI · SQLAlchemy (async) · PostgreSQL 16 + pgvector · Ollama · React 19 · Vite · Tailwind · Docker Compose. Setup instructions: [`README_APP.md`](README_APP.md).
@@ -166,19 +257,22 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/papermill v2/06_analysis.ipynb v2/06_analysis.ipynb --cwd v2
 ```
 
-To re-run the methods themselves, serve the two GGUF models with llama.cpp's `llama-server` (OpenAI-compatible API on `127.0.0.1:1337`) and run notebooks 01–04. See [`research/README.md`](research/README.md). The v1 audit is reproduced by `python research/audit/verify_v1.py`.
+To re-run the methods themselves, serve the two GGUF models with llama.cpp's `llama-server` (OpenAI-compatible API on `127.0.0.1:1337`) and run notebooks 01–04. Phase 5 is notebooks 07–12; `.venv/bin/python -m pytest tests` runs the leakage-rule unit tests. See [`research/README.md`](research/README.md). The v1 audit is reproduced by `python research/audit/verify_v1.py`.
 
 ## Repository structure
 
 ```
 research/                      see research/README.md
-  src/                         shared code: v2 pipeline, rankers, stats, figures; v1 similarity/metrics
+  src/                         shared code: v2 pipeline, rankers, stats, figures; Phase 5 corpus, graph, retrieval, expansion, reranking; v1 similarity/metrics
   v1/                          numbered notebooks · results/ (per-query rankings) · stats/
-  audit/                       v1 audit (AUDIT.md, verify_v1.py) · BEFORE_AFTER.md · DATA_QUALITY.md · SUMMARY.md · TODO.md · IMPROVEMENT_IDEAS.md
-  v2/                          leak-free benchmark: notebooks 01–06 · eval_sets/ · runs/ · stats/ · figures/
+  audit/                       v1 audit (AUDIT.md, verify_v1.py) · BEFORE_AFTER.md · DATA_QUALITY.md · SUMMARY.md · TODO.md · IMPROVEMENT_IDEAS.md · PHASE5_DESIGN.md
+  v2/                          notebooks 01–06 (v2 benchmark) and 07–12 (Phase 5) · eval_sets/ · runs/ · corpus/ · runs_corpus/ · stats/ · figures/
+  tests/                       unit tests for the leakage rules, expansion and reranking
+  scripts/                     OpenAlex probe, Qwen3-Reranker check, notebook cleanup
 backend/                       FastAPI service, scheduler, matching pipeline
 frontend/                      React application
-docs/DEVLOG.md                 development log, incl. the dated v2 audit log
+docs/DEVLOG.md                 development log, incl. the dated v2 audit and Phase 5 log
+docs/figures/                  system overview and ranking primer diagrams
 APP_NOTES.md                   follow-ups for the deployed app
 SWE599_Final_2026S_OZ_Sena.pdf final report
 ```

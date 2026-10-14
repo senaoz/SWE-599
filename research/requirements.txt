@@ -9,3 +9,4 @@ requests>=2.28
 tqdm>=4.60
 papermill>=2.5
 ipykernel>=6.0
+pytest>=9.0

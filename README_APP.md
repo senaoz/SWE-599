@@ -1,6 +1,6 @@
 # SWE-599 — BOUN Paper Recommender
 
-Automated paper recommendation system for Boğaziçi University (BOUN) researchers. Users follow academic institutions; when new papers are published, the system matches them against BOUN researcher profiles using a 2-stage RAG pipeline (Qwen/nomic embeddings + Llama reranking).
+Automated paper recommendation system for Boğaziçi University (BOUN) researchers. Users follow academic institutions; when new papers are published, the system matches them against BOUN researcher profiles using a 2-stage pipeline (Qwen3 embeddings + Llama 3.2 3B reranking).
 
 ---
 
@@ -13,7 +13,7 @@ Automated paper recommendation system for Boğaziçi University (BOUN) researche
 - Pull the required models:
 
 ```bash
-ollama pull nomic-embed-text:v1.5   # embedding model (~274 MB)
+ollama pull qwen3-embedding        # Stage 1 embedding model (4096-d)
 ollama pull llama3.2:3b             # reranking model (~2 GB)
 ```
 
@@ -34,8 +34,7 @@ JWT_SECRET=your-secret-key-here
 Optional:
 
 ```env
-OPENALEX_EMAIL=you@example.com   # for OpenAlex polite pool (higher rate limits)
-GEMINI_API_KEY=...               # only needed for research notebooks
+OPENALEX_EMAIL=you@example.com   # sent to OpenAlex with each request
 ```
 
 ### 2. Start the Stack
@@ -51,7 +50,7 @@ This starts:
 On first start, the backend automatically:
 1. Creates database tables
 2. Seeds 2671 BOUN researchers from `research/data/cleaned/boun.csv`
-3. Computes embeddings for ~7800 papers in the background (takes ~6 minutes with nomic-embed-text)
+3. Computes embeddings for ~7,800 researcher–paper rows (4,608 papers) in the background
 
 Wait until you see this in the logs before using the app:
 
@@ -100,7 +99,7 @@ Frontend runs at **http://localhost:5173**
                                      │
                     ┌────────────────▼─────────────────────────┐
                     │  Ollama (host:11434)                      │
-                    │  nomic-embed-text — Stage 1 embeddings    │
+                    │  qwen3-embedding — Stage 1 embeddings     │
                     │  llama3.2:3b     — Stage 2 reranking      │
                     └──────────────────────────────────────────┘
 ```
@@ -110,8 +109,8 @@ Frontend runs at **http://localhost:5173**
 Every 6 hours (or on manual trigger):
 
 1. **Fetch** — new papers from followed institutions via OpenAlex API
-2. **Stage 1 — Retrieve** — embed new papers with nomic-embed-text; cosine similarity against all 7800 individual BOUN paper embeddings; group by researcher → top-20 by max score
-3. **Stage 2 — Generate** — top-10 researchers sent to Llama with context (new paper + top-3 matching BOUN papers); Llama returns `RELEVANT 0.87` or `IRRELEVANT`; LLM score used as final score
+2. **Stage 1 — Retrieve** — embed new papers with Qwen3-Embedding; cosine similarity against the ~7,800 researcher–paper embeddings; group by researcher → top-10 by max score
+3. **Stage 2 — Rerank** — top-10 researchers sent to Llama 3.2 3B one at a time (pointwise) with context (new paper + the researcher's top-5 matching BOUN papers); Llama returns `RELEVANT <score>` or `IRRELEVANT <score>`; the LLM score is the final score. Research evidence on this stage: [`APP_NOTES.md`](APP_NOTES.md)
 4. **Store** — `PaperResearcherMatch` rows with score, matched paper IDs, and LLM score
 
 ---
@@ -132,10 +131,10 @@ Every 6 hours (or on manual trigger):
 ├── frontend/
 │   └── src/pages/        # Dashboard, Institutions, Researchers, Admin
 ├── research/
-│   ├── src/              # similarity.py, preprocessing.py, metrics.py
-│   ├── data/cleaned/     # boun.csv, priority_followed.csv
+│   ├── src/              # shared library (also imported by backend/)
+│   ├── data/cleaned/     # boun.csv (BOUN papers for the app)
 │   ├── v1/               # numbered notebooks + benchmark results
-│   └── v2/               # leak-free benchmark (see research/README.md)
+│   └── v2/               # leak-free benchmark and Phase 5 (see research/README.md)
 └── docker-compose.yml
 ```
 
@@ -149,29 +148,14 @@ Key constants in `backend/config.py`:
 |---|---|---|
 | `MATCH_THRESHOLD` | `0.3` | Min score to store a match |
 | `TOP_K_MATCHES` | `5` | Researchers shown per paper in UI |
-| `RETRIEVE_MODEL` | `nomic` | Stage 1 embedding model |
-| `RAG_RETRIEVE_TOP_K` | `20` | Researchers selected in Stage 1 |
+| `RETRIEVE_MODEL` | `qwen` | Stage 1 embedding model (qwen3-embedding via Ollama) |
+| `RAG_RETRIEVE_TOP_K` | `10` | Researchers selected in Stage 1 |
 | `RAG_LLM_TOP_K` | `10` | Researchers sent to Llama in Stage 2 |
+| `RAG_CONTEXT_PAPERS` | `5` | BOUN papers per researcher in the Stage 2 prompt |
 | `JOB_INTERVAL_HOURS` | `6` | Background job frequency |
 
 ---
 
-## Research Notebooks
+## Research
 
-Offline evaluation of embedding methods (run in order):
-
-```bash
-cd research
-pip install -r requirements.txt
-
-# 1. Fetch and preprocess BOUN + followed institution papers
-jupyter notebook v1/01_fetch_and_preprocessing.ipynb
-
-# 2. Compare embedding methods (TF-IDF, MiniLM, SPECTER2, Gemini, Qwen)
-jupyter notebook v1/02_similarity_evaluation.ipynb
-
-# 3. Cited paper ranking benchmark (hit-rate evaluation)
-jupyter notebook v1/03_cited_paper_ranking.ipynb
-```
-
-Evaluated methods and hit rates (Week 3): Llama 44.99%, SPECTER2 30.21%, Gemini 42.5%, MiniLM 28.3%.
+The research benchmark (v1 audit, v2 and Phase 5) is documented in [`research/README.md`](research/README.md) and summarized in the main [`README.md`](README.md). The v1 numbers once listed here are superseded; see [`research/audit/AUDIT.md`](research/audit/AUDIT.md).

@@ -14,4 +14,4 @@ research/data/*
 research/data/cleaned/*
 !research/data/cleaned/boun.csv
 .vscode/
-.vscode/*
+.vscode/*.pytest_cache/
