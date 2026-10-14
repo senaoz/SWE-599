@@ -526,3 +526,28 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Tests** (Holm). Qwen3 vs EmbeddingGemma on recall@100 is not significant (p_holm = 0.11); Qwen3 beats all others. RRF hurts Qwen3 (−3.9 points recall@100, −0.065 nDCG@10), as in v2.
 - **Membership check.** The degree-only probe is near random, so adding positives regardless of degree (decision 3) gives no exploitable signal. On the membership-symmetric positives (424 with ≥ 5 pool citers), Qwen3 recall@100 is 73.4% vs 63.1% on all positives of the same queries.
 - **Headroom for expansion.** 315 of 855 test positives are outside Qwen3's top 100; 151 of them (47.9%) are reachable through an allowed citer.
+
+### 2026-10-13 — Graph expansion with controls (`v2/10_graph_expansion.ipynb`) [d34f8fa, 237e399, 867d11f]
+
+- **What.** GRIT-style expansion of Qwen3's full-corpus top 100: seeds = top t; the bottom fraction b is replaced by the seeds' co-citation neighbours under all leakage rules.
+  - t, b and the normalization were chosen on dev (48 queries).
+  - Controls: 5 Curveball random graphs, a Qwen3 kNN graph, rule-by-rule ablations and the canary.
+  - Also an adaptive LADR-style run with BM25 seeds over a Qwen3 kNN graph.
+  - New module `src/expansion.py` with 5 unit tests (19 tests in total). No model or API calls; the whole notebook runs in about 35 s.
+- **Dev choice.** Raw counts, t = 5, b = 10%: +1.7 points recall@100 on dev. Larger b hurts (down to −5.2).
+- **Test** (118 queries, recall@100 difference from Qwen3's 64.0, paired bootstrap CI, Holm-corrected Wilcoxon):
+
+  | Condition | Difference |
+  |---|---|
+  | Co-citation, all rules | **+0.8 [−0.4, +2.1]**, p = 0.32 (Holm 1.0) |
+  | Random graphs | −0.5 to −0.9 |
+  | kNN graph | +0.3 [−0.6, +1.3] |
+  | R3 off | +0.8 |
+  | R4 with recorded dates | +1.0 |
+  | R4 off | +1.1 |
+  | R5 off | +1.0 |
+  | **Canary** | **+5.8 [+3.6, +8.2]** (Holm p = 1.6e-4) |
+  | LADR (k = 32) | −1.7 [−4.1, −0.0], scoring 12.5% of candidates |
+
+- **Attribution.** 20 of the 548 positives in the expanded lists (3.6%) entered through the graph, i.e. 6.3% of the 315 Qwen3 missed. The replacement pushed 8 positives out.
+- **Reading.** With a strong dense first stage and a leakage-controlled graph, co-citation expansion gives a small, non-significant recall gain. The canary shows the method works when the signal is present.
