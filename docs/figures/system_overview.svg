@@ -267,8 +267,8 @@
   <text class="ink t" x="1146" y="588" text-anchor="end">−0.8 · +0.3</text>
   <text class="v1 t" x="760" y="606">canary (query's own references added)</text>
   <text class="v1 t" x="1146" y="606" text-anchor="end">+5.8 [+3.6, +8.2]</text>
-  <text class="ink t" x="760" y="624">Llama pointwise rerank, nDCG@10</text>
-  <text class="ink t" x="1146" y="624" text-anchor="end">alone −0.164 · fused −0.004</text>
+  <text class="ink t" x="760" y="624">rerank, nDCG@10: Llama 3B · Qwen3-Reranker-4B</text>
+  <text class="ink t" x="1146" y="624" text-anchor="end">−0.164 · +0.021 (fused)</text>
   <text class="muted t" x="760" y="644">Positives reachable through the graph: 54.7% (62.9% with raw dates)</text>
   <text class="muted t" x="760" y="662">Leaks caught: a 2012 copy with 10/10 refs; 24% year-only dates</text>
 
@@ -313,5 +313,5 @@
 
   <!-- evidence link from results to stage 2 -->
   <path class="dash" d="M 1160 300 L 1184 300 L 1184 688 L 695 688 L 695 744" marker-end="url(#arrow)"/>
-  <text class="muted t" x="706" y="684">evidence: Llama reranking does not help (v2, notebook 11)</text>
+  <text class="muted t" x="706" y="684">evidence: Llama reranking does not help; a trained reranker helps a little</text>
 </svg>
