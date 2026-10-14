@@ -47,7 +47,7 @@ Researchers miss relevant work from institutions they don't routinely follow. I 
 The diagram below introduces the terms used in the rest of this README:
 - **Ranking approaches.** An LLM can score candidates *pointwise* (one at a time), *pairwise* (two at a time) or *listwise* (the whole list at once). Listwise ranking is where Llama 3.2 3B copied the input order.
 - **Metrics.** R-precision, MRR, nDCG@k and recall@k, each worked out on one small example.
-- **Phase 5 pipeline.** Full-corpus retrieval, then leakage-controlled co-citation expansion, then pointwise reranking. The reranking results (notebook 11) are still running.
+- **Phase 5 pipeline.** Full-corpus retrieval, then leakage-controlled co-citation expansion, then pointwise reranking (notebooks 09–11 in `research/v2/`).
 
 ![Ranking approaches, metrics with a worked example, and the Phase 5 multi-stage pipeline](docs/figures/ranking_primer.svg)
 

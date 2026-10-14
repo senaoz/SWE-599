@@ -168,9 +168,9 @@
   <text class="ink h" x="924" y="572">Stage 2: reranking</text>
   <text class="muted t" x="924" y="594">pointwise score for each of</text>
   <text class="muted t" x="924" y="610">the 100, then re-sort</text>
-  <text class="ink t" x="924" y="638">Llama 3.2 3B (running)</text>
-  <text class="ink t" x="924" y="656">Qwen3-Reranker-4B (next)</text>
-  <text class="muted s" x="924" y="680">notebook 11 · nDCG@10, MRR</text>
+  <text class="ink t" x="924" y="638">Llama 3.2 3B: nDCG@10 −0.16;</text>
+  <text class="ink t" x="924" y="656">fused with stage 1: ±0</text>
+  <text class="muted s" x="924" y="680">notebook 11 · Qwen3-Reranker-4B next</text>
 
   <text class="muted s" x="40" y="726">Reranking can only reorder the 100 it is given, so stage 1 sets the ceiling: 36% of cited papers never reach stage 2.</text>
   <text class="muted s" x="40" y="744">Leakage rules: no query references, duplicates, later or query citers in the graph; each rule has a unit test.</text>
