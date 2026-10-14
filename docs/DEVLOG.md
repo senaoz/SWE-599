@@ -1,6 +1,6 @@
 # Development log (SWE 599, Spring 2026)
 
-Week-by-week working notes kept during the project. The research summary and final results are in the [main README](../README.md); where numbers here differ, the README and final report are authoritative.
+Week-by-week working notes kept during the project. The research summary and final results are in the [main README](../README.md); where numbers here differ, the README is authoritative. The May 2026 final report carries the superseded v1 numbers (see the October 2026 entries).
 
 ## Week 1: Data Fetching & Benchmark Dataset
 
@@ -602,3 +602,47 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   - **Expanded list, fused:** +0.015 nDCG@10 (not significant), R-precision +2.7 (Holm 0.083). No graph-recovered positive in the fused top 10.
 - **Reading.** A trained reranker, unlike the small general LLM, gives a modest gain when fused with the embedding score. The pretraining-contamination caveat applies.
 - **Docs.** Diagrams, `TODO.md` and `APP_NOTES.md` were updated.
+
+### 2026-10-14 — README Phase 5 section and a consistency pass over all documents [55e2a45]
+
+- **README.** The user approved the Phase 5 numbers and asked for a README section (55e2a45). It sits after the v2 results, with figures 09 and 12. The limitations, next steps and app description were updated to match. This supersedes the 2026-10-13 note that "the README text itself is unchanged".
+- **Consistency pass** (user request). Three read-only agents compared every document and every notebook's Findings with their sources: notebook outputs, stats files, code and config. Each finding was then checked by hand.
+- **Fixes in the documents:**
+  - **`README_APP.md`.** The app uses `qwen3-embedding` (not nomic). Stage 1 keeps the top 10 researchers (not 20). Stage 2 sees the researcher's top 5 papers (not 3) and answers `IRRELEVANT <score>`. There are about 7,800 researcher–paper rows (4,608 papers). The v1 research section and its invalidated hit rates were replaced by links. Source: `backend/config.py`, `backend/services/matching.py`.
+  - **`APP_NOTES.md`.**
+    - Jan → llama-server.
+    - "v1 found" → "the audit (F1, F2) found".
+    - Graph work is Phase 5, not Phase 4.
+    - The 2026-10-13 entry said "top-3 papers"; it is top 5 (`RAG_CONTEXT_PAPERS`).
+    - Superseded entries are marked; the ideas are rewritten.
+  - **`research/README.md`.**
+    - EmbeddingGemma runs in-process (its GGUF lacks the Dense layers); the stray ini section is removed.
+    - The tree and intro now cover notebooks 07–12, `tests/` and `scripts/`.
+    - `run.py` is gone, `PHASE5_DESIGN.md` is added, and the duplicated `random`/`concept` paragraph is replaced by a link.
+    - The seed spread lives in the notebook, not in `v2/stats/`.
+  - **`README.md`.** Repository tree updated; Phase 5 spans notebooks 09–12; MiniLM is within 3.7 / **4.3** points (the mean per-query difference); SPECTER2 vs MiniLM Holm p ≥ **0.84**.
+  - **Other files.**
+    - `SUMMARY.md`: Phase 5 paragraph, limitations and next steps.
+    - `BEFORE_AFTER.md`: PR #1 merged; Holm p ≤ 3.4e-19.
+    - `TODO.md`: status notes; 14 (22) tests; 5.9 attribution for both rerankers; CHECKPOINT 5; 7.3.
+    - `IMPROVEMENT_IDEAS.md`: Idea C and full-corpus Idea D status; Phase 5 pitch sentence. It records that expansion does *not* lift end-to-end MRR, contrary to the original sentence.
+    - `PHASE5_DESIGN.md`: 174 excluded query records (not 168); dev 48/118; notebook 12 and `rerank.py`.
+    - `AUDIT.md`: 1,811 reference slots = 1,729 distinct works; the Ollama header note is moot.
+    - System diagram: the Phase 5 row is labelled 07–12.
+- **Fixes in notebook Findings** (markdown only, no reruns):
+  - 03: Qwen3 at 81–89%.
+  - 03: the "199 of 200" and "40–52%" claims were checked against the dev run files and are correct; the source is now cited.
+  - 03: the `concept` statement is qualified.
+  - 05: p ≥ 0.84, 4.3, Holm p ≤ 3.4e-19.
+  - 06: top-1 at 94–97%.
+  - 07: six Cochrane versions (not five).
+  - 09: recall@5 was never reported; the dev wording is corrected.
+  - 10: reachability 55.1–70.1%.
+  - 11: Holm 0.48 added.
+  - 04: a Findings cell was added (it had none).
+- **Corrections to earlier entries in this log:**
+  - 2026-10-12 "Scope of the test runs": 13 methods, not 12.
+  - 2026-10-12 "Test runs, statistics and analyses complete": final Llama + MiniLM is 69.0 / 63.7 (preliminary 69.2 / 64.9) and Qwen3 → Llama 74.0 / 69.7 (preliminary 74.1 / 69.8). The other numbers match.
+  - 2026-10-12 "Fallback citer search and the co-citation graph": 23 query duplicates once the manual list of Checkpoint A is included (20 before).
+  - First-stage MRR of Qwen3 is 0.609 over the full candidate ranking (notebook 09) and 0.608 within the top-100 list (notebooks 11–12). The two are computed over different lists.
+- **Left as is (intentional overlap):** the README findings vs SUMMARY, the README results vs BEFORE_AFTER, and dated status notes that repeat DEVLOG facts.
