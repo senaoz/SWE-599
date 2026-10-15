@@ -3,6 +3,7 @@
   "research_types": 7985,
   "after_dedup": 7822,
   "merged_duplicates": 163,
+  "researchers_without_name": 0,
   "researchers": 4639,
   "researcher_work_rows": 18597
 }

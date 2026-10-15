@@ -5,6 +5,7 @@ Writes to research/data/boun/ (tracked with Git LFS):
   boun_works.csv.gz         cleaned research works, one row per duplicate group
   researcher_works.csv.gz   BOUN researcher -> canonical work (full author lists for the
                             works whose list record stopped at 100 authors)
+  researchers.csv.gz        BOUN researcher id, display name, number of works
 Abstracts from Crossref / Semantic Scholar stay in research/data/v2/boun/ (gitignored):
 the table records only their source, not their text.
 
@@ -43,7 +44,8 @@ def external_abstracts() -> dict[str, tuple[str, str]]:
 
 def main() -> None:
     works = [json.loads(line) for line in (CACHE / "works_all.jsonl").open()]
-    full = {r["id"]: r["boun_author_ids"] for r in map(json.loads, (CACHE / "full_authors.jsonl").open())}
+    full_rows = [json.loads(line) for line in (CACHE / "full_authors_named.jsonl").open()]
+    full = {r["id"]: r["boun_author_ids"] for r in full_rows}
     rows, stats = build_clean(works, external_abstracts(), {**STRONG, **WEAK}, full)
     OUT.mkdir(parents=True, exist_ok=True)
     with (CACHE / "works_all.jsonl").open("rb") as src, gzip.open(OUT / "works_openalex.jsonl.gz", "wb") as dst:
@@ -59,6 +61,20 @@ def main() -> None:
 
     pairs = [(a, r["id"]) for r in rows for a in r["boun_author_ids"]]
     pd.DataFrame(pairs, columns=["researcher_id", "work_id"]).to_csv(OUT / "researcher_works.csv.gz", index=False)
+
+    names = {}
+    for w in works:  # list records: the first 100 authors
+        for a in w.get("authorships") or []:
+            au = a.get("author") or {}
+            if au.get("id") and au.get("display_name"):
+                names[au["id"]] = au["display_name"]
+    for r in full_rows:  # single-work calls: BOUN authors beyond position 100
+        names.update({k: v for k, v in r["names"].items() if v})
+    n_works = pd.Series([a for a, _ in pairs]).value_counts()
+    researchers = pd.DataFrame({"researcher_id": n_works.index, "display_name": [names.get(i, "") for i in n_works.index],
+                                "n_works": n_works.values}).sort_values("researcher_id")
+    researchers.to_csv(OUT / "researchers.csv.gz", index=False)
+    stats["researchers_without_name"] = int((researchers["display_name"] == "").sum())
     stats.update({"researchers": len({a for a, _ in pairs}), "researcher_work_rows": len(pairs)})
     (OUT / "build_stats.json").write_text(json.dumps(stats, indent=2) + "\n")
     print(json.dumps(stats, indent=2))
