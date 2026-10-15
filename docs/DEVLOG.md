@@ -721,3 +721,9 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   5. The read path filters matches with the cosine `MATCH_THRESHOLD` (`backend/routers/papers.py`, `min_score` default 0.3), so LLM-scale scores would hide every new match in the feed. Branch `app-mtplx-stage2` must not be merged as is.
   6. Cost: 3.6–8.9 s per call with thinking off, about 31 s with thinking on, against about 0.35 s for Llama 3.2 3B.
 - **Decision (user, 2026-10-14).** Do not dig further into the citation-vs-topical-relevance gap (e.g. citation intents or graded citation labels as the fix). Explore alternative ways to evaluate and design the app's matching instead. Backend changes on `app-mtplx-stage2` are on hold; the Phase 6B design (citation-based positives) is paused pending this discussion.
+
+### 2026-10-15 — The app's task, restated (user correction)
+
+- **Task.** A logged-in user sees recent papers from the institutions they follow; under each paper the app lists BOUN researchers, with their matching papers. Relevance means "this BOUN researcher works on what this paper is about" (topical expertise). It is not "the researcher would cite it" (citation labels; Idea F / Phase 6B as first written) and not "the researcher wrote it" (the authorship-based expert-finding idea of 2026-10-14, which used BOUN papers as queries and was dropped).
+- **Feedback matches this unit.** `paper_feedback` stores `is_relevant` per (user, paper, researcher), i.e. a judgment on exactly one listed researcher under one paper.
+- **Data check.** `boun.csv` has 311 papers with a co-author from the v1 followed-institution list (lineage ids in `v1/01`), 162 of them from 2023 on.
