@@ -665,3 +665,13 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   - On 20 other pairs (Phase 5 works with TF-IDF-close or random researchers) with thinking off, 5 of 20 answers started with prose instead of the verdict; the app's parser maps those to 0.0.
   - The number after `IRRELEVANT` still ranks: mean 0.135 on true vs 0.045 on random pairs (thinking off), but the app discards it.
 - **Implication.** With the current prompt and parser, the 27B model would act as a near-total filter. Any switch needs a prompt/parser change and must be evaluated in Phase 6B before deployment; 20 pairs are a smoke test, not evidence.
+
+### 2026-10-15 — BOUN works refetched from OpenAlex (`research/scripts/fetch_boun_openalex.py`)
+
+- **What.** All works matching the v1 filter (`authorships.institutions.lineage:i4405392, type:article, publication_year:2020-`), cursor-paged into `research/data/v2/boun/works.jsonl` (gitignored), with topics and keywords added to the fields. 1 count call + 61 list calls (about $0.006) and 1 diagnostic call. `research/data/cleaned/boun.csv`, which the app seeds from, is unchanged.
+- **Size.** 6,001 works (count call: 6,001), dates up to 2026-10-14. Language tags: en 5,336, tr 293, lv 231, none 114, other 27.
+- **Language tags are unreliable.** The `lv` records are English ATLAS papers (e.g. "Combined measurements of Higgs boson production and decay…"); filtering on `language == "en"` would drop them.
+- **Against `boun.csv`** (English subset, 5,336 works): 3,895 works in both, 1,441 only in the refetch, 713 only in `boun.csv` (708 of them absent from the refetch, 5 now tagged non-English).
+- **Why works disappeared.** A probe of 100 of the 708: 12 no longer exist (deleted or merged); of the 88 returned, 77 are still BOUN-affiliated but most are no longer typed `article` (conference-paper 52, editorial 4, preprint 5, review 3, book-chapter 3, book-review 3, erratum 3, conference-abstract 2, letter 1, retraction 1; article 11). So `boun.csv` holds conference papers but also editorials, errata and a retraction notice as "researcher papers".
+- **Abstracts.** Missing in 1,235 of 5,336 English works (76.9% coverage), against 1,605 of 4,608 in `boun.csv` (65.2%). On the 3,895 common works, 381 abstracts were recovered and 15 lost.
+- **Other checks.** Topics present on 100.0% and keywords on 99.9% of English works; 47 common works changed date; 10 duplicate DOIs and 34 duplicate normalized titles; 2 retracted works.
