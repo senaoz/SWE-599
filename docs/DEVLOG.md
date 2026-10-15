@@ -728,3 +728,9 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 ### 2026-10-15 — Correction
 
 - "BOUN data rebuilt and audited": OpenAlex spend was about **$0.015**, not $0.016 (the rate-limit header showed $0.9853 of the $1 daily budget left after all list calls; single-work calls were $0).
+
+### 2026-10-15 — BOUN researcher names, README, MTPLX stopped
+
+- **Names.** The 1,072 works with 100+ authors were refetched one by one, this time keeping each BOUN author's display name (`full_authors_named.jsonl`; same 1,072 works and identical BOUN id lists as the first pass; $0, about 23 min). New `research/data/boun/researchers.csv.gz` (id, name, number of works): all 4,639 researchers named, against 1,083 without a name before. The other data files are unchanged in content.
+- **README.** Limitations and next steps updated for the no-human-evaluation decision, the restated app task and the new BOUN data [2e40480].
+- **MTPLX** server on port 38757 stopped (user request); `mtplx stop` did not recognise it, so the process was terminated directly.
