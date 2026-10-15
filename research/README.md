@@ -6,12 +6,12 @@ Citation-based paper recommendation benchmark. Work proceeds in stages: the orig
 research/
 ├── src/          shared library (also imported by backend/, so keep this path)
 ├── v1/           frozen v1 benchmark (git tag v1-results)
-├── audit/        audit of v1, data quality, plan and Phase 5 design
+├── audit/        audit of v1, data quality, BOUN data card, plan and Phase 5 design
 ├── v2/           numbered notebooks 01–12, eval_sets/, runs/, corpus/, runs_corpus/, stats/, figures/
 ├── tests/        unit tests (leakage rules, expansion, reranking)
-├── scripts/      OpenAlex probe, Qwen3-Reranker check, notebook cleanup, model removal
+├── scripts/      OpenAlex probe and BOUN fetch/clean, Qwen3-Reranker check, notebook cleanup, model removal
 ├── archive/      superseded or incomplete experiments
-└── data/         local caches, gitignored
+└── data/         local caches (gitignored), except boun/ (cleaned Boğaziçi works, Git LFS; see audit/BOUN_DATA.md) and cleaned/boun.csv (the app's seed)
 ```
 
 ## Stage 1 — v1 (frozen)
