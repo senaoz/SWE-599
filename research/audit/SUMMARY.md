@@ -47,15 +47,14 @@ Sena Öz · M.S. Software Engineering, Boğaziçi University · SWE 599 · Octob
   - Qwen3-Reranker-4B, a model trained for reranking, fused with the embedding score, raises R-precision 25.1 → 28.3 (Holm p = 0.040) and nDCG@10 0.340 → 0.360 (not significant after Holm).
 
 **Limitations.**
-- Citation is a proxy for relevance; there are no human judgments yet.
+- Citation is a proxy for relevance, and the project collects no human judgments.
 - Concept-matched negatives often share only a broad field label.
 - One small general LLM (Llama 3.2 3B) and, in Phase 5, one trained reranker (Qwen3-Reranker-4B) were tested.
 - Pretraining contamination could not be tested (one test query after Llama's cutoff; Qwen3-Reranker-4B postdates all queries).
 - About 6% of OpenAlex abstracts are not real abstracts. Results are unchanged without them.
 
 **Next steps.**
-- **Graded relevance from citation intent, with a small human-judgment study** (how often does the citation proxy agree with researchers?).
-- **Researcher-level evaluation on the app's own task** (Boğaziçi researchers, time split), including the deployed stage 2 and Qwen3-Reranker-4B.
-- **A trust study** on how researchers use LLM vs similarity-based recommendations, using the deployed system's feedback.
+- **Evaluation on the app's own task:** for a new paper from a followed institution, which Boğaziçi researchers work on its topic. The Boğaziçi data were refetched and cleaned for this (`research/audit/BOUN_DATA.md`); the evaluation design is open.
+- **The deployed system's feedback** (thumbs-up/down per paper–researcher pair), related to offline scores when a database dump is available. No new human study is planned.
 
 *Details:* `research/audit/BEFORE_AFTER.md` (v1 vs v2), `research/audit/AUDIT.md`, `research/audit/PHASE5_DESIGN.md`, `research/v2/` (notebooks, statistics, figures), `docs/DEVLOG.md` (dated log).
