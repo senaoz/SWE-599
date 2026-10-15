@@ -208,7 +208,7 @@ v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes
 
 ## Limitations
 
-- **Citation is a proxy for relevance.** Researchers may find uncited papers relevant and cited ones irrelevant. There are no human relevance judgments yet.
+- **Citation is a proxy for relevance.** Researchers may find uncited papers relevant and cited ones irrelevant. The project does not collect human relevance judgments.
 - **v2 negatives are not same-topic hard negatives.** The `concept` match often rests on a broad field label such as "Medicine". Phase 5 ranks against a full corpus built from the queries' topical neighbourhoods instead.
 - **Few rerankers.** The LLM results are for Llama 3.2 3B (Q4_K_M). Phase 5 adds one retrieval-tuned model, Qwen3-Reranker-4B; larger general LLMs were not tested.
 - **Pretraining contamination is untested.** Only one test query was published after Llama 3.2's December 2023 knowledge cutoff. Qwen3-Reranker-4B (2025) postdates every query.
@@ -223,14 +223,11 @@ v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes
 
 Planned in [`research/audit/TODO.md`](research/audit/TODO.md), with the motivation in [`IMPROVEMENT_IDEAS.md`](research/audit/IMPROVEMENT_IDEAS.md):
 
-1. **Better relevance labels.**
-   - Graded labels from citation intent and influence instead of "cited = relevant".
-   - Same-topic hard negatives.
-   - Pooled human judgments for 20–30 queries, to measure how well the citation proxy agrees with researchers.
-2. **Researcher-level evaluation on BOUN data.** The app's real task: are the external papers a Boğaziçi researcher later cites ranked near the top for them? This uses a time split, and the deployed pointwise stage 2 is compared with stage 1 alone and with Qwen3-Reranker (Phase 6B).
-3. **Human-centered evaluation.** The deployed system already records thumbs-up/down feedback on each paper–researcher match. The questions:
-   - does offline ranking quality predict what researchers find useful?
-   - how do researchers judge and trust LLM-produced recommendations compared with similarity scores?
+1. **Evaluation on the app's own task.** Under each new paper from a followed institution, the app lists the Boğaziçi researchers who work on its topic, so relevance means topical expertise. Citation labels ("the researcher later cited it") do not measure this, and the citation-based design of Phase 6B is paused.
+   - The Boğaziçi data were refetched from OpenAlex and cleaned for this: 7,822 works of all research types, full author lists for large collaborations, and text for 84.2% of works ([BOUN_DATA.md](research/audit/BOUN_DATA.md)).
+   - The evaluation design is open.
+2. **Benchmark labels.** Same-topic hard negatives. Graded labels from citation intent are deprioritized, since the app needs topical labels rather than better citation labels.
+3. **The deployed system's feedback.** The app records thumbs-up/down on each paper–researcher match; relating it to offline scores needs a database dump. No new human study is planned.
 
 ---
 
