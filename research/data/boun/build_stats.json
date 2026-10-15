@@ -2,8 +2,9 @@
   "fetched": 8287,
   "research_types": 7985,
   "after_dedup": 7822,
+  "suspect_large_works": 6,
   "merged_duplicates": 163,
   "researchers_without_name": 0,
-  "researchers": 4639,
-  "researcher_work_rows": 18597
+  "researchers": 3648,
+  "researcher_work_rows": 17198
 }
