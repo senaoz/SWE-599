@@ -74,7 +74,7 @@ def main() -> None:
         f"works have an earlier preprint or version). Result: **{len(df):,} works**.",
         "- **Language:** decided from title and abstract by stopword counts (`src.boun_data.language_flag`); the OpenAlex "
         "`language` tag is not used because it is unreliable (e.g. English ATLAS papers tagged `lv`). "
-        "All 324 OpenAlex-`tr` records were reviewed by hand against the rule.",
+        f"All {sum(w.get('language') == 'tr' for w in raw):,} OpenAlex-`tr` records were reviewed by hand against the rule.",
         "",
         table(df["language_flag"].value_counts().to_dict(), ("Language flag", "Works")),
         "",
