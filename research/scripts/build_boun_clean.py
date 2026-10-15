@@ -28,6 +28,7 @@ from data_quality import STRONG, WEAK  # noqa: E402
 from src.boun_data import build_clean  # noqa: E402
 
 CACHE = RESEARCH / "data" / "v2" / "boun"
+GZ = {"method": "gzip", "mtime": 0}
 OUT = RESEARCH / "data" / "boun"
 
 
@@ -48,19 +49,20 @@ def main() -> None:
     full = {r["id"]: r["boun_author_ids"] for r in full_rows}
     rows, stats = build_clean(works, external_abstracts(), {**STRONG, **WEAK}, full)
     OUT.mkdir(parents=True, exist_ok=True)
-    with (CACHE / "works_all.jsonl").open("rb") as src, gzip.open(OUT / "works_openalex.jsonl.gz", "wb") as dst:
+    with (CACHE / "works_all.jsonl").open("rb") as src, \
+            gzip.GzipFile(OUT / "works_openalex.jsonl.gz", "wb", mtime=0) as dst:  # mtime=0: reproducible bytes
         shutil.copyfileobj(src, dst)
 
     df = pd.DataFrame(rows)
     list_cols = ["topics", "keywords", "concepts", "boun_author_ids", "author_ids", "duplicate_ids", "dq_strong", "dq_weak"]
     for c in list_cols:
         df[c] = df[c].map(json.dumps)
-    df.drop(columns=["abstract_external"]).to_csv(OUT / "boun_works.csv.gz", index=False)
+    df.drop(columns=["abstract_external"]).to_csv(OUT / "boun_works.csv.gz", index=False, compression=GZ)
     df[["id", "abstract_external", "abstract_source"]].query("abstract_external != ''").to_json(
         CACHE / "external_abstracts_clean.jsonl", orient="records", lines=True)
 
     pairs = [(a, r["id"]) for r in rows for a in r["boun_author_ids"]]
-    pd.DataFrame(pairs, columns=["researcher_id", "work_id"]).to_csv(OUT / "researcher_works.csv.gz", index=False)
+    pd.DataFrame(pairs, columns=["researcher_id", "work_id"]).to_csv(OUT / "researcher_works.csv.gz", index=False, compression=GZ)
 
     names = {}
     for w in works:  # list records: the first 100 authors
@@ -73,7 +75,7 @@ def main() -> None:
     n_works = pd.Series([a for a, _ in pairs]).value_counts()
     researchers = pd.DataFrame({"researcher_id": n_works.index, "display_name": [names.get(i, "") for i in n_works.index],
                                 "n_works": n_works.values}).sort_values("researcher_id")
-    researchers.to_csv(OUT / "researchers.csv.gz", index=False)
+    researchers.to_csv(OUT / "researchers.csv.gz", index=False, compression=GZ)
     stats["researchers_without_name"] = int((researchers["display_name"] == "").sum())
     stats.update({"researchers": len({a for a, _ in pairs}), "researcher_work_rows": len(pairs)})
     (OUT / "build_stats.json").write_text(json.dumps(stats, indent=2) + "\n")
