@@ -646,3 +646,99 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   - 2026-10-12 "Fallback citer search and the co-citation graph": 23 query duplicates once the manual list of Checkpoint A is included (20 before).
   - First-stage MRR of Qwen3 is 0.609 over the full candidate ranking (notebook 09) and 0.608 within the top-100 list (notebooks 11–12). The two are computed over different lists.
 - **Left as is (intentional overlap):** the README findings vs SUMMARY, the README results vs BEFORE_AFTER, and dated status notes that repeat DEVLOG facts.
+
+### 2026-10-14 — PR #3 merged into `main` [73b07d3]
+
+- **What.** Branch `v2-phase5` (PR senaoz/SWE-599#3, 56 commits) was merged into `main` with a merge commit, `73b07d3`.
+- **Why a merge commit.** As for PR #1: this log cites individual commit hashes, which a squash merge would orphan.
+- **State after the merge.** Phase 5 notebooks 07–12, `src/corpus.py`, `cograph.py`, `retrieval.py`, `expansion.py`, `rerank.py` and the 22 unit tests are on `main`. Open work: Phase 6B (next), Phase 4 and Phase 6 in `research/audit/TODO.md`.
+
+### 2026-10-14 — MTPLX (Qwen3.8-27B) as a candidate stage-2 model for the app: setup and smoke test
+
+- **What.** The user chose to replace the app's stage-2 Llama 3.2 3B with MTPLX serving `Youssofal/Qwen3.8-27B-MTPLX-Optimized-Speed-FP16`. Stage 1 keeps Ollama `qwen3:embedding`. No `backend/` code is changed yet.
+- **Server.** `mtplx serve` on `127.0.0.1:38757` (bound to localhost; port picked at random below the macOS ephemeral range), with an API key. The key lives in the macOS Keychain (`mtplx-api-key`) and in a mode-600 key file for the server; the server log is mode 600 because MTPLX prints the key at start-up. The first key was printed to the session once, so it was rotated before any test.
+- **Memory.** The MTPLX desktop app had started its own server on port 8000 with the same 19.3 GiB model; with both loaded, requests were refused with HTTP 507 (2.8 GiB free, swap 17.7 of 18.4 GB). The port-8000 server was stopped (user decision).
+- **Smoke test** (scratch scripts, not a benchmark): the app's prompt and parsing copied verbatim from `_llm_generate`, sent as one user message to `/v1/chat/completions`.
+  - 10 true pairs (a BOUN researcher and a cached external work they later cited; context = their 5 most TF-IDF-similar papers published before the citing paper) and 10 random-researcher pairs on the same works.
+  - Thinking off: 0 of 20 answers were `RELEVANT`, so the app would drop every researcher. Median 6.9 s per call.
+  - Thinking on: 3 of 10 true pairs and 0 of 10 random pairs were `RELEVANT` (all at 0.45). Median 31.1 s per call; the reasoning goes to a separate field and the answer line stays parseable.
+  - On 20 other pairs (Phase 5 works with TF-IDF-close or random researchers) with thinking off, 5 of 20 answers started with prose instead of the verdict; the app's parser maps those to 0.0.
+  - The number after `IRRELEVANT` still ranks: mean 0.135 on true vs 0.045 on random pairs (thinking off), but the app discards it.
+- **Implication.** With the current prompt and parser, the 27B model would act as a near-total filter. Any switch needs a prompt/parser change and must be evaluated in Phase 6B before deployment; 20 pairs are a smoke test, not evidence.
+
+### 2026-10-14 — App stage 2 moved to MTPLX with a score-only prompt (branch `app-mtplx-stage2`) [e8b9cca, d926d4c, 02a8429, fc54e0a]
+
+- **What.** Stage 2 of the app calls Qwen3.8-27B on the local MTPLX server (`127.0.0.1:38757`, OpenAI `/v1/chat/completions`, temperature 0, thinking off by default) through a new `backend/services/llm.py`. Stage 1 is unchanged (Ollama `qwen3:embedding`).
+- **Why.** The smoke test with the old prompt (entry "MTPLX (Qwen3.8-27B) as a candidate stage-2 model", on branch `v2-phase6b`) showed the old `RELEVANT/IRRELEVANT` prompt plus first-token parser would drop nearly every researcher.
+- **Changes.**
+  - Prompt asks for one number in [0, 1], with no example value.
+  - Parser drops `<think>` blocks and accepts only a single number in [0, 1] on the last line; otherwise the Stage 1 score is kept and the reply is logged. 20 unit tests in `backend/tests/test_llm.py`.
+  - The cosine `MATCH_THRESHOLD` no longer applies to LLM scores; `LLM_MIN_SCORE` (default 0.0) is the LLM's own cut-off, to be tuned in Phase 6B.
+  - Matches are labelled `qwen+<LLM model id>` instead of `qwen+llama`.
+- **Check** (same 20 pairs as the smoke test, through `score_researcher`, thinking off): 20 of 20 replies parsed. True pairs scored 0.2 (5), 0.1 (1) and 0.0 (4); random pairs all 0.0. Within a pair, the true researcher scored higher in 6 of 10 and tied in 4. Median 7.75 s per call. Scores are coarse (only 0, 0.1, 0.2 seen), so many ties; this is a smoke test, not an evaluation.
+
+### 2026-10-14 — Stage-2 prompt variants on MTPLX (scratch experiment, not a benchmark)
+
+- **Pairs.** 159 cached works from 2018 on that a BOUN researcher cited (Phase 5 caches, no new fetch). For each work: the earliest citing researcher (context = their 5 most TF-IDF-similar papers published before the citing paper) and a hard negative (the non-citer with the highest TF-IDF match, same date cut-off). Split by sha256 of the work id, 30 dev and 30 holdout works, fixed before any run. The 60 work ids are in `research/audit/prompt_dev_works.json` and must be excluded from the Phase 6B test set.
+- **Variants** (thinking off, temperature 0): P0 the current score-only prompt; P1 a 0–100 rubric with a "method, tool or dataset" band and a no-abstract note; P2 P1 with longer text (1,500 / 400 characters instead of 400 / 200).
+- **Metric.** Share of pairs where the citer scores above the hard negative (ties count 0.5); 95% bootstrap CIs over works; paired Wilcoxon.
+- **Dev** (30 pairs): P0 0.533 [0.400, 0.667], P1 0.600 [0.467, 0.717], P2 0.567 [0.433, 0.683]. P1 − P0 +0.067 [−0.033, +0.167], Wilcoxon p = 0.2059032107320683; P2 − P0 +0.033 [−0.083, +0.150], p = 0.5637028616507731. P1 was chosen on dev.
+- **Holdout** (30 pairs, run once): P0 0.617 [0.467, 0.750], P1 0.683 [0.533, 0.833]; P1 − P0 +0.067 [+0.000, +0.150], 6 pairs differ, Wilcoxon p = 0.10247043485974945. Not significant.
+- **Score scale.** All 120 dev replies and all 120 holdout replies parsed. P1 replies cluster on band values (dev citers: 0 ×8, 25 ×12, 45 ×8, 35 ×1, 65 ×1), so ties stay common (14 of 30 dev pairs) and most cited works are rated "same broad field, different topic".
+- **Reference.** The TF-IDF stage-1 proxy ranks the citer above the negative in 4 of 30 dev and 5 of 30 holdout pairs, but the negatives were chosen to be TF-IDF's hardest, so this is not a fair comparison.
+- **Speed.** Median 7.6–8.9 s per call on dev and 3.6–4.4 s on holdout (less memory pressure later in the run).
+
+### 2026-10-14 — Findings from the MTPLX stage-2 work, and a change of direction
+
+- **Findings** (details in the three entries above):
+  1. The app's old `RELEVANT/IRRELEVANT` prompt with its first-token parser would drop nearly every researcher on Qwen3.8-27B; with thinking off, some replies also open with prose and are silently mapped to 0.
+  2. A score-only prompt and a strict parser fix the parsing (240 of 240 replies parsed), but scores stay low and coarse (band values such as 0, 25, 45 on a 0–100 rubric).
+  3. Prompt changes give small, non-significant gains: P1 − P0 +0.067 on both dev and holdout (holdout CI [+0.000, +0.150], Wilcoxon p = 0.10247043485974945); longer text did not help.
+  4. Under the rubric, most citers of a work rate it "same broad field, different topic". Citation labels and topical relevance diverge: people cite methods, tools and background as well as topical work.
+  5. The read path filters matches with the cosine `MATCH_THRESHOLD` (`backend/routers/papers.py`, `min_score` default 0.3), so LLM-scale scores would hide every new match in the feed. Branch `app-mtplx-stage2` must not be merged as is.
+  6. Cost: 3.6–8.9 s per call with thinking off, about 31 s with thinking on, against about 0.35 s for Llama 3.2 3B.
+- **Decision (user, 2026-10-14).** Do not dig further into the citation-vs-topical-relevance gap (e.g. citation intents or graded citation labels as the fix). Explore alternative ways to evaluate and design the app's matching instead. Backend changes on `app-mtplx-stage2` are on hold; the Phase 6B design (citation-based positives) is paused pending this discussion.
+
+### 2026-10-15 — The app's task, restated (user correction)
+
+- **Task.** A logged-in user sees recent papers from the institutions they follow; under each paper the app lists BOUN researchers, with their matching papers. Relevance means "this BOUN researcher works on what this paper is about" (topical expertise). It is not "the researcher would cite it" (citation labels; Idea F / Phase 6B as first written) and not "the researcher wrote it" (the authorship-based expert-finding idea of 2026-10-14, which used BOUN papers as queries and was dropped).
+- **Feedback matches this unit.** `paper_feedback` stores `is_relevant` per (user, paper, researcher), i.e. a judgment on exactly one listed researcher under one paper.
+- **Data check.** `boun.csv` has 311 papers with a co-author from the v1 followed-institution list (lineage ids in `v1/01`), 162 of them from 2023 on.
+
+### 2026-10-15 — BOUN works refetched from OpenAlex (`research/scripts/fetch_boun_openalex.py`)
+
+- **What.** All works matching the v1 filter (`authorships.institutions.lineage:i4405392, type:article, publication_year:2020-`), cursor-paged into `research/data/v2/boun/works.jsonl` (gitignored), with topics and keywords added to the fields. 1 count call + 61 list calls (about $0.006) and 1 diagnostic call. `research/data/cleaned/boun.csv`, which the app seeds from, is unchanged.
+- **Size.** 6,001 works (count call: 6,001), dates up to 2026-10-14. Language tags: en 5,336, tr 293, lv 231, none 114, other 27.
+- **Language tags are unreliable.** The `lv` records are English ATLAS papers (e.g. "Combined measurements of Higgs boson production and decay…"); filtering on `language == "en"` would drop them.
+- **Against `boun.csv`** (English subset, 5,336 works): 3,895 works in both, 1,441 only in the refetch, 713 only in `boun.csv` (708 of them absent from the refetch, 5 now tagged non-English).
+- **Why works disappeared.** A probe of 100 of the 708: 12 no longer exist (deleted or merged); of the 88 returned, 77 are still BOUN-affiliated but most are no longer typed `article` (conference-paper 52, editorial 4, preprint 5, review 3, book-chapter 3, book-review 3, erratum 3, conference-abstract 2, letter 1, retraction 1; article 11). So `boun.csv` holds conference papers but also editorials, errata and a retraction notice as "researcher papers".
+- **Abstracts.** Missing in 1,235 of 5,336 English works (76.9% coverage), against 1,605 of 4,608 in `boun.csv` (65.2%). On the 3,895 common works, 381 abstracts were recovered and 15 lost.
+- **Other checks.** Topics present on 100.0% and keywords on 99.9% of English works; 47 common works changed date; 10 duplicate DOIs and 34 duplicate normalized titles; 2 retracted works.
+
+### 2026-10-15 — BOUN data rebuilt and audited (TODO 6B.1) [d4258c0, 3838637, 4367ce4, 58f9bb6, de90395, fbdf76d, 9d9ab7c, 173619a, 273a426]
+
+- **Decisions (user, 2026-10-15).** Keep work types broad (research outputs, not only articles); do not use the OpenAlex language tag; try Crossref and Semantic Scholar for missing abstracts if free; **no human evaluation in the project** (TODO 4.5, 6.2–6.3 dropped); make the BOUN data pushable.
+- **Fetch.** All BOUN works from 2020 on, every type: 8,287 records (count call by type, then 83 list calls). List records stop at 100 authorships, so the 1,072 such records were refetched one by one (single-work calls cost $0 per the response headers; about 23 min); 1,064 of them have BOUN authors, 7,400 BOUN authorships in total. OpenAlex spend today about $0.016.
+- **Language.** A stopword rule on title and abstract (`src/boun_data.language_flag`) replaces the OpenAlex tag. All 324 OpenAlex-`tr` records were reviewed by hand: 229 Turkish, 57 bilingual, 33 English, 4 other, 1 empty. The rule was fixed twice during review (Turkish-only letters for all-caps titles; a Romance-language class, since "de"/"da" are not only Turkish).
+- **Abstracts.** 1,868 DOIs without an OpenAlex abstract: Crossref returned 115 abstracts (public pool, 1 request/s), Semantic Scholar 503 (anonymous batch endpoint, after 429 back-off); 606 distinct works in total. Their text stays in the gitignored cache because publisher copyright may apply and the repository is public; only `abstract_source` is committed.
+- **Clean table** (`research/data/boun/`, Git LFS): 7,985 research-type records, 163 merged as duplicates (mostly preprint/published pairs; 8 sampled groups checked by hand), **7,822 works**; text for 6,585 (84.2%); 4,639 BOUN author ids and 18,597 researcher–work rows; 1,302 researchers have only 100+-author works. Data card: `research/audit/BOUN_DATA.md` (all numbers generated by `research/audit/boun_data_report.py`).
+- **Against `boun.csv`.** 4,456 works in both, 152 only in `boun.csv` (97 no longer returned by the BOUN filter, 55 dropped as non-research types), 3,529 only in the new data. `boun.csv` cuts author lists at 100 (223 records). The app still seeds from `boun.csv`.
+- **Docs.** `TODO.md` (6B.1 done; 6B paused; 4.5, 6.2–6.3 dropped), `IMPROVEMENT_IDEAS.md` (Idea F update; the stage-2 context is 5 papers, not 3), `SUMMARY.md` (limitations, next steps), `research/README.md` (tree), `APP_NOTES.md` (seed data issues).
+
+### 2026-10-15 — Correction
+
+- "BOUN data rebuilt and audited": OpenAlex spend was about **$0.015**, not $0.016 (the rate-limit header showed $0.9853 of the $1 daily budget left after all list calls; single-work calls were $0).
+
+### 2026-10-15 — BOUN researcher names, README, MTPLX stopped
+
+- **Names.** The 1,072 works with 100+ authors were refetched one by one, this time keeping each BOUN author's display name (`full_authors_named.jsonl`; same 1,072 works and identical BOUN id lists as the first pass; $0, about 23 min). New `research/data/boun/researchers.csv.gz` (id, name, number of works): all 4,639 researchers named, against 1,083 without a name before. The other data files are unchanged in content.
+- **README.** Limitations and next steps updated for the no-human-evaluation decision, the restated app task and the new BOUN data [2e40480].
+- **MTPLX** server on port 38757 stopped (user request); `mtplx stop` did not recognise it, so the process was terminated directly.
+
+### 2026-10-15 — Notebook 13 and a BOUN attribution fix (`v2/13_boun_data.ipynb`)
+
+- **What.** Exploration notebook for the cleaned BOUN data (pandas; overview, researchers, a `profile()` helper, attribution checks, quality flags), run with papermill.
+- **Finding 1: misattributed collaborations.** 6 large works (2 ATLAS, 4 BESIII; 491–2,881 authors) list 77–370 BOUN authors each, against a median of 6 per large work: OpenAlex attached the BOUN affiliation string to the wrong authors. The build now keeps a BOUN author on such a work (more than 20 BOUN authors) only if another work confirms them (`boun_attribution_suspect`). 12 of 1,003 were confirmed; **991 researchers were dropped**. Corrects the "BOUN data rebuilt and audited" and "BOUN researcher names" entries: researchers 4,639 → **3,648**, researcher–work rows 18,597 → **17,198**, collaboration-only researchers 1,302 → **311**. Works are unchanged (7,822).
+- **Finding 2: raw-affiliation check.** BOUN addresses appear with HTML entities (`Bo&#x011F;azi&#x00E7;i`) and PDF splits (`Bogazic ¸i`); `src.boun_data.names_boun` normalises them. Then 78 of 12,008 small-work BOUN authorships (0.65%) do not recognisably name Boğaziçi (34 researchers rest only on them): a mix of mangled spellings and real OpenAlex errors (e.g. a Koç University address). Kept, not filtered. The first version of this check (483 authorships, 107 researchers, reported in chat) was wrong for the encoding reason.
+- **Finding 3.** OpenAlex splits some people into two author ids (e.g. "Ismail Okan Atakisi", 214 works, and "I. O. Atakisi", 213).
+- **Tests.** 27 pass (2 new: encodings, suspect collaborations).

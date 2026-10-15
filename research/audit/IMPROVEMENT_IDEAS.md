@@ -92,6 +92,7 @@ intent (SciCite, ACL-ARC) and influential vs incidental citations (3C shared tas
 4. **Human validation subset.** 20–30 queries judged by researchers (the deployed system's
    thumbs-up/down data can help). Measure agreement between the citation proxy and human judgments.
    This agreement number is a finding in itself.
+   *(Dropped 2026-10-15: the project will have no human evaluation.)*
 5. **LLM-as-judge only if validated.** If an LLM is used to label at scale, report its agreement
    with the human subset first. (Same concern as GRIT's TQE benchmark, where the same model
    generated and validated the queries.)
@@ -193,7 +194,7 @@ The deployed system already logs thumbs-up/down feedback.
 **How the app uses BOUN data** (`backend/services/seeder.py`):
 - BOUN-affiliated authors (`I4405392`) are extracted from `research/data/cleaned/boun.csv` (4,608 papers, 2020+, English). This gives 2,671 researchers and 7,803 researcher–paper rows, the "~7,800 BOUN paper embeddings" in the README.
 - Stage 1 matches a new paper against those embeddings and groups the scores by researcher.
-- Stage 2 gives Llama the new paper plus the researcher's 3 most similar BOUN papers and scores each researcher **pointwise**.
+- Stage 2 gives Llama the new paper plus the researcher's 5 most similar BOUN papers (`RAG_CONTEXT_PAPERS`) and scores each researcher **pointwise**.
 
 v2's results are therefore strong evidence about the app, but not a direct test of it. `APP_NOTES.md` already notes that the deployed stage 2 is untested.
 
@@ -205,6 +206,10 @@ Elsewhere, BOUN data appears only in v1 exploratory checks:
 **`boun.csv` was never audited.** The F6 label/position bug likely does not apply, because the backend reads the file row by row. Two checks already show that the v2 data-quality issues are likely present:
 - **1,605 of the 4,608 rows have no abstract.** The app embeds those papers from title and concepts only.
 - Non-abstract "abstracts" (about 6% in v2) and duplicate OpenAlex records are still to be checked.
+
+> **Update (2026-10-15).** Audited by a full refetch; see `BOUN_DATA.md`. `boun.csv` also holds non-research types (errata, editorials), lacks conference papers, preprints and book chapters, and cuts author lists at 100 (223 records). The cleaned data in `research/data/boun/` has 7,822 works with text for 84.2%.
+>
+> **Task restated (2026-10-15).** The app lists, under each new followed-institution paper, the BOUN researchers who work on its topic. Relevance is topical expertise. The citation-based task below ("papers a researcher later cites") does not match it and is paused; see `docs/DEVLOG.md`.
 
 **Task.** For a BOUN researcher, are the external (followed-institution) papers that they later actually cite ranked near the top when recommended to them? This is the app's real task, and citations label it automatically.
 
@@ -257,4 +262,4 @@ Elsewhere, BOUN data appears only in v1 exploratory checks:
 >
 > - "I audited my LLM-reranking benchmark and found that its headline result, a 3B LLM reranker beating embedding retrieval (MRR 0.84 vs 0.51), was an evaluation artifact. Candidates were always shown positives-first, and positive candidates even carried the wrong papers' text. With a controlled protocol (shuffled candidates, identical inputs, dev/test split, 5 seeds), the LLM ranks last of 13 methods: 44% R-precision vs 87% for Qwen3 embeddings. Changing only the candidate order moves its MRR from 0.95 to 0.33."
 > - "On fixed candidate pools, stage-1 recall at k=20 is 99% (Qwen3), and LLM reranking of the top 10 *lowers* R-precision by 13 points. Over a full 12k-paper corpus, recall@20 drops to 41% and recall@100 to 64%. A leakage-controlled co-citation expansion recovers only 6% of the missed references (+0.8 recall@100, not significant), while its canary shows +5.8 when the answer key leaks in. End to end, a small general LLM halves nDCG@10, and only a trained reranker (Qwen3-Reranker-4B, fused) helps: R-precision 25% → 28%." *(Filled 2026-10-14 from notebooks 09–12. The original sentence assumed the expansion would lift end-to-end MRR; it does not.)*
-> - "Citation-proxy labels agree with researcher judgments on TBD of pairs, which motivates graded, context-aware relevance labels." *(Needs Phase 4.5.)*
+> - "Citation-proxy labels agree with researcher judgments on TBD of pairs, which motivates graded, context-aware relevance labels." *(Needs Phase 4.5, which was dropped on 2026-10-15; this sentence will not be filled.)*
