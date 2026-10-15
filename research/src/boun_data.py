@@ -119,6 +119,7 @@ def build_clean(works: list[dict], external: dict[str, tuple[str, str]], dq_flag
             "cited_by_count": w.get("cited_by_count") or 0,
             "is_retracted": bool(w.get("is_retracted")),
             "authors_truncated": len(w.get("authorships") or []) >= 100 and w["id"] not in (full_authors or {}),
+            "large_collaboration": len(w.get("authorships") or []) >= 100,  # 100+ authors (e.g. ATLAS, CMS)
         }
         r = recs[w["id"]]
         r["abstract_source"] = "openalex" if ab else (ext_src if r["abstract_external"] else "none")
