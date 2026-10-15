@@ -87,6 +87,9 @@ def main() -> None:
         f"works per researcher: median {per_researcher.median():.0f}, "
         f"{(per_researcher >= 2).sum():,} researchers with at least 2 works, {(per_researcher >= 5).sum():,} with at least 5. "
         f"Names are in `researchers.csv.gz` ({int((people['display_name'] != '').sum()):,} of {len(people):,} named).",
+        f"- **Misattributed collaborations:** {stats['suspect_large_works']:,} large works list more than "
+        "20 BOUN authors (OpenAlex attached the BOUN affiliation to the wrong authors; real groups have a median of 6 per "
+        "paper). On these works only BOUN authors confirmed by another work are kept (`boun_attribution_suspect`).",
         f"- **Large collaborations** (100+ authors): {int(df['large_collaboration'].sum()):,} works; "
         f"{collab_only:,} researchers have only such works, so their profile is collaboration papers alone.",
         f"- **Works with no attributable BOUN author:** {int((df['boun_author_ids'].str.len() == 0).sum()):,} "
