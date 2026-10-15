@@ -710,3 +710,14 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Score scale.** All 120 dev replies and all 120 holdout replies parsed. P1 replies cluster on band values (dev citers: 0 ×8, 25 ×12, 45 ×8, 35 ×1, 65 ×1), so ties stay common (14 of 30 dev pairs) and most cited works are rated "same broad field, different topic".
 - **Reference.** The TF-IDF stage-1 proxy ranks the citer above the negative in 4 of 30 dev and 5 of 30 holdout pairs, but the negatives were chosen to be TF-IDF's hardest, so this is not a fair comparison.
 - **Speed.** Median 7.6–8.9 s per call on dev and 3.6–4.4 s on holdout (less memory pressure later in the run).
+
+### 2026-10-14 — Findings from the MTPLX stage-2 work, and a change of direction
+
+- **Findings** (details in the three entries above):
+  1. The app's old `RELEVANT/IRRELEVANT` prompt with its first-token parser would drop nearly every researcher on Qwen3.8-27B; with thinking off, some replies also open with prose and are silently mapped to 0.
+  2. A score-only prompt and a strict parser fix the parsing (240 of 240 replies parsed), but scores stay low and coarse (band values such as 0, 25, 45 on a 0–100 rubric).
+  3. Prompt changes give small, non-significant gains: P1 − P0 +0.067 on both dev and holdout (holdout CI [+0.000, +0.150], Wilcoxon p = 0.10247043485974945); longer text did not help.
+  4. Under the rubric, most citers of a work rate it "same broad field, different topic". Citation labels and topical relevance diverge: people cite methods, tools and background as well as topical work.
+  5. The read path filters matches with the cosine `MATCH_THRESHOLD` (`backend/routers/papers.py`, `min_score` default 0.3), so LLM-scale scores would hide every new match in the feed. Branch `app-mtplx-stage2` must not be merged as is.
+  6. Cost: 3.6–8.9 s per call with thinking off, about 31 s with thinking on, against about 0.35 s for Llama 3.2 3B.
+- **Decision (user, 2026-10-14).** Do not dig further into the citation-vs-topical-relevance gap (e.g. citation intents or graded citation labels as the fix). Explore alternative ways to evaluate and design the app's matching instead. Backend changes on `app-mtplx-stage2` are on hold; the Phase 6B design (citation-based positives) is paused pending this discussion.
