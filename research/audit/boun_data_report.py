@@ -31,6 +31,7 @@ def main() -> None:
     for c in ("dq_strong", "dq_weak", "boun_author_ids", "duplicate_ids"):
         df[c] = df[c].map(json.loads)
     rw = pd.read_csv(DATA / "researcher_works.csv.gz")
+    people = pd.read_csv(DATA / "researchers.csv.gz", keep_default_na=False)
     stats = json.loads((DATA / "build_stats.json").read_text())
     old = pd.read_csv(RESEARCH / "data" / "cleaned" / "boun.csv", low_memory=False, usecols=["id", "abstract"])
 
@@ -84,7 +85,8 @@ def main() -> None:
         "",
         f"- **Researchers:** {rw['researcher_id'].nunique():,} BOUN author ids, {len(rw):,} researcher–work rows; "
         f"works per researcher: median {per_researcher.median():.0f}, "
-        f"{(per_researcher >= 2).sum():,} researchers with at least 2 works, {(per_researcher >= 5).sum():,} with at least 5.",
+        f"{(per_researcher >= 2).sum():,} researchers with at least 2 works, {(per_researcher >= 5).sum():,} with at least 5. "
+        f"Names are in `researchers.csv.gz` ({int((people['display_name'] != '').sum()):,} of {len(people):,} named).",
         f"- **Large collaborations** (100+ authors): {int(df['large_collaboration'].sum()):,} works; "
         f"{collab_only:,} researchers have only such works, so their profile is collaboration papers alone.",
         f"- **Works with no attributable BOUN author:** {int((df['boun_author_ids'].str.len() == 0).sum()):,} "
