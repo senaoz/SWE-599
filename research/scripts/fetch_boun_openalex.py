@@ -1,6 +1,6 @@
 """Refetch BOUN works from OpenAlex into research/data/v2/boun/ (gitignored).
 
-Same filter as v1/01 (BOUN lineage, articles, 2020+); language is filtered later.
+Filter: BOUN lineage, 2020+, all work types (types and language are filtered later).
 `boun.csv` is left untouched.
 
     OPENALEX_API_KEY=... .venv/bin/python scripts/fetch_boun_openalex.py count
@@ -18,21 +18,21 @@ sys.path.insert(0, str(RESEARCH))
 from src.openalex import request  # noqa: E402
 
 OUT = RESEARCH / "data" / "v2" / "boun"
-FILTER = "authorships.institutions.lineage:i4405392,type:article,publication_year:2020-"
+FILTER = "authorships.institutions.lineage:i4405392,publication_year:2020-"
 SELECT = ("id,doi,ids,title,publication_date,publication_year,language,type,authorships,"
           "abstract_inverted_index,concepts,topics,primary_topic,keywords,referenced_works,"
           "referenced_works_count,cited_by_count,is_retracted,is_paratext,updated_date")
 
 
-def count() -> int:
-    data, _ = request({"filter": FILTER, "per_page": 1, "select": "id"})
-    return data["meta"]["count"]
+def count() -> dict:
+    data, _ = request({"filter": FILTER, "group_by": "type"})
+    return {g["key_display_name"]: g["count"] for g in data["group_by"]}
 
 
 def fetch(sleep: float = 0.2) -> None:
     """Cursor paging, resumable: the next cursor is saved after every page."""
     OUT.mkdir(parents=True, exist_ok=True)
-    works_path, cursor_path = OUT / "works.jsonl", OUT / "cursor.json"
+    works_path, cursor_path = OUT / "works_all.jsonl", OUT / "cursor_all.json"
     seen = set()
     if works_path.exists():
         seen = {json.loads(line)["id"] for line in works_path.open()}
