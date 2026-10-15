@@ -742,3 +742,8 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Finding 2: raw-affiliation check.** BOUN addresses appear with HTML entities (`Bo&#x011F;azi&#x00E7;i`) and PDF splits (`Bogazic ¸i`); `src.boun_data.names_boun` normalises them. Then 78 of 12,008 small-work BOUN authorships (0.65%) do not recognisably name Boğaziçi (34 researchers rest only on them): a mix of mangled spellings and real OpenAlex errors (e.g. a Koç University address). Kept, not filtered. The first version of this check (483 authorships, 107 researchers, reported in chat) was wrong for the encoding reason.
 - **Finding 3.** OpenAlex splits some people into two author ids (e.g. "Ismail Okan Atakisi", 214 works, and "I. O. Atakisi", 213).
 - **Tests.** 27 pass (2 new: encodings, suspect collaborations).
+
+### 2026-10-15 — PR #4 merged into `main` [f802d55]
+
+- **What.** Branch `v2-phase6b` (PR senaoz/SWE-599#4, 37 commits) was merged into `main` with a merge commit, `f802d55`.
+- **State after the merge.** The cleaned BOUN data (`research/data/boun/`, Git LFS), its data card (`research/audit/BOUN_DATA.md`), notebook `v2/13_boun_data.ipynb`, `src/boun_data.py` with tests (27 in total), the restated app task and the no-human-evaluation decision are on `main`. Branch `app-mtplx-stage2` (stage 2 on MTPLX) stays unmerged: its read path still filters matches at the cosine threshold 0.3. Open: an evaluation design for the restated task, with the stage-1 field ablation on the new data.
