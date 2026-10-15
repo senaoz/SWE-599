@@ -49,6 +49,7 @@ Each entry gives the date it was noted, what to do, and why.
 ## BOUN seed data (2026-10-15)
 
 - **`boun.csv` has known problems** (`research/audit/BOUN_DATA.md`). It keeps records OpenAlex now types as errata, editorials and similar non-research works; it misses conference papers, preprints and book chapters; and its author lists stop at 100, so BOUN members of large collaborations beyond the first 100 authors are missing (223 records are cut).
-- **A cleaned replacement exists** in `research/data/boun/` (7,822 works, 4,639 BOUN author ids, duplicates merged, earliest version date kept). Switching the seeder to it is a separate app change; the stage-1 field ablation on the new data should come first.
-- **Profiles of collaboration physicists:** 1,302 researchers have only 100+-author works, so their profile is collaboration papers alone. Worth deciding whether such works should count fully in a profile.
+- **A cleaned replacement exists** in `research/data/boun/` (7,822 works, 3,648 BOUN author ids, duplicates merged, earliest version date kept, misattributed collaboration authors removed). Switching the seeder to it is a separate app change; the stage-1 field ablation on the new data should come first.
+- **Profiles of collaboration physicists:** 311 researchers have only 100+-author works, so their profile is collaboration papers alone. Worth deciding whether such works should count fully in a profile.
+- **OpenAlex affiliation errors.** On 6 ATLAS/BESIII papers OpenAlex marks 77–370 authors as BOUN; 991 people were BOUN only through these. The cleaned data drops them; `boun.csv` predates the full author lists, so it is not affected the same way, but the app should not take BOUN affiliation on 100+-author papers at face value.
 - **Abstracts from Crossref / Semantic Scholar** (591 works) are not in the repository (copyright, public repo). The app would need its own lookup, or must embed those works from title and topics only.
