@@ -65,7 +65,20 @@ STRONG_FLAGS = ("author_list", "citation_string", "boilerplate", "title_like", "
 WEAK_FLAGS = ("short_under_300", "availability_or_url")
 
 
-_BOUN_RAW = re.compile(r"bo[gğ]azi[cç]i|bosphorus univ|bogazici", re.I)
+_BOUN_RAW = re.compile(r"bogazic|bosphorus univ")  # "bogazic" also catches PDF splits like "Bogazic ¸i"
+# More BOUN authors than this on one large-collaboration work means OpenAlex attached the BOUN
+# affiliation string to the wrong authors (real groups are a handful per paper; median 6).
+MAX_BOUN_AUTHORS_PER_LARGE_WORK = 20
+
+
+def names_boun(raw_affiliation: str) -> bool:
+    """True if a raw affiliation string names Boğaziçi University, in any spelling or encoding
+    (e.g. HTML entities 'Bo&#x011F;azi&#x00E7;i', or 'Bog̃aziçi' with a combining tilde)."""
+    import html
+    import unicodedata
+    text = unicodedata.normalize("NFKD", html.unescape(raw_affiliation)).replace("ı", "i")
+    text = "".join(ch for ch in text if not unicodedata.combining(ch)).lower()
+    return bool(_BOUN_RAW.search(text))
 
 
 def boun_author_ids(w: dict) -> list[str]:
@@ -76,7 +89,7 @@ def boun_author_ids(w: dict) -> list[str]:
         aid = (a.get("author") or {}).get("id")
         insts = a.get("institutions") or []
         if aid and (any(BOUN == i.get("id") or BOUN in (i.get("lineage") or []) for i in insts)
-                    or (not insts and any(_BOUN_RAW.search(r) for r in a.get("raw_affiliation_strings") or []))):
+                    or (not insts and any(names_boun(r) for r in a.get("raw_affiliation_strings") or []))):
             out.add(aid)
     return sorted(out)
 
@@ -149,5 +162,14 @@ def build_clean(works: list[dict], external: dict[str, tuple[str, str]], dq_flag
         row["dq_weak"] = [f for f in WEAK_FLAGS if text and dq_flags[f](text)]
         out.append(row)
     stats["after_dedup"] = len(out)
+
+    # Misattributed large collaborations: keep a BOUN author only if another work confirms them.
+    suspect = {r["id"] for r in out if r["large_collaboration"] and len(r["boun_author_ids"]) > MAX_BOUN_AUTHORS_PER_LARGE_WORK}
+    confirmed = {a for r in out if r["id"] not in suspect for a in r["boun_author_ids"]}
+    for r in out:
+        r["boun_attribution_suspect"] = r["id"] in suspect
+        if r["id"] in suspect:
+            r["boun_author_ids"] = [a for a in r["boun_author_ids"] if a in confirmed]
+    stats["suspect_large_works"] = len(suspect)
     stats["merged_duplicates"] = stats["research_types"] - len(out)
     return sorted(out, key=lambda r: r["id"]), stats

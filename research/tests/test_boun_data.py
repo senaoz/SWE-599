@@ -48,7 +48,7 @@ def test_build_clean_merges_versions_and_keeps_external_text_apart():
     external = {"10.1/y": ("s2", "External abstract text")}
     rows, stats = build_clean(works, external, ALWAYS_FALSE)
     by_id = {r["id"]: r for r in rows}
-    assert stats == {"fetched": 4, "research_types": 3, "after_dedup": 2, "merged_duplicates": 1}
+    assert stats == {"fetched": 4, "research_types": 3, "after_dedup": 2, "merged_duplicates": 1, "suspect_large_works": 0}
     # The published version is canonical (W2 has no abstract of its own, so W1 is preferred as the
     # only member with text); either way the group keeps both authors and the earliest date.
     merged = by_id.get("W1") or by_id["W2"]
@@ -57,3 +57,27 @@ def test_build_clean_merges_versions_and_keeps_external_text_apart():
     w4 = by_id["W4"]
     assert w4["abstract"] == "" and w4["abstract_external"] == "External abstract text"
     assert w4["abstract_source"] == "s2"
+
+
+def test_names_boun_handles_encodings():
+    from src.boun_data import names_boun
+    assert names_boun("Bo&#x011F;azi&#x00E7;i University,Istanbul,Turkey")
+    assert names_boun("Department of Mathematics, Bog̃aziçi University, İstanbul")
+    assert names_boun("BOĞAZİÇİ ÜNİVERSİTESİ")
+    assert names_boun("Bosphorus University, Istanbul")
+    assert names_boun("Department of Computer Engineering , Bogazic ¸i University")
+    assert not names_boun("Istanbul Technical University")
+
+
+def test_suspect_large_collaboration_keeps_only_confirmed_authors():
+    from src.boun_data import MAX_BOUN_AUTHORS_PER_LARGE_WORK
+    n = MAX_BOUN_AUTHORS_PER_LARGE_WORK + 5
+    big = {"id": "W1", "title": "A long collaboration paper on particle physics results", "publication_date": "2021-01-01",
+           "publication_year": 2021, "type": "article", "doi": None, "abstract_inverted_index": None,
+           "authorships": [_authorship(f"A{i}", BOUN) for i in range(n)] + [_authorship(f"X{i}") for i in range(100)]}
+    small = _work("W2", "A small paper by one confirmed author", "2022-01-01", author="A3")
+    rows, stats = build_clean([big, small], {}, ALWAYS_FALSE)
+    by_id = {r["id"]: r for r in rows}
+    assert stats["suspect_large_works"] == 1
+    assert by_id["W1"]["boun_attribution_suspect"] and by_id["W1"]["boun_author_ids"] == ["A3"]
+    assert not by_id["W2"]["boun_attribution_suspect"]
