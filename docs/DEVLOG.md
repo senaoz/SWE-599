@@ -747,3 +747,9 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 
 - **What.** Branch `v2-phase6b` (PR senaoz/SWE-599#4, 37 commits) was merged into `main` with a merge commit, `f802d55`.
 - **State after the merge.** The cleaned BOUN data (`research/data/boun/`, Git LFS), its data card (`research/audit/BOUN_DATA.md`), notebook `v2/13_boun_data.ipynb`, `src/boun_data.py` with tests (27 in total), the restated app task and the no-human-evaluation decision are on `main`. Branch `app-mtplx-stage2` (stage 2 on MTPLX) stays unmerged: its read path still filters matches at the cosine threshold 0.3. Open: an evaluation design for the restated task, with the stage-1 field ablation on the new data.
+
+### 2026-10-15 — Stelmakh et al. gold-standard expertise data downloaded and profiled
+
+- **Why.** Citation labels measure "would cite", not topical expertise; a human-labelled, public expertise dataset lets the paper test which conclusions survive a change of label without running our own human study.
+- **What.** Sparse clone of `niharshah/goldstandard-reviewer-paper-match` at `00296730` into `research/data/external/goldstandard/` (gitignored, 144 MB; full-text folders, about 2.5 GB, skipped). Data card: `research/audit/GOLDSTANDARD_DATA.md`; numbers from `research/audit/goldstandard_report.py`.
+- **Findings.** 58 researchers, 477 self-rated expertise scores (1–5), 463 papers (458 of 462 CS), profiles of up to 20 own papers. Ranking direction is papers-per-researcher, not researchers-per-paper (13 papers have two raters), so cross-researcher calibration stays untested. Published baseline losses recomputed from the repository's prediction files: SPECTER2 with max over profile papers 0.221, o1-mini 0.245, Claude 3.5 Sonnet 0.311, constant 0.500 (to check against the paper's Table 3).
