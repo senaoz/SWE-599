@@ -38,6 +38,27 @@ Running notes for turning the project into a paper. Other sessions: read this fi
 2. Listwise Llama under three orders (58 calls per condition and seed).
 3. Pointwise Llama and Qwen3-Reranker-4B. Measure speed first and ask before long runs.
 
+### Bibliographic coupling on the gold standard (2026-10-15, notebook 14)
+
+Pre-registered before scoring: IDF-weighted cosine coupling over OpenAlex reference lists, max over profile papers; fusion parameters by leave-one-participant-out; Holm within fixed families. References from OpenAlex (profile papers with ≥1 reference: 80.3%, against 33.0% in Semantic Scholar). Pooled loss, 95% participant-bootstrap CI:
+
+| Method | Loss |
+|---|---|
+| Coupling, IDF-cosine, max (primary) | 0.299 [0.248, 0.348] |
+| Qwen3-Embedding-8B, max | 0.222 [0.177, 0.274] |
+| SPECTER2 [CLS], max (ours; published 0.221) | 0.231 [0.183, 0.282] |
+| MiniLM, max | 0.242 [0.194, 0.292] |
+| Coupling + SPECTER2, linear (LOPO) | 0.197 [0.148, 0.247] |
+| Coupling + Qwen3, linear (LOPO) | 0.212 [0.164, 0.264] |
+| Forward citation (rated paper cites a profile paper) | 0.468 [0.445, 0.488] |
+| Reverse citation (selection artefact) | 0.434 [0.403, 0.463] |
+| Constant | 0.500 |
+
+- **Alone.** Coupling carries real signal (beats constant for 46 of 58 participants, Holm p = 4.2e-06) but is weaker than every embedding in point estimate; the differences are not significant (Holm p ≥ 0.91).
+- **On top of dense.** It adds significantly to SPECTER2 (−0.035 mean per-participant loss, Holm p = 8.3e-03) but not to Qwen3-Embedding, the app's model (Holm p = 1.0). For the app, the reportable result is "no significant gain over a strong dense model", matching Phase 5's co-citation result.
+- **Forward citation** is rare here: its scores tie for 40 of 58 participants (in practice, none of their rated papers cites a profile paper), so this dataset barely tests it.
+- **Limits.** Within-researcher ordering only; almost all CS/ML; 115 of 1,311 papers unmapped and 19.7% of profile papers without references; global IDF weights are nearly flat, so IDF-cosine ≈ cosine.
+
 ## Planned paper outline
 
 1. **Introduction.** Deployed two-stage recommender; does LLM reranking help?
@@ -81,3 +102,4 @@ Check the published baseline losses in `GOLDSTANDARD_DATA.md` against Table 3 of
 
 - **2026-10-15.** Framing chosen. Citation-only labels judged insufficient. Stelmakh et al. data downloaded and profiled.
 - **2026-10-15.** Idea noted: bibliographic coupling (two papers citing the same work) as a relevance signal for new papers; discussion in chat, not yet tested. 79% of BOUN works (6,557 of 8,287) carry `referenced_works` in OpenAlex.
+- **2026-10-15.** Bibliographic coupling tested on the gold standard (notebook 14): real signal alone (0.299 vs constant 0.500) but below embeddings; adds significantly to SPECTER2, not to Qwen3-Embedding.
