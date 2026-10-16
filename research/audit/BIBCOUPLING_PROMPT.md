@@ -35,17 +35,31 @@ All paths below are absolute. Do not copy data into a worktree.
 
 ## Experiment A: Stelmakh gold standard (main)
 
-### A0. Pre-flight (stop and report if it fails)
+### A0. Pre-flight
 
-1. Fetch references for about 20 sample ids from the Semantic Scholar batch endpoint (`/graph/v1/paper/batch`, anonymous; back off on 429).
-2. Check:
-   - that `references.paperId` comes back inline;
-   - whether the list is capped;
-   - whether `citationCount` of the referenced works is available.
-3. Count all distinct paper ids to fetch: rated papers plus every profile paper in `d_20_1..10`. Then estimate the number of calls and the run time.
-4. After the full fetch, report coverage: the share of rated papers and of profile papers with at least 1 reference.
+**Already done on 2026-10-15. Semantic Scholar alone is not enough.**
+- **Papers.** 1,311 distinct papers: 463 rated, 867 in profiles. Both sets come from `d_20_1..10`.
+- **What came back.** References were fetched from the Semantic Scholar batch endpoint (`/graph/v1/paper/batch`, anonymous, 400 ids per call, 429s retried). The response includes `references.paperId` and `references.citationCount`. Each paper's id in the result must be matched by position in the request, because the returned `paperId` can be a different (merged) id.
+- **Cache.** `/Users/senaoz/Developer/SWE-599/research/data/external/s2_refs/refs.jsonl` (gitignored). One row per requested id: `s2_id`, `doi`, `reference_count`, and `references` as a list of `{id, citation_count}`.
+- **Coverage is too low.**
 
-**If coverage is below about 70%, stop and report before scoring.**
+  | Papers | With at least 1 reference |
+  |---|---|
+  | All | 554 of 1,311 (42.3%) |
+  | Rated | 282 of 463 (60.9%) |
+  | Profile | 286 of 867 (33.0%) |
+
+  - For 725 papers, `referenceCount` is greater than 0 but the list comes back empty. Probably the publisher hides it from Semantic Scholar; this was not verified.
+  - The median number of references is 44 among papers that have them.
+
+**Next step: try OpenAlex as the reference source.**
+1. Map each paper to OpenAlex. Use the DOI from the cache, the arXiv id from `data/papers/*.json`, or a title search as a last resort.
+2. Read `referenced_works`.
+3. **Ask before fetching.** A DOI filter takes 50 values per list call at $0.0001, so this is about 30 calls. See `lessons.md` for the key and the budget.
+4. **Use one id space per run.** Do not mix Semantic Scholar and OpenAlex reference ids in one overlap score. Choose the source with the higher coverage, and report the coverage of both.
+5. **IDF with OpenAlex.** OpenAlex reference lists carry no citation counts. Use document frequency in the local reference corpus, or fetch `cited_by_count` for the referenced works (estimate the cost first).
+
+**If coverage is still below about 70% for profile papers, stop and report before scoring.**
 
 ### A1. Signals
 
