@@ -55,9 +55,9 @@ Pre-registered before scoring: IDF-weighted cosine coupling over OpenAlex refere
 | Constant | 0.500 |
 
 - **Alone.** Coupling carries real signal (beats constant for 46 of 58 participants, Holm p = 4.2e-06) but is weaker than every embedding in point estimate; the differences are not significant (Holm p ≥ 0.91).
-- **On top of dense.** It adds significantly to SPECTER2 (−0.035 mean per-participant loss, Holm p = 8.3e-03) but not to Qwen3-Embedding, the app's model (Holm p = 1.0). For the app, the reportable result is "no significant gain over a strong dense model", matching Phase 5's co-citation result.
-- **Forward citation** is rare here: its scores tie for 40 of 58 participants (in practice, none of their rated papers cites a profile paper), so this dataset barely tests it.
-- **Limits.** Within-researcher ordering only; almost all CS/ML; 115 of 1,311 papers unmapped and 19.7% of profile papers without references; global IDF weights are nearly flat, so IDF-cosine ≈ cosine.
+- **On top of dense.** One of six pre-registered fusion comparisons reached significance: linear fusion with SPECTER2 (−0.035 mean per-participant loss, Holm p = 8.3e-03). The others did not, including fusion with Qwen3-Embedding, the app's model (Holm p = 1.0), and with MiniLM, the weakest embedding, so this is not evidence that coupling helps weaker embeddings in general. For the app, the reportable result is "no significant gain over a strong dense model", matching Phase 5's co-citation result.
+- **Forward citation** is rare here: for 40 of 58 participants no rated paper cites a profile paper in any sample (259 of 4,770 participant–paper–sample items are positive), so this dataset barely tests it.
+- **Limits.** Published baselines are recomputed from the authors' prediction files and not yet checked against Table 3 of the paper. Within-researcher ordering only; almost all CS/ML; 115 of 1,311 papers unmapped and 19.7% of profile papers without references; global IDF weights are nearly flat, so IDF-cosine ≈ cosine.
 
 ## Planned paper outline
 
@@ -102,4 +102,4 @@ Check the published baseline losses in `GOLDSTANDARD_DATA.md` against Table 3 of
 
 - **2026-10-15.** Framing chosen. Citation-only labels judged insufficient. Stelmakh et al. data downloaded and profiled.
 - **2026-10-15.** Idea noted: bibliographic coupling (two papers citing the same work) as a relevance signal for new papers; discussion in chat, not yet tested. 79% of BOUN works (6,557 of 8,287) carry `referenced_works` in OpenAlex.
-- **2026-10-15.** Bibliographic coupling tested on the gold standard (notebook 14): real signal alone (0.299 vs constant 0.500) but below embeddings; adds significantly to SPECTER2, not to Qwen3-Embedding.
+- **2026-10-15.** Bibliographic coupling tested on the gold standard (notebook 14): real signal alone (0.299 vs constant 0.500) but below embeddings; fusion with SPECTER2 significant, with Qwen3-Embedding not.
