@@ -105,9 +105,11 @@ def aggregate(scores, how: str = "max") -> float:
 # Metric (weighted Kendall-tau loss, Stelmakh et al.)
 # ---------------------------------------------------------------------------
 
-def _pair_losses(pred: dict[str, float], ref: dict[str, float]) -> tuple[float, float]:
+def _pair_losses(pred: dict[str, float], ref: dict[str, float], keep=None) -> tuple[float, float]:
     loss = max_loss = 0.0
     for p1, p2 in combinations(sorted(ref), 2):
+        if keep is not None and not keep(p1, p2):
+            continue
         pd_, td = pred[p1] - pred[p2], ref[p1] - ref[p2]
         max_loss += abs(td)
         if pd_ * td == 0:
@@ -130,6 +132,22 @@ def kt_loss(preds: dict, refs: dict, reviewers=None) -> float:
     return loss / max_loss
 
 
+def kt_loss_pairs(preds: dict, refs: dict, keep) -> tuple[float, int]:
+    """Pooled loss over the rated-paper pairs where keep(reviewer, p1, p2) holds.
+
+    Returns (loss, number of pairs with different true scores); loss is nan if there are none.
+    """
+    loss = max_loss = 0.0
+    n = 0
+    for r in refs:
+        l, m = _pair_losses(preds[r], refs[r], lambda a, b: keep(r, a, b))
+        loss += l
+        max_loss += m
+        n += sum(1 for a, b in combinations(sorted(refs[r]), 2)
+                 if keep(r, a, b) and refs[r][a] != refs[r][b])
+    return (loss / max_loss if max_loss else float("nan")), n
+
+
 def per_reviewer_loss(preds: dict, refs: dict) -> dict[str, float]:
     """Each reviewer's own loss (for paired tests). Reviewers with all-equal labels are skipped."""
     out = {}
@@ -140,15 +158,26 @@ def per_reviewer_loss(preds: dict, refs: dict) -> dict[str, float]:
     return out
 
 
+def _reviewer_table(preds: dict, refs: dict) -> dict[str, tuple[float, float]]:
+    return {r: _pair_losses(preds[r], refs[r]) for r in refs}
+
+
+def _pooled(table: dict, reviewers) -> float:
+    loss = sum(table[r][0] for r in reviewers)
+    return loss / sum(table[r][1] for r in reviewers)
+
+
 def bootstrap_ci(preds_by_sample: list[dict], refs: dict, n_boot: int = 1000,
                  seed: int = 0) -> tuple[float, float, float]:
     """Official protocol with a fixed seed: mean pooled loss over profile samples, and a 95% CI
-    from resampling reviewers (the same pools for every sample, averaged over samples)."""
+    from resampling reviewers (the same pools for every sample, averaged over samples).
+    The same seed gives the same pools for every method, so CIs are comparable."""
     rng = np.random.default_rng(seed)
     reviewers = sorted(refs)
     pools = [rng.choice(reviewers, len(reviewers), replace=True) for _ in range(n_boot)]
-    point = float(np.mean([kt_loss(p, refs) for p in preds_by_sample]))
-    boot = np.mean([[kt_loss(p, refs, pool) for pool in pools] for p in preds_by_sample], axis=0)
+    tables = [_reviewer_table(p, refs) for p in preds_by_sample]
+    point = float(np.mean([_pooled(t, reviewers) for t in tables]))
+    boot = np.mean([[_pooled(t, pool) for pool in pools] for t in tables], axis=0)
     return point, float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
 
 
@@ -203,11 +232,12 @@ def lopo_select(score_fn, grid, refs: dict) -> tuple[dict, dict]:
     per reviewer); only these held-out predictions may be reported.
     """
     by_param = {g: score_fn(g) for g in grid}
+    tables = {g: [_reviewer_table(p, refs) for p in by_param[g]] for g in grid}
     reviewers = sorted(refs)
     choice = {}
     for held in reviewers:
         rest = [r for r in reviewers if r != held]
-        losses = {g: np.mean([kt_loss(p, refs, rest) for p in by_param[g]]) for g in grid}
+        losses = {g: np.mean([_pooled(t, rest) for t in tables[g]]) for g in grid}
         choice[held] = min(grid, key=lambda g: (losses[g], grid.index(g)))
     n_samples = len(by_param[grid[0]])
     preds = [{r: by_param[choice[r]][i][r] for r in reviewers} for i in range(n_samples)]

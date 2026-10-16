@@ -11,7 +11,7 @@ import math
 import pytest
 
 from src.bibcoupling import (aggregate, bootstrap_ci, coupling, fuse_linear, fuse_rrf, forward_citation,
-                             idf_weights, kt_loss, lopo_select, per_reviewer_loss, reverse_citation, zscore_within)
+                             idf_weights, kt_loss, kt_loss_pairs, lopo_select, per_reviewer_loss, reverse_citation, zscore_within)
 
 R = {"a", "b", "c", "d"}
 P1 = {"a", "b"}
@@ -115,3 +115,13 @@ def test_lopo_select_never_uses_held_out_reviewer():
     # Held out u3, "good" still wins on u1 + u2, so u3 gets "good" although "bad" is right for u3.
     assert choice == {"u1": "good", "u2": "good", "u3": "good"}
     assert preds[0]["u3"] == good["u3"]
+
+
+def test_kt_loss_pairs_restricts_to_kept_pairs():
+    preds = {"u1": {"p1": 2, "p2": 3, "p3": 1}, "u2": {"q1": 1, "q2": 0}}
+    keep_p1p2 = lambda r, a, b: {a, b} == {"p1", "p2"}
+    assert kt_loss_pairs(preds, REFS, keep_p1p2) == (1.0, 1)
+    rest = lambda r, a, b: not keep_p1p2(r, a, b)
+    assert kt_loss_pairs(preds, REFS, rest) == (0.0, 3)
+    loss, n = kt_loss_pairs(preds, REFS, lambda r, a, b: False)
+    assert n == 0 and math.isnan(loss)
