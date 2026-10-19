@@ -33,8 +33,8 @@ Running notes for turning the project into a paper. Other sessions: read this fi
 - **Contamination.** Every rated paper is from 2022 or earlier, before the model cutoffs, and the labels have been public since 2023.
 - **Size.** Only 58 researchers, so CIs will be wide.
 
-**Planned runs** (none done yet):
-1. Embeddings and lexical methods. Fast, no LLM.
+**Planned runs** (status 2026-10-19):
+1. Embeddings: done (MiniLM, SPECTER2, Qwen3-Embedding; notebook 14). Lexical (BM25, TF-IDF): not yet.
 2. Listwise Llama under three orders (58 calls per condition and seed).
 3. Pointwise Llama and Qwen3-Reranker-4B. Measure speed first and ask before long runs.
 
