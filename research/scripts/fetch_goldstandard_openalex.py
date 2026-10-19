@@ -3,7 +3,7 @@
 Usage (from research/; the key is optional and read from the environment):
     OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py map    <goldstandard dir>
     OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py search <goldstandard dir> [--max N]
-    OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py cited  <goldstandard dir> [--go]
+    OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py cited  <goldstandard dir> [--go] [--extra]
 
 map    DOI records and arXiv records (via DOI 10.48550/arxiv.<id>), 50 DOIs per list call.
        Writes data/external/openalex_refs/papers.jsonl, one row per gold-standard paper.
@@ -173,12 +173,15 @@ def cmd_search(G, limit=None):
     print(f"search done, cost ${cost:.4f}")
 
 
-def cmd_cited(G, go):
+def cmd_cited(G, go, extra=False):
+    """extra: write counts for referenced works added after the first fetch (title-search hits)
+    to cited_by_titlesearch.jsonl, so the first run's IDF stays reproducible; N is not refetched."""
     rows = [json.loads(line) for line in open(OUT / "papers.jsonl")]
     refs = {r for row in rows for k in ("doi_record", "arxiv_record", "title_record") if row[k]
             for r in row[k]["referenced_works"]}
-    path = OUT / "cited_by.jsonl"
-    have = {json.loads(line)["id"] for line in open(path)} if path.exists() else set()
+    path = OUT / ("cited_by_titlesearch.jsonl" if extra else "cited_by.jsonl")
+    have = {json.loads(line)["id"] for name in ("cited_by.jsonl", "cited_by_titlesearch.jsonl")
+            if (OUT / name).exists() for line in open(OUT / name)}
     todo = sorted(refs - have)
     calls = -(-len(todo) // BATCH)
     print(f"distinct referenced works {len(refs)}, to fetch {len(todo)}, list calls {calls}, "
@@ -194,6 +197,9 @@ def cmd_cited(G, go):
                 f.write(json.dumps({"id": w, "cited_by_count": got.get(w)}) + "\n")
             if (s // BATCH) % 20 == 0:
                 print(f"cited {s + len(chunk)}/{len(todo)} cost ${cost:.4f}", flush=True)
+    if extra:
+        print(f"done, cost ${cost:.4f}")
+        return
     meta = get({"filter": "referenced_works_count:>0", "per_page": 1, "select": "id"})["meta"]
     (OUT / "population.json").write_text(json.dumps({"works_with_references": meta["count"],
                                                      "fetched": time.strftime("%Y-%m-%d")}))
@@ -207,6 +213,6 @@ if __name__ == "__main__":
     elif step == "search":
         cmd_search(G, int(sys.argv[sys.argv.index("--max") + 1]) if "--max" in sys.argv else None)
     elif step == "cited":
-        cmd_cited(G, "--go" in sys.argv)
+        cmd_cited(G, "--go" in sys.argv, "--extra" in sys.argv)
     else:
         raise SystemExit(f"unknown step {step}")
