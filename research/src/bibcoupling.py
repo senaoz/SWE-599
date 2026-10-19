@@ -167,15 +167,17 @@ def _pooled(table: dict, reviewers) -> float:
     return loss / sum(table[r][1] for r in reviewers)
 
 
-def bootstrap_ci(preds_by_sample: list[dict], refs: dict, n_boot: int = 1000,
+def bootstrap_ci(preds_by_sample: list[dict], refs: dict | list[dict], n_boot: int = 1000,
                  seed: int = 0) -> tuple[float, float, float]:
     """Official protocol with a fixed seed: mean pooled loss over profile samples, and a 95% CI
     from resampling reviewers (the same pools for every sample, averaged over samples).
-    The same seed gives the same pools for every method, so CIs are comparable."""
+    The same seed gives the same pools for every method, so CIs are comparable.
+    refs may be one label dict, or one per sample (labels that depend on the profile sample)."""
+    refs_by_sample = refs if isinstance(refs, list) else [refs] * len(preds_by_sample)
     rng = np.random.default_rng(seed)
-    reviewers = sorted(refs)
+    reviewers = sorted(refs_by_sample[0])
     pools = [rng.choice(reviewers, len(reviewers), replace=True) for _ in range(n_boot)]
-    tables = [_reviewer_table(p, refs) for p in preds_by_sample]
+    tables = [_reviewer_table(p, r) for p, r in zip(preds_by_sample, refs_by_sample)]
     point = float(np.mean([_pooled(t, reviewers) for t in tables]))
     boot = np.mean([[_pooled(t, pool) for pool in pools] for t in tables], axis=0)
     return point, float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))

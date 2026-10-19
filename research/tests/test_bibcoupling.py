@@ -125,3 +125,11 @@ def test_kt_loss_pairs_restricts_to_kept_pairs():
     assert kt_loss_pairs(preds, REFS, rest) == (0.0, 3)
     loss, n = kt_loss_pairs(preds, REFS, lambda r, a, b: False)
     assert n == 0 and math.isnan(loss)
+
+
+def test_bootstrap_ci_accepts_labels_per_sample():
+    preds = {"u1": {"p1": 3, "p2": 2, "p3": 1}, "u2": {"q1": 1, "q2": 0}}
+    flipped = {r: {p: -v for p, v in d.items()} for r, d in REFS.items()}
+    point, _, _ = bootstrap_ci([preds, preds], [REFS, flipped], n_boot=20)
+    assert point == pytest.approx(0.5)   # perfect on the first labels, reversed on the second
+    assert bootstrap_ci([preds], [REFS], n_boot=20) == bootstrap_ci([preds], REFS, n_boot=20)
