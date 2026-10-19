@@ -1,0 +1,4 @@
+a,b,mean diff,a better,b better,ties,W,p
+coupling,random pick,0.6322694307608101,48,10,0,234.5,1.52e-06
+qwen,random pick,0.6169163929939793,46,12,0,215.5,7.22e-07
+coupling,qwen,0.015353037766830877,17,14,27,221.0,5.94e-01
