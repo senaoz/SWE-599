@@ -28,13 +28,13 @@ The metric is computed per participant and is a loss, so lower is better:
 
 A constant predictor scores 0.5. Only the predicted order matters, not the score values. The official script averages the 10 profile samples and bootstraps participants for a 95% CI.
 
-**Published baselines** (title + abstract; recomputed here from the repository's prediction files with a re-implementation of `scripts/scoring.py`; check against the paper's Table 3 before quoting):
+**Published baselines** (title + abstract; recomputed here from the repository's prediction files with a re-implementation of `scripts/scoring.py`; checked 2026-10-19 against Table 3 of arXiv 2303.16750v2, where every loss agrees to the two decimals printed):
 
 | Method | Loss |
 |---|---|
 | SPECTER2, max over profile papers | 0.221 |
 | SPECTER + MFR | 0.238 |
-| SPECTER2 | 0.245 |
+| SPECTER2, mean over profile papers (Table 3: "Specter2 Mean Pool") | 0.245 |
 | o1-mini | 0.245 |
 | SPECTER | 0.269 |
 | TPMS | 0.281 |

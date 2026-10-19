@@ -57,7 +57,7 @@ Pre-registered before scoring: IDF-weighted cosine coupling over OpenAlex refere
 - **Alone.** Coupling carries real signal (beats constant for 46 of 58 participants, Holm p = 4.2e-06) but is weaker than every embedding in point estimate; the differences are not significant (Holm p ≥ 0.91).
 - **On top of dense.** One of six pre-registered fusion comparisons reached significance: linear fusion with SPECTER2 (−0.035 mean per-participant loss, Holm p = 8.3e-03). The others did not, including fusion with Qwen3-Embedding, the app's model (Holm p = 1.0), and with MiniLM, the weakest embedding, so this is not evidence that coupling helps weaker embeddings in general. For the app, the reportable result is "no significant gain over a strong dense model", matching Phase 5's co-citation result.
 - **Forward citation** is rare here: for 40 of 58 participants no rated paper cites a profile paper in any sample (259 of 4,770 participant–paper–sample items are positive), so this dataset barely tests it.
-- **Limits.** Published baselines are recomputed from the authors' prediction files and not yet checked against Table 3 of the paper. Within-researcher ordering only; almost all CS/ML; 115 of 1,311 papers unmapped and 19.7% of profile papers without references; global IDF weights are nearly flat, so IDF-cosine ≈ cosine.
+- **Limits.** Published baselines are recomputed from the authors' prediction files; all agree with Table 3 of the paper (arXiv v2) to two decimals. Within-researcher ordering only; almost all CS/ML; 115 of 1,311 papers unmapped and 19.7% of profile papers without references; global IDF weights are nearly flat, so IDF-cosine ≈ cosine.
 
 ## Planned paper outline
 
@@ -96,7 +96,7 @@ Still to find and verify (do not cite from memory):
 - Co-citation (Small, 1973) and bibliographic coupling (Kessler, 1963).
 - Expert-finding datasets: AMiner, Bordea et al. 2013, and LR-Bench / RATE (arXiv 2601.19637).
 
-Check the published baseline losses in `GOLDSTANDARD_DATA.md` against Table 3 of Stelmakh et al. before quoting them.
+The published baseline losses in `GOLDSTANDARD_DATA.md` were checked against Table 3 of Stelmakh et al. (arXiv v2) on 2026-10-19; all agree to two decimals.
 
 ## Log
 
