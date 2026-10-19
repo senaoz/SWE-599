@@ -1,0 +1,11 @@
+,value
+sample papers,200.0
+with references,101.0
+share ≥1 reference with a BOUN work,52.0
+share ≥1 non-trivial reference,52.0
+"median BOUN researchers reached (non-trivial, among those with any)",6.0
+papers with coupling signal,52.0
+coupling top researchers also in embedding top-10 (share),0.22884012539184953
+sanity queries,110.0
+sanity coupling hit@10,0.7272727272727273
+sanity embedding hit@10,0.8
