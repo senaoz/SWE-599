@@ -795,3 +795,9 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Brief correction.** The brief's "311 BOUN works with a followed co-author" came from the old `boun.csv`; the cleaned data has 642, of which 460 are 100+-author collaborations. The sanity check used the other 182 (152 with references, 110 with a BOUN author who has an earlier work).
 - **Results** (descriptive, no labels) [2df0171]: 101 of 200 papers have references and 52 share ≥ 1 with a BOUN work (all 52 also a non-trivial one, cited by ≤ 1% of BOUN works). 22.9% of coupling's top researchers (≤ 10) are in Qwen3's top 10; coupling's top researcher sits at median rank 17 of 3,648 in the embedding ranking. Sanity check: own BOUN author in the top 10 for 80.0% of queries (embedding) and 72.7% (coupling); embedding-only 14, coupling-only 6, both 74, neither 16. Co-authors' shared self-citations favour coupling in this check.
 - **Report.** README and `research/audit/SUMMARY.md` gained a gold-standard section (coupling, sensitivity, BOUN side) and an updated evaluation status.
+
+### 2026-10-19 — Coupling as a label (notebook 16, post-hoc)
+
+- **Why.** To back or refute a discussion point ("coupling cannot be a label") with numbers. Reuses notebook 14's pre-registered predictions; `bootstrap_ci` now accepts labels per profile sample [edcddde].
+- **Results.** Strong coupling is precise: top decile of non-zero coupling, mean rating 4.50 [4.26, 4.69], 88% rated ≥ 4 (all items 3.71, 56%; same-size Qwen3 top 4.30, 82%). Top-1 by coupling vs Qwen3: 4.39 vs 4.37 (p = 0.59). With coupling scores as labels Qwen3 is still best (0.212); SPECTER2 and MiniLM swap; human ratings score 0.245.
+- **Correction.** The earlier note's inference that a coupling-labelled benchmark would rank Qwen3 lower was wrong; PAPER_NOTES now says coupling is a high-precision silver positive with partial, biased coverage, not a full-ranking label.

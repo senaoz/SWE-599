@@ -61,16 +61,15 @@ Pre-registered before scoring: IDF-weighted cosine coupling over OpenAlex refere
 - **BOUN side (notebook 15, descriptive).** Of 200 new followed-institution papers (15–19 Oct 2026), 101 have OpenAlex references and 52 share ≥ 1 with a BOUN work. 22.9% of coupling's top researchers are in Qwen3's top 10 (coupling top-1 at median rank 17 of 3,648). Sanity check on 110 BOUN works with a followed co-author (earlier works only): own BOUN author in the top 10 for 80.0% (embedding) vs 72.7% (coupling); embedding-only 14, coupling-only 6. Self-citations favour coupling here.
 - **Limits.** Published baselines are recomputed from the authors' prediction files; all agree with Table 3 of the paper (arXiv v2) to two decimals. Within-researcher ordering only; almost all CS/ML; 115 of 1,311 papers unmapped and 19.7% of profile papers without references; global IDF weights are nearly flat, so IDF-cosine ≈ cosine.
 
-### Discussion point: coupling is a signal, not a label (2026-10-19)
+### Discussion point: coupling as a label — precise when present, silent too often (2026-10-19, corrected by notebook 16)
 
-Bibliometrics often treats coupling as a relatedness ground truth. Our data argue against using it as a label for expertise matching (for the Discussion section):
-- **It agrees with humans less than the methods it would judge.** Against the human expertise ratings, coupling scores 0.299 and Qwen3-Embedding 0.222 (notebook 14). A label should be more accurate than what it evaluates; with coupling as ground truth, every case where the embedding agrees with the human but not with coupling would count against the embedding.
-- **It disagrees with the embedding on the app's data.** Only 22.9% of coupling's top researchers are in Qwen3's top 10 (notebook 15). *Inference, not measured:* a coupling-labelled benchmark would likely rank Qwen3 lower, the opposite of the human labels.
-- **Coverage is partial and not random.** Of 200 new followed-institution papers, 101 have OpenAlex references and 52 share one with a BOUN work. Missing reference lists cluster by venue, language and field (late-indexed journals, Turkish venues, low-citation fields).
-- **Known biases.** Co-authors share self-citations (it favoured coupling in the notebook-15 sanity check); method and tool references create coupling without topical overlap, and global IDF barely down-weights them (weights 10.6–16.1). It also inherits the "citation ≠ expertise" gap of citation labels, since it comes from the same data.
-- **Acceptable use:** like authorship, a **regression canary** (e.g. pairs sharing several rare references should stay near the top after a model change), never a quality number.
-- **Why we could test it fairly at all:** on citation-labelled benchmarks a citation-derived signal is partly circular (Phase 5 needed leakage rules for co-citation); the human ratings are independent of citations.
-- **Open, could strengthen the point:** (a) precision of *strong* coupling against the human ratings (are top-decile coupling pairs rated high?); (b) score Qwen3 against coupling as if it were the label, to measure rather than infer the reversal.
+Bibliometrics often treats coupling as a relatedness ground truth. Notebook 16 (post-hoc, exploratory, on notebook 14's pre-registered predictions) tested this on the human ratings. **It overturned part of our first reasoning**, so the point to make in the paper is narrower:
+- **Strong coupling is a high-precision positive.** Pooled over items, the top decile of non-zero coupling has mean rating 4.50 [4.26, 4.69] and 88% rated ≥ 4, against 3.71 and 56% overall; the same number of top Qwen3 items: 4.30 [3.99, 4.58], 82% (CIs overlap). Within participants, the top-1 paper by coupling is rated as high as the top-1 by Qwen3 (4.39 vs 4.37, Wilcoxon p = 0.59; random pick 3.75).
+- **The weakness is silence, not wrong signal.** 30% of rated items share no reference with the profile (mean rating 3.43); they tie, and that is most of coupling's full-ranking loss (0.299 vs Qwen3 0.222). On pairs where both papers have signal, coupling's loss is 0.233 vs Qwen3's 0.259 (notebook 14, stratified).
+- **Our "reversal" inference was wrong.** With coupling scores as the label, Qwen3 is still best (0.212 [0.167, 0.264]); only SPECTER2 and MiniLM swap. The human ratings themselves predict the coupling order worse (0.245) than Qwen3 does, i.e. coupling and humans disagree in ways Qwen3 partly shares with coupling.
+- **So, for the paper:** coupling is not usable as a *full-ranking* label (partial and non-random coverage: 52 of 200 new BOUN-side papers have any shared reference; venue, language and field gaps; self-citation bias), but strong coupling is a defensible **silver positive set** (high precision, unknown recall), e.g. for regression canaries or as positives in a precision-oriented check. On BOUN data this is untested for non-CS fields.
+- **Why the test is fair:** the human ratings are independent of citations; on citation-labelled benchmarks a citation-derived signal is partly circular (Phase 5 needed leakage rules).
+- **Caveats.** a1 pools participants whose score scales differ; the notebook is post-hoc; CS/ML only.
 
 ## Planned paper outline
 
@@ -80,7 +79,7 @@ Bibliometrics often treats coupling as a relatedness ground truth. Our data argu
 4. **Results.** Method comparison, the position-bias experiment, the two-stage cascade, small vs large embedding models.
 5. **Human-labelled expertise evaluation** (Stelmakh et al.). Do the method rankings agree with the citation benchmark?
 6. **Full-corpus setting** (Phase 5). Keep it or cut it depending on length.
-7. **Limitations and discussion.** Includes: coupling as a signal, not a label (see the discussion point above).
+7. **Limitations and discussion.** Includes: coupling as a label — precise when present, silent too often (see the discussion point above).
 
 ## References to cite
 
@@ -119,3 +118,4 @@ The published baseline losses in `GOLDSTANDARD_DATA.md` were checked against Tab
 - **2026-10-19.** Table 3 check passed; title-search coverage sensitivity leaves every coupling conclusion unchanged.
 - **2026-10-19.** BOUN-side coupling description (notebook 15): coupling and Qwen3 mostly pick different researchers; on the self-author sanity check the embedding finds more.
 - **2026-10-19.** Discussion point added: bibliographic coupling is a signal, not a label (agrees with humans less than the embeddings it would judge; partial, biased coverage).
+- **2026-10-19.** Notebook 16 corrected the coupling-as-label point: strong coupling is a high-precision positive (top decile 88% rated ≥ 4); the predicted ranking reversal did not happen (Qwen3 best under coupling labels too).
