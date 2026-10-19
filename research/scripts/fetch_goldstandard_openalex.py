@@ -2,7 +2,7 @@
 
 Usage (from research/; the key is optional and read from the environment):
     OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py map    <goldstandard dir>
-    OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py search <goldstandard dir>
+    OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py search <goldstandard dir> [--max N]
     OPENALEX_API_KEY=... .venv/bin/python -I scripts/fetch_goldstandard_openalex.py cited  <goldstandard dir> [--go]
 
 map    DOI records and arXiv records (via DOI 10.48550/arxiv.<id>), 50 DOIs per list call.
@@ -16,6 +16,7 @@ Both steps resume from their caches. Downloaded data is never executed.
 """
 from __future__ import annotations
 
+import difflib
 import glob
 import json
 import os
@@ -106,6 +107,16 @@ def by_doi(dois):
     return found
 
 
+def title_ok(orig, found):
+    """Same paper by title: normalized similarity >= 0.9, or the shorter title (>= 3 words) is
+    contained in the longer one (e.g. a truncated title). Year and surname alone let through
+    other papers by the same author."""
+    a, b = (re.sub(r"\W+", " ", (t or "").lower()).strip() for t in (orig, found))
+    short, long_ = sorted((a, b), key=len)
+    return (difflib.SequenceMatcher(None, a, b).ratio() >= 0.9
+            or (len(short.split()) >= 3 and f" {short} " in f" {long_} "))
+
+
 def title_hit(p):
     title = re.sub(r"[^\w\s]", " ", p["title"] or "").strip()
     if not title:
@@ -116,7 +127,7 @@ def title_hit(p):
         s = slim(w)
         if p["year"] and s["year"] and abs(s["year"] - p["year"]) > 1:
             continue
-        if want & surnames(s["authors"]):
+        if want & surnames(s["authors"]) and title_ok(p["title"], s["title"]):
             return s
     return None
 
@@ -137,13 +148,21 @@ def cmd_map(G):
     print(f"map done, cost ${cost:.4f}")
 
 
-def cmd_search(G):
-    """Title search ($0.001 per call) for papers with neither a DOI nor an arXiv id."""
+def cmd_search(G, limit=None):
+    """Title search ($0.001 per call) for papers with neither a DOI nor an arXiv id.
+
+    limit caps the searches in this run (the anonymous budget is $0.10/day); reruns resume.
+    """
     path = OUT / "papers.jsonl"
     rows = [json.loads(line) for line in open(path)]
     papers = load_papers(G)
+    for r in rows:
+        if r.get("title_record") and not title_ok(papers[r["id"]]["title"], r["title_record"]["title"]):
+            print(f"rejected: {papers[r['id']]['title'][:60]!r} -> {r['title_record']['title'][:60]!r}")
+            r["title_record"] = None
     todo = [r for r in rows if not papers[r["id"]]["doi"] and not papers[r["id"]]["arxiv"] and "searched" not in r]
-    print(f"title searches {len(todo)}, estimated ${len(todo) * 0.001:.3f}")
+    print(f"title searches left {len(todo)}, this run {min(len(todo), limit or len(todo))}")
+    todo = todo[:limit]
     for i, r in enumerate(todo):
         r["title_record"] = title_hit(papers[r["id"]])
         r["searched"] = True
@@ -186,7 +205,7 @@ if __name__ == "__main__":
     if step == "map":
         cmd_map(G)
     elif step == "search":
-        cmd_search(G)
+        cmd_search(G, int(sys.argv[sys.argv.index("--max") + 1]) if "--max" in sys.argv else None)
     elif step == "cited":
         cmd_cited(G, "--go" in sys.argv)
     else:
