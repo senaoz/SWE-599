@@ -780,3 +780,11 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Examples caveat.** The pre-registered example rule cannot tell "coupling says no" from "no reference list": the first example (*Erasure Coding in Windows Azure Storage*) has no OpenAlex references, so its coupling score of 0 is missing data.
 - **Not done.** Published baselines not yet checked against Table 3 of Stelmakh et al. (quoted from the authors' prediction files only); title search for the 114 papers without DOI or arXiv id (needs the API key); optional Experiment B (BOUN side).
 - **Run time.** Qwen3 embedding of 1,311 texts took about 13 min, longer than the 5–10 min estimate.
+
+### 2026-10-19 — Coupling follow-ups: Table 3, title search, coverage sensitivity
+
+- **Commits rewritten.** The seven coupling commits were rewritten to drop their `Co-Authored-By` trailers (new global rule; not pushed, trees identical); hashes above updated [785d8f5].
+- **Table 3 check.** All 11 published baselines recomputed from the authors' prediction files agree with Table 3 of arXiv 2303.16750v2 to the two decimals printed. The data card's "SPECTER2" (0.245) is "Specter2 Mean Pool" in the paper [93dec42].
+- **Title search** for the 114 papers with neither DOI nor arXiv id ($0.114, anonymous, within the day's budget after all; the budget resets at 17:00 PDT). Year ±1 and a shared surname let through other papers by the same author (e.g. a POS-tagging paper for a spelling-normalization paper), so a title rule was added: normalized similarity ≥ 0.9, or the shorter title (≥ 3 words) contained in the longer. 5 first-pass hits failed it and were dropped; 67 of 114 matched, 54 with references [9e86e75]. Counts for the 434 + new referenced works went to a separate file so the pre-registered run stays reproducible [64aef41].
+- **Pre-registered run reproduced.** Notebook 14 rebuilt with a `TITLE_SEARCH` option (addendum in its pre-registration cell) and rerun in the default mode: every CSV and prediction file is byte-identical [18f07b3].
+- **Coverage sensitivity** (`v2/14_bibcoupling_goldstandard_titlesearch.ipynb`) [ad22667]. Profile coverage 80.3% → 85.2%, rated 86.6% → 89.0%. Coupling 0.299 → 0.292 [0.238, 0.343]; coupling + SPECTER2 0.199 (Holm p = 1.6e-02); coupling + Qwen3 0.219 vs 0.222 (Holm p = 1.0). No test conclusion changes.
