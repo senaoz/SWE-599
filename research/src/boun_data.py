@@ -71,6 +71,18 @@ _BOUN_RAW = re.compile(r"bogazic|bosphorus univ")  # "bogazic" also catches PDF 
 MAX_BOUN_AUTHORS_PER_LARGE_WORK = 20
 
 
+def work_texts(research) -> dict[str, str]:
+    """Title + abstract per cleaned BOUN work id, the abstract from OpenAlex or, when missing,
+    from the gitignored Crossref/S2 cache (data/v2/boun/external_abstracts_clean.jsonl) if present."""
+    import pandas as pd
+    from pathlib import Path
+
+    works = pd.read_csv(Path(research) / "data" / "boun" / "boun_works.csv.gz", keep_default_na=False)
+    ext_path = Path(research) / "data" / "v2" / "boun" / "external_abstracts_clean.jsonl"
+    ext = dict(pd.read_json(ext_path, lines=True)[["id", "abstract_external"]].values) if ext_path.exists() else {}
+    return {r.id: f"{r.title} {r.abstract or ext.get(r.id) or ''}".strip() for r in works.itertuples()}
+
+
 def names_boun(raw_affiliation: str) -> bool:
     """True if a raw affiliation string names Boğaziçi University, in any spelling or encoding
     (e.g. HTML entities 'Bo&#x011F;azi&#x00E7;i', or 'Bog̃aziçi' with a combining tilde)."""
