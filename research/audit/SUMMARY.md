@@ -46,15 +46,21 @@ Sena Öz · M.S. Software Engineering, Boğaziçi University · SWE 599 · Octob
   - Pointwise Llama 3.2 3B halves nDCG@10 when used alone (0.340 → 0.175) and changes nothing when fused.
   - Qwen3-Reranker-4B, a model trained for reranking, fused with the embedding score, raises R-precision 25.1 → 28.3 (Holm p = 0.040) and nDCG@10 0.340 → 0.360 (not significant after Holm).
 
+**Human labels: the Stelmakh et al. gold standard** (notebooks 14–15). 58 researchers rated their expertise (1–5) on 477 papers; each paper is scored against the researcher's own papers with max, as in the app. Metric: the authors' weighted Kendall-tau loss (lower is better, constant 0.5); our port reproduces all 11 published baselines (Table 3).
+- **Same winner.** Qwen3-Embedding-8B 0.222 [0.177, 0.274], SPECTER2 0.231, MiniLM 0.242, published o1-mini 0.245.
+- **Bibliographic coupling** (pre-registered: IDF-weighted cosine over OpenAlex references, max) is a real but weaker signal: 0.299 [0.248, 0.348], better than constant for 46 of 58 researchers (Holm p = 4.2·10⁻⁶).
+- **It adds nothing significant to Qwen3-Embedding** (fused 0.212 vs 0.222, Holm p = 1.0); only fusion with SPECTER2 is significant (0.197, Holm p = 8.3·10⁻³). Raising reference coverage from 80% to 85% changes no conclusion.
+- **On Boğaziçi data** (descriptive, no labels): 52 of 101 new papers with references share one with a Boğaziçi work, but coupling and the embedding mostly pick different researchers (22.9% overlap in the top 10).
+
 **Limitations.**
-- Citation is a proxy for relevance, and the project collects no human judgments.
+- Citation is a proxy for relevance, and the project collects no human judgments of its own. The public human labels (Stelmakh et al.) are CS/ML only and rank papers within one researcher, not researchers for one paper.
 - Concept-matched negatives often share only a broad field label.
 - One small general LLM (Llama 3.2 3B) and, in Phase 5, one trained reranker (Qwen3-Reranker-4B) were tested.
 - Pretraining contamination could not be tested (one test query after Llama's cutoff; Qwen3-Reranker-4B postdates all queries).
 - About 6% of OpenAlex abstracts are not real abstracts. Results are unchanged without them.
 
 **Next steps.**
-- **Evaluation on the app's own task:** for a new paper from a followed institution, which Boğaziçi researchers work on its topic. The Boğaziçi data were refetched and cleaned for this (`research/audit/BOUN_DATA.md`); the evaluation design is open.
+- **Evaluation on the app's own task:** for a new paper from a followed institution, which Boğaziçi researchers work on its topic. The Boğaziçi data were refetched and cleaned for this (`research/audit/BOUN_DATA.md`); no labelled benchmark covers ranking researchers for one paper, so cut-off and calibration rest on consistency checks and user feedback (`docs/MATCHING_DESIGN.md`, section 5).
 - **The deployed system's feedback** (thumbs-up/down per paper–researcher pair), related to offline scores when a database dump is available. No new human study is planned.
 
 *Details:* `research/audit/BEFORE_AFTER.md` (v1 vs v2), `research/audit/AUDIT.md`, `research/audit/PHASE5_DESIGN.md`, `research/v2/` (notebooks, statistics, figures), `docs/DEVLOG.md` (dated log).

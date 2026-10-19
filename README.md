@@ -206,9 +206,35 @@ v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes
 
 ![Second-stage reranking: Llama 3.2 3B vs Qwen3-Reranker-4B](research/v2/figures/12_qwen3_reranker.svg)
 
+## Human-labelled expertise: Stelmakh et al. gold standard
+
+Citation labels measure "would cite", not expertise. To check the conclusions against human labels, the same scoring function the app uses (a paper against a researcher's own papers, max over those papers) is evaluated on the public gold standard of Stelmakh et al. (TMLR 2025): 58 researchers rated their expertise (1–5) on 477 papers they had read. Each researcher is a profile of up to 20 of their own papers (10 random samples). The metric is the authors' weighted Kendall-tau loss (lower is better, constant = 0.5) with a participant bootstrap; our port of it reproduces all 11 published baselines, which agree with the paper's Table 3. Data card: [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md); notebook `14` in [`research/v2/`](research/v2/).
+
+It also tests **bibliographic coupling** (a new paper and a researcher's paper cite the same works), a signal available the moment a paper is published. The method was pre-registered before any score was computed: IDF-weighted cosine over OpenAlex reference lists (80.3% of profile papers have one, against 33.0% in Semantic Scholar), max over profile papers; fusion weights chosen by leave-one-participant-out.
+
+| Loss (d_20_1..10) [95% CI] | |
+|---|---|
+| Qwen3-Embedding-8B, max | **0.222** [0.177, 0.274] |
+| SPECTER2 [CLS], max (published: 0.221) | 0.231 [0.183, 0.282] |
+| MiniLM, max | 0.242 [0.194, 0.292] |
+| o1-mini (published) | 0.245 |
+| Coupling, IDF-cosine, max (pre-registered) | 0.299 [0.248, 0.348] |
+| Coupling + SPECTER2, linear fusion | 0.197 [0.148, 0.247] |
+| Coupling + Qwen3-Embedding, linear fusion | 0.212 [0.164, 0.264] |
+| Forward citation (new paper cites a profile paper) | 0.468 [0.445, 0.488] |
+| Constant | 0.500 |
+
+**What this shows**
+1. **Qwen3-Embedding again has the lowest loss**, as on the citation benchmarks, and all three embeddings score below the published LLM baseline o1-mini. These are point estimates; the CIs overlap and the embeddings were not tested against each other.
+2. **Coupling is a real but weaker signal.** It beats the constant predictor for 46 of 58 researchers (Holm p = 4.2·10⁻⁶) but trails every embedding (not significantly).
+3. **Coupling adds nothing significant on top of Qwen3-Embedding** (Holm p = 1.0). One of six pre-registered fusions reached significance (with SPECTER2, Holm p = 8.3·10⁻³), so coupling is no reason to change the app's design, just like co-citation in Phase 5.
+   - **Coverage sensitivity.** A title search for the 114 papers with neither DOI nor arXiv id raised profile coverage to 85.2%; coupling moves to 0.292 [0.238, 0.343] and no test conclusion changes.
+4. **On the app's own data (descriptive, no labels; notebook `15`).** Of 200 new papers from the followed institutions (15–19 Oct 2026), 101 have references in OpenAlex and 52 share at least one with a Boğaziçi work. Coupling and Qwen3-Embedding mostly pick different researchers: 22.9% of coupling's top researchers are in the embedding's top 10. In a sanity check on 110 Boğaziçi works with a followed-institution co-author (index restricted to earlier works), the work's own Boğaziçi author is in the top 10 for 80.0% of queries with the embedding and 72.7% with coupling, although co-authors' shared self-citations favour coupling.
+5. **Scope.** The dataset orders papers *for one researcher*; the app orders *researchers for one paper*, and cross-researcher calibration is untested. Almost all papers are CS/ML.
+
 ## Limitations
 
-- **Citation is a proxy for relevance.** Researchers may find uncited papers relevant and cited ones irrelevant. The project does not collect human relevance judgments.
+- **Citation is a proxy for relevance.** Researchers may find uncited papers relevant and cited ones irrelevant. The project collects no human judgments of its own; the only human labels are the public Stelmakh et al. expertise ratings (CS/ML, papers ranked within one researcher).
 - **v2 negatives are not same-topic hard negatives.** The `concept` match often rests on a broad field label such as "Medicine". Phase 5 ranks against a full corpus built from the queries' topical neighbourhoods instead.
 - **Few rerankers.** The LLM results are for Llama 3.2 3B (Q4_K_M). Phase 5 adds one retrieval-tuned model, Qwen3-Reranker-4B; larger general LLMs were not tested.
 - **Pretraining contamination is untested.** Only one test query was published after Llama 3.2's December 2023 knowledge cutoff. Qwen3-Reranker-4B (2025) postdates every query.
@@ -225,7 +251,7 @@ Planned in [`research/audit/TODO.md`](research/audit/TODO.md), with the motivati
 
 1. **Evaluation on the app's own task.** Under each new paper from a followed institution, the app lists the Boğaziçi researchers who work on its topic, so relevance means topical expertise. Citation labels ("the researcher later cited it") do not measure this, and the citation-based design of Phase 6B is paused.
    - The Boğaziçi data were refetched from OpenAlex and cleaned for this: 7,822 works of all research types, full author lists for large collaborations, and text for 84.2% of works ([BOUN_DATA.md](research/audit/BOUN_DATA.md)).
-   - The evaluation design is open.
+   - No labelled benchmark covers this direction (researchers ranked for one paper). Model and scoring decisions rest on the citation benchmarks and the Stelmakh et al. gold standard, which agree; the app's cut-off and cross-researcher calibration rest on the consistency checks and the user feedback planned in [`docs/MATCHING_DESIGN.md`](docs/MATCHING_DESIGN.md) section 5.
 2. **Benchmark labels.** Same-topic hard negatives. Graded labels from citation intent are deprioritized, since the app needs topical labels rather than better citation labels.
 3. **The deployed system's feedback.** The app records thumbs-up/down on each paper–researcher match; relating it to offline scores needs a database dump. No new human study is planned.
 
