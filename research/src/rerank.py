@@ -62,8 +62,8 @@ class Qwen3Reranker:
         return out
 
 
-def llama_pointwise(query: str, texts: list[str], model: str | None = None) -> list[dict]:
-    return [pointwise_score(query, t, model=model) for t in texts]
+def llama_pointwise(query: str, texts: list[str], model: str | None = None, **kw) -> list[dict]:
+    return [pointwise_score(query, t, model=model, **kw) for t in texts]
 
 
 class PointwiseCache:

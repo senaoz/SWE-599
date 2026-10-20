@@ -122,9 +122,9 @@ class CrossEncoderScorer:
 # LLM rankers (Jan)
 # ---------------------------------------------------------------------------
 
-def listwise_prompt(query: str, cands: list[str]) -> str:
+def listwise_prompt(query: str, cands: list[str], template: str = LISTWISE_PROMPT) -> str:
     lines = "\n".join(f"[{i + 1}] {c}" for i, c in enumerate(cands))
-    return LISTWISE_PROMPT.format(query=query, candidates=lines, n=len(cands))
+    return template.format(query=query, candidates=lines, n=len(cands))
 
 
 def parse_listwise(text: str, n: int) -> tuple[list[int], str]:
@@ -151,14 +151,14 @@ def parse_listwise(text: str, n: int) -> tuple[list[int], str]:
 
 
 def listwise_rank(query: str, cands: list[str], rng: np.random.Generator,
-                  model: str | None = None, seed: int = 0) -> dict:
+                  model: str | None = None, seed: int = 0, template: str = LISTWISE_PROMPT) -> dict:
     """Listwise LLM ranking. Unranked candidates go last in random order; on any
     failure the whole order is random (v1 returned the input order, F3)."""
     model = model or jan.JAN_MODEL_MAP["llama"]
     n = len(cands)
     raw, prompt_tokens = None, None
     try:
-        resp = jan.chat(model, listwise_prompt(query, cands), max_tokens=8 * n + 32, seed=seed)
+        resp = jan.chat(model, listwise_prompt(query, cands, template), max_tokens=8 * n + 32, seed=seed)
         raw, prompt_tokens = resp["text"], resp["prompt_tokens"]
         order, status = parse_listwise(raw, n)
     except jan.JanError as e:
@@ -206,10 +206,11 @@ def _expected_score(top_logprobs) -> float | None:
     return weighted / total if total > 0 else None
 
 
-def pointwise_score(query: str, cand: str, model: str | None = None, seed: int = 0) -> dict:
+def pointwise_score(query: str, cand: str, model: str | None = None, seed: int = 0,
+                    template: str = POINTWISE_PROMPT) -> dict:
     model = model or jan.JAN_MODEL_MAP["llama"]
     try:
-        resp = jan.chat(model, POINTWISE_PROMPT.format(query=query, candidate=cand),
+        resp = jan.chat(model, template.format(query=query, candidate=cand),
                         max_tokens=4, seed=seed, top_logprobs=20)
     except jan.JanError as e:
         return {"score": None, "status": "http_error", "raw": str(e)}
