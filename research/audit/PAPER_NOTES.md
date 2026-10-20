@@ -33,10 +33,31 @@ Running notes for turning the project into a paper. Other sessions: read this fi
 - **Contamination.** Every rated paper is from 2022 or earlier, before the model cutoffs, and the labels have been public since 2023.
 - **Size.** Only 58 researchers, so CIs will be wide.
 
-**Planned runs** (status 2026-10-19):
-1. Embeddings: done (MiniLM, SPECTER2, Qwen3-Embedding; notebook 14). Lexical (BM25, TF-IDF): not yet.
-2. Listwise Llama under three orders (58 calls per condition and seed).
-3. Pointwise Llama and Qwen3-Reranker-4B. Measure speed first and ask before long runs.
+**Planned runs** (status 2026-10-20): all done.
+1. Embeddings: done (MiniLM, SPECTER2, Qwen3-Embedding; notebook 14). Lexical (BM25, TF-IDF): done (notebook 17).
+2. Listwise Llama under three orders: done (notebook 17).
+3. Pointwise Llama and Qwen3-Reranker-4B: done (notebook 17).
+
+### LLM reranking on the gold standard (2026-10-20, notebook 17)
+
+Design fixed before any LLM result: expertise-framed prompts with the v2 structure ("how qualified is this researcher to review…"); listwise and pointwise Llama see the profile titles; Qwen3-Reranker-4B uses each profile paper as the query, max over the profile; lexical methods use profile papers as queries, IDF per profile sample. Listwise uses seeds 1–5, seed s on profile sample d_20_s; its Qwen3 comparison uses the same samples. Pooled loss, 95% participant bootstrap; Holm within each family:
+
+| Method | Loss | vs Qwen3-Embedding, Holm p |
+|---|---|---|
+| Qwen3-Embedding-8B, max (notebook 14) | 0.222 [0.177, 0.274] | — |
+| Qwen3-Reranker-4B, max | 0.268 [0.210, 0.333] | 9.4e-03 (worse) |
+| BM25, max | 0.275 [0.216, 0.331] | 1.0e-02 (worse) |
+| TF-IDF, max | 0.289 [0.233, 0.349] | 2.4e-03 (worse) |
+| Pointwise Llama 3.2 3B | 0.337 [0.282, 0.395] | 3.9e-04 (worse) |
+| Listwise Llama 3.2 3B, shuffled | 0.467 [0.442, 0.493] | 1.6e-07 (worse) |
+| Listwise, best-first (true order given) | 0.253 [0.179, 0.328] | not tested |
+| Listwise, worst-first | 0.685 [0.604, 0.765] | not tested |
+| Constant | 0.500 | |
+
+- **The label-dependent claim holds on human labels.** No LLM method beats the embedding; all are significantly worse, including Qwen3-Reranker-4B, which did help on the citation benchmark when fused (notebook 12; not fused here: the reranker was scored alone).
+- **Position bias replicates.** Best-first vs worst-first: −0.333 mean per-participant loss, 43 vs 14 participants, Holm p = 1.4e-05; best- and worst-first vs shuffled both Holm p = 1.8e-04. Shuffled, Llama is barely above the constant, and 35% of its outputs repeat the shown order exactly (Kendall τ with the shown order 0.32 on average). Lists are short (3–10), so exact copies are likelier by chance than on the citation benchmark.
+- **Failure rate.** Listwise 3 of 870 partial, none failed; pointwise and reranker all ok.
+- **Limits.** As for notebook 14; plus the prompts differ from the citation-benchmark ones (expertise, not citation), and the reranker instruction was written for this task without tuning.
 
 ### Bibliographic coupling on the gold standard (2026-10-15, notebook 14)
 
@@ -119,3 +140,4 @@ The published baseline losses in `GOLDSTANDARD_DATA.md` were checked against Tab
 - **2026-10-19.** BOUN-side coupling description (notebook 15): coupling and Qwen3 mostly pick different researchers; on the self-author sanity check the embedding finds more.
 - **2026-10-19.** Discussion point added: bibliographic coupling is a signal, not a label (agrees with humans less than the embeddings it would judge; partial, biased coverage).
 - **2026-10-19.** Notebook 16 corrected the coupling-as-label point: strong coupling is a high-precision positive (top decile 88% rated ≥ 4); the predicted ranking reversal did not happen (Qwen3 best under coupling labels too).
+- **2026-10-20.** LLM and lexical methods on the gold standard (notebook 17): no LLM method beats Qwen3-Embedding; listwise position bias replicates on human labels.
