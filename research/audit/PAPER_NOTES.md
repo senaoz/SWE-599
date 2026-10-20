@@ -40,7 +40,7 @@ Running notes for turning the project into a paper. Other sessions: read this fi
 
 ### LLM reranking on the gold standard (2026-10-20, notebook 17)
 
-Design fixed before any LLM result: expertise-framed prompts with the v2 structure ("how qualified is this researcher to review…"); listwise and pointwise Llama see the profile titles; Qwen3-Reranker-4B uses each profile paper as the query, max over the profile; lexical methods use profile papers as queries, IDF per profile sample. Listwise uses seeds 1–5, seed s on profile sample d_20_s; its Qwen3 comparison uses the same samples. Pooled loss, 95% participant bootstrap; Holm within each family:
+Design committed in code before any LLM loss was computed (not a strict pre-registration: lexical losses and timing-probe statuses were seen first): expertise-framed prompts with the v2 structure ("how qualified is this researcher to review…"); listwise and pointwise Llama see the profile titles; Qwen3-Reranker-4B uses each profile paper as the query, max over the profile; lexical methods use profile papers as queries, IDF per profile sample. Listwise uses seeds 1–5, seed s on profile sample d_20_s; its Qwen3 comparison uses the same samples. Pooled loss, 95% participant bootstrap; Holm within each family:
 
 | Method | Loss | vs Qwen3-Embedding, Holm p |
 |---|---|---|
