@@ -816,3 +816,16 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Method.** Linear fusion of within-participant z-scores (`bc.fuse_linear`, α = reranker weight), α on 0..1 step 0.1 chosen leave-one-participant-out (`bc.lopo_select`), as in notebook 14. One paired Wilcoxon test against Qwen3 alone.
 - **Results** [905d7ce]. Fusion 0.233 [0.187, 0.289] vs Qwen3-Embedding 0.222 [0.177, 0.274]. Per participant, 0 better, 18 worse, 40 tied (p = 1.96e-04). Fixed α = 0.8 (notebook 12's value) gives 0.249. In-sample, the best α (0.2) only ties Qwen3 alone (0.2223 for both).
 - **Caveat.** The significant "worse" comes mostly from LOPO on a flat optimum: every participant given α = 0.2 is one it hurts in-sample. Read it as "no gain", not as harm.
+
+### 2026-10-21 — App matching decisions (`docs/MATCHING_DESIGN.md` §8)
+
+- **D1.** Qwen3-Embedding-8B, 4,096 dimensions, exact search (user). MiniLM is the fallback if hosting cost rules out 8B.
+- **D2.** `llama-server` as in the research (Q4_K_M, `--pooling last`) (user). Applies from PR 4.
+- **D3.** Max, as a parameter; top-3 mean checked in PR 5 (user).
+- **D4.** Large collaborations at full weight, `large_collaboration` column; a weight is added only if PR 5's exposure check calls for it (user).
+- **D5.** Crossref/S2 abstracts for the vector only, never stored or shown; works without any abstract embedded from the title and flagged (user).
+- **D6.** Exclude the paper itself (id, duplicate ids, DOI) from retrieval in PR 6; "co-author" label later (user).
+- **D7.** Title + abstract on both sides, no truncation, no tags, as in Experiment B (user).
+- **D8.** 30-day backfill on first follow, once per institution, in PR 6 with a count call and the cap fix; asked before it runs (user).
+- **D9.** Alembic with PR 3 (baseline, then new tables); `init_db`'s drop-and-recreate of mismatched `embedding` columns is replaced by an error (user).
+- **D10.** Authorship leave-one-out canary only, in PR 5, as a regression signal; no citation canary (user).
