@@ -46,10 +46,12 @@ Sena Öz · M.S. Software Engineering, Boğaziçi University · SWE 599 · Octob
   - Pointwise Llama 3.2 3B halves nDCG@10 when used alone (0.340 → 0.175) and changes nothing when fused.
   - Qwen3-Reranker-4B, a model trained for reranking, fused with the embedding score, raises R-precision 25.1 → 28.3 (Holm p = 0.040) and nDCG@10 0.340 → 0.360 (not significant after Holm).
 
-**Human labels: the Stelmakh et al. gold standard** (notebooks 14–15). 58 researchers rated their expertise (1–5) on 477 papers; each paper is scored against the researcher's own papers with max, as in the app. Metric: the authors' weighted Kendall-tau loss (lower is better, constant 0.5); our port reproduces all 11 published baselines (Table 3).
+**Human labels: the Stelmakh et al. gold standard** (notebooks 14–18). 58 researchers rated their expertise (1–5) on 477 papers; each paper is scored against the researcher's own papers with max, as in the app. Metric: the authors' weighted Kendall-tau loss (lower is better, constant 0.5); our port reproduces all 11 published baselines (Table 3).
 - **Same winner.** Qwen3-Embedding-8B 0.222 [0.177, 0.274], SPECTER2 0.231, MiniLM 0.242, published o1-mini 0.245.
 - **Bibliographic coupling** (pre-registered: IDF-weighted cosine over OpenAlex references, max) is a real but weaker signal: 0.299 [0.248, 0.348], better than constant for 46 of 58 researchers (Holm p = 4.2·10⁻⁶).
 - **It adds nothing significant to Qwen3-Embedding** (fused 0.212 vs 0.222, Holm p = 1.0); only fusion with SPECTER2 is significant (0.197, Holm p = 8.3·10⁻³). Raising reference coverage from 80% to 85% changes no conclusion.
+- **LLM reranking does not help** (notebook 17; expertise-framed prompts). All worse than Qwen3-Embedding (Holm): Qwen3-Reranker-4B 0.268 (p = 9.4·10⁻³), BM25 0.275, TF-IDF 0.289, pointwise Llama 0.337, listwise Llama shuffled 0.467 (p = 1.6·10⁻⁷). Fusing the reranker with the embedding (post-hoc, notebook 18) gives 0.233: no gain over 0.222.
+- **Position bias replicates on human labels.** Listwise Llama: best-first 0.253, shuffled 0.467, worst-first 0.685 (best- vs worst-first Holm p = 1.4·10⁻⁵); 35% of shuffled answers repeat the shown order.
 - **On Boğaziçi data** (descriptive, no labels): 52 of 101 new papers with references share one with a Boğaziçi work, but coupling and the embedding mostly pick different researchers (22.9% overlap in the top 10).
 
 **Limitations.**

@@ -208,7 +208,7 @@ v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes
 
 ## Human-labelled expertise: Stelmakh et al. gold standard
 
-Citation labels measure "would cite", not expertise. To check the conclusions against human labels, the same scoring function the app uses (a paper against a researcher's own papers, max over those papers) is evaluated on the public gold standard of Stelmakh et al. (TMLR 2025): 58 researchers rated their expertise (1–5) on 477 papers they had read. Each researcher is a profile of up to 20 of their own papers (10 random samples). The metric is the authors' weighted Kendall-tau loss (lower is better, constant = 0.5) with a participant bootstrap; our port of it reproduces all 11 published baselines, which agree with the paper's Table 3. Data card: [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md); notebook `14` in [`research/v2/`](research/v2/).
+Citation labels measure "would cite", not expertise. To check the conclusions against human labels, the same scoring function the app uses (a paper against a researcher's own papers, max over those papers) is evaluated on the public gold standard of Stelmakh et al. (TMLR 2025): 58 researchers rated their expertise (1–5) on 477 papers they had read. Each researcher is a profile of up to 20 of their own papers (10 random samples). The metric is the authors' weighted Kendall-tau loss (lower is better, constant = 0.5) with a participant bootstrap; our port of it reproduces all 11 published baselines, which agree with the paper's Table 3. Data card: [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md); notebooks `14`–`18` in [`research/v2/`](research/v2/).
 
 It also tests **bibliographic coupling** (a new paper and a researcher's paper cite the same works), a signal available the moment a paper is published. The method was pre-registered before any score was computed: IDF-weighted cosine over OpenAlex reference lists (80.3% of profile papers have one, against 33.0% in Semantic Scholar), max over profile papers; fusion weights chosen by leave-one-participant-out.
 
@@ -224,12 +224,28 @@ It also tests **bibliographic coupling** (a new paper and a researcher's paper c
 | Forward citation (new paper cites a profile paper) | 0.468 [0.445, 0.488] |
 | Constant | 0.500 |
 
+**LLM reranking on human labels** (notebooks `17`–`18`). The prompts ask how qualified the researcher is to review the paper, with the same structure as on the citation benchmark. Listwise and pointwise Llama see the profile titles. Qwen3-Reranker-4B takes each profile paper as the query, max over the profile. Holm p against Qwen3-Embedding:
+
+| Loss [95% CI] | | vs Qwen3-Embedding |
+|---|---|---|
+| Qwen3-Embedding-8B, max | **0.222** [0.177, 0.274] | |
+| Qwen3-Reranker-4B + Qwen3-Embedding, fused (weight by leave-one-participant-out; post-hoc) | 0.233 [0.187, 0.289] | no gain (p = 1.96·10⁻⁴; 0 better, 18 worse, 40 tied) |
+| Qwen3-Reranker-4B, max | 0.268 [0.210, 0.333] | worse, Holm p = 9.4·10⁻³ |
+| BM25, max | 0.275 [0.216, 0.331] | worse, Holm p = 1.0·10⁻² |
+| TF-IDF, max | 0.289 [0.233, 0.349] | worse, Holm p = 2.4·10⁻³ |
+| Pointwise Llama 3.2 3B | 0.337 [0.282, 0.395] | worse, Holm p = 3.9·10⁻⁴ |
+| Listwise Llama 3.2 3B, shuffled | 0.467 [0.442, 0.493] | worse, Holm p = 1.6·10⁻⁷ |
+| Listwise Llama, best-first (true order shown) | 0.253 [0.179, 0.328] | |
+| Listwise Llama, worst-first | 0.685 [0.604, 0.765] | |
+
 **What this shows**
 1. **Qwen3-Embedding again has the lowest loss**, as on the citation benchmarks, and all three embeddings score below the published LLM baseline o1-mini. These are point estimates; the CIs overlap and the embeddings were not tested against each other.
 2. **Coupling is a real but weaker signal.** It beats the constant predictor for 46 of 58 researchers (Holm p = 4.2·10⁻⁶) but trails every embedding (not significantly).
 3. **Coupling adds nothing significant on top of Qwen3-Embedding** (Holm p = 1.0). One of six pre-registered fusions reached significance (with SPECTER2, Holm p = 8.3·10⁻³), so coupling is no reason to change the app's design, just like co-citation in Phase 5.
    - **Coverage sensitivity.** A title search for the 114 papers with neither DOI nor arXiv id raised profile coverage to 85.2%; coupling moves to 0.292 [0.238, 0.343] and no test conclusion changes.
 4. **On the app's own data (descriptive, no labels; notebook `15`).** Of 200 new papers from the followed institutions (15–19 Oct 2026), 101 have references in OpenAlex and 52 share at least one with a Boğaziçi work. Coupling and Qwen3-Embedding mostly pick different researchers: 22.9% of coupling's top researchers are in the embedding's top 10. In a sanity check on 110 Boğaziçi works with a followed-institution co-author (index restricted to earlier works), the work's own Boğaziçi author is in the top 10 for 80.0% of queries with the embedding and 72.7% with coupling, although co-authors' shared self-citations favour coupling.
+5. **LLM reranking does not help on human labels either.** Every LLM method is significantly worse than Qwen3-Embedding. Fusing Qwen3-Reranker-4B with the embedding, its only gain on the citation benchmark, adds nothing here: the best in-sample weight only ties the embedding. The significant "worse" mostly comes from choosing the weight leave-one-participant-out on a flat optimum, so read it as no gain.
+6. **The position bias replicates.** Listwise Llama's loss follows the order it is shown: best-first 0.253, shuffled 0.467, worst-first 0.685 (best- vs worst-first Holm p = 1.4·10⁻⁵). Shuffled, it is barely better than the constant, and 35% of its answers repeat the shown order exactly (lists of 3–10 papers).
 5. **Scope.** The dataset orders papers *for one researcher*; the app orders *researchers for one paper*, and cross-researcher calibration is untested. Almost all papers are CS/ML.
 
 ## Limitations
