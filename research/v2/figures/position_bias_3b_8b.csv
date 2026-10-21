@@ -1,0 +1,13 @@
+bench,model,order,queries,rprec,lo,hi
+random,llama,original,118,72.2950,66.8933,77.5716
+random,llama,shuffled,118,46.3262,42.6076,50.1048
+random,llama,reversed,118,29.9876,23.0296,37.0763
+random,llama8b,original,118,73.8684,68.1134,79.2487
+random,llama8b,shuffled,118,67.1304,63.4591,70.6375
+random,llama8b,reversed,118,89.3852,86.5404,92.0244
+concept,llama,original,118,74.0661,69.5013,78.5775
+concept,llama,shuffled,118,43.1042,40.0992,46.0910
+concept,llama,reversed,118,19.8994,14.3408,25.8861
+concept,llama8b,original,118,69.0060,62.4563,75.2749
+concept,llama8b,shuffled,118,60.5801,56.3433,64.6855
+concept,llama8b,reversed,118,85.9231,82.7801,88.8072
