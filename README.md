@@ -370,3 +370,16 @@ SWE599_Progress_2026S_OZ_Sena.pdf, SWE599_Final_2026S_OZ_Sena.pdf   course repor
 | [research/README.md](research/README.md) | How to set up models and run the notebooks |
 | [DEVLOG.md](docs/DEVLOG.md) | Every step, dated, with commits |
 | [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md), [APP_NOTES.md](APP_NOTES.md) | The app's planned changes and known issues |
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE). Data from third parties keeps its own terms:
+
+| Source | What is in this repository | Terms |
+|---|---|---|
+| [OpenAlex](https://openalex.org) | Paper metadata, abstracts and reference lists behind the benchmarks, the full corpus and the Boğaziçi data (`research/v1/`, `research/v2/eval_sets/`, `research/v2/corpus/`, `research/data/`) | CC0, as released by OpenAlex |
+| Crossref, Semantic Scholar | Not included. Abstracts looked up there stay in a local, gitignored cache; the Boğaziçi table records only their source (`abstract_source`) | Their own terms; publisher copyright may apply |
+| [Stelmakh et al. gold standard](https://github.com/niharshah/goldstandard-reviewer-paper-match) | Not included; download it from its repository. `research/v2/goldstandard/` holds only our methods' scores and results, keyed by its participant and paper ids | Expertise labels CC BY 4.0; its Semantic Scholar metadata under that dataset's own terms |
+| Models (Llama, Qwen3, SPECTER2, MiniLM, EmbeddingGemma, bge-reranker) | Not included; `research/README.md` explains how to obtain them | Each model's own license |
+
+The per-query run files (`research/v2/runs/`, `research/v2/runs_corpus/`) contain these models' outputs.
