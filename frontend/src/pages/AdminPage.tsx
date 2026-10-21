@@ -16,9 +16,13 @@ export default function AdminPage() {
   const [triggering, setTriggering] = useState(false);
   const [rematching, setRematching] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    client.get<Status>("/admin/status").then(r => setStatus(r.data));
+    client
+      .get<Status>("/admin/status")
+      .then(r => setStatus(r.data))
+      .catch(err => setError(err.response?.status === 403 ? "This page is for admins only." : "Could not load the admin status."));
   }, []);
 
   const trigger = async () => {
@@ -36,6 +40,14 @@ export default function AdminPage() {
     setMsg(`Rematch job started for ${status?.unmatched_count ?? 0} unmatched papers.`);
     setRematching(false);
   };
+
+  if (error) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-sm text-tertiary">{error}</p>
+      </div>
+    );
+  }
 
   if (!status) {
     return (

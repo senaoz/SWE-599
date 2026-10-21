@@ -302,9 +302,9 @@ So that nobody repeats them without a reason:
 A containerized recommender. Every 6 hours (`JOB_INTERVAL_HOURS`, or on demand from the admin panel) it:
 
 1. **Fetches** new papers from the followed institutions (a fixed list of seven) through the OpenAlex API, starting from each institution's last fetched publication date, at most 200 per run.
-2. **Stage 1, retrieve.** Embeds each paper with Qwen3-Embedding (Ollama `qwen3-embedding`, 4096-d, stored in PostgreSQL with pgvector; Ollama Cloud as a fallback) and compares it with the embeddings of Boğaziçi researchers' papers (about 7,800 researcher–paper rows, 4,608 papers, from `boun.csv`). Papers below cosine 0.3 are dropped; each researcher scores by their best-matching paper (max); the top 10 researchers go on.
+2. **Stage 1, retrieve.** Embeds each paper with Qwen3-Embedding (Ollama `qwen3-embedding`, 4096-d, stored in PostgreSQL with pgvector) and compares it with the embeddings of Boğaziçi researchers' papers (about 7,800 researcher–paper rows, 4,608 papers, from `boun.csv`). Papers below cosine 0.3 are dropped; each researcher scores by their best-matching paper (max); the top 10 researchers go on.
 3. **Stage 2, rerank.** Llama 3.2 3B (Ollama) sees the paper and each researcher's top 5 matching papers, one researcher at a time, and answers `RELEVANT <score>` or `IRRELEVANT`. Its score replaces the cosine score; `IRRELEVANT` or an unparseable answer drops the researcher; if the call fails, the cosine score is kept.
-4. **Serves** a React 19 + TypeScript interface: paper feed (up to 5 researchers per paper, score ≥ 0.3), researcher pages, institution following, thumbs-up/down feedback (stored, not yet used) and an admin panel.
+4. **Serves** a React 19 + TypeScript interface: paper feed (up to 5 researchers per paper, score ≥ 0.3), researcher pages, institution following, thumbs-up/down feedback (stored, not yet used) and an admin panel for admin users.
 
 *Stage 2 is what the research argues against: on every benchmark above, Llama 3.2 3B reranking lowers or does not improve Qwen3-Embedding's ranking. Known issues and the planned changes are in [APP_NOTES.md](APP_NOTES.md) and [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md).*
 

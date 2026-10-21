@@ -37,7 +37,6 @@ Optional:
 
 ```env
 OPENALEX_EMAIL=you@example.com   # sent to OpenAlex with each request
-OLLAMA_CLOUD_API_KEY=...         # embedding fallback when local Ollama is unreachable
 ```
 
 ### 2. Start the Stack
@@ -73,14 +72,17 @@ Frontend runs at **http://localhost:5173**
 
 ### 4. First Use
 
-1. Open http://localhost:5173 and register an account
+1. Open http://localhost:5173 and register an account, then make it an admin:
+   ```bash
+   docker compose exec backend python -m backend.make_admin you@example.com
+   ```
 2. Go to **Institutions** → follow one or more institutions (a fixed list: MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google, Google DeepMind)
 3. Go to **Admin** → click **Run matching job now** (the scheduled job first runs 6 hours after start-up; **Rematch unmatched** reruns both stages for papers with no match)
 4. Go to **Dashboard** → see papers matched to BOUN researchers
 5. Go to **Researchers** → browse/search all 2671 BOUN researchers
 6. Mark a listed researcher as relevant or not (thumbs-up/down); feedback is stored but not yet used for matching
 
-The Admin page is open to every logged-in user (no role check).
+Only admins see the Admin page; the `/admin` API returns 403 for everyone else. Admin rights live in `users.is_admin` and are granted or revoked (`--revoke`) with `backend.make_admin`.
 
 ### Production
 
@@ -89,6 +91,8 @@ The Admin page is open to every logged-in user (no role check).
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+After registering, grant admin rights with `docker compose -f docker-compose.prod.yml exec backend python -m backend.make_admin you@example.com`.
 
 The file publishes no host ports; expose the frontend's port 80 through a reverse proxy or a `ports:` entry. For an NVIDIA GPU, uncomment the `deploy` block of the `ollama` service.
 
@@ -117,7 +121,6 @@ The file publishes no host ports; expose the frontend's port 80 through a revers
                                      │
                     ┌────────────────▼─────────────────────────┐
                     │  Ollama (host:11434)                      │
-                    │  (Ollama Cloud: embedding fallback)       │
                     │  qwen3-embedding — Stage 1 embeddings     │
                     │  llama3.2:3b     — Stage 2 reranking      │
                     └──────────────────────────────────────────┘
@@ -128,7 +131,7 @@ The file publishes no host ports; expose the frontend's port 80 through a revers
 Every 6 hours (or on manual trigger):
 
 1. **Fetch** — new papers from followed institutions via the OpenAlex API, from each institution's last fetched publication date (the first run starts from today), at most 200 per institution per run
-2. **Stage 1 — Retrieve** — embed new papers with Qwen3-Embedding (local Ollama, Ollama Cloud as fallback); cosine similarity against the ~7,800 researcher–paper embeddings, computed in Python; drop pairs below `MATCH_THRESHOLD`; group by researcher → top-10 by max score
+2. **Stage 1 — Retrieve** — embed new papers with Qwen3-Embedding via local Ollama (if Ollama is unreachable, the job logs the error and stops); cosine similarity against the ~7,800 researcher–paper embeddings, computed in Python; drop pairs below `MATCH_THRESHOLD`; group by researcher → top-10 by max score
 3. **Stage 2 — Rerank** — top-10 researchers sent to Llama 3.2 3B one at a time (pointwise) with context (new paper + the researcher's top-5 matching BOUN papers); Llama returns `RELEVANT <score>` or `IRRELEVANT <score>`. The LLM score replaces the cosine score; `IRRELEVANT` or a reply that does not start with `RELEVANT` drops the researcher; if the LLM call fails, the cosine score is kept. Research evidence on this stage: [`APP_NOTES.md`](APP_NOTES.md)
 4. **Store** — `PaperResearcherMatch` rows with score ≥ `MATCH_THRESHOLD`, matched paper IDs, and LLM score
 
@@ -147,6 +150,7 @@ The feed shows at most `TOP_K_MATCHES` researchers per paper, with score ≥ 0.3
 │   │   ├── embedding.py  # encode_texts_ollama, cosine similarity
 │   │   └── openalex.py   # paper/institution fetching via OpenAlex API
 │   ├── scheduler.py      # APScheduler job every JOB_INTERVAL_HOURS
+│   ├── make_admin.py     # grant/revoke admin rights
 │   ├── models.py         # SQLAlchemy ORM models
 │   ├── config.py         # constants and thresholds
 │   └── main.py           # FastAPI app + lifespan (init DB, seed, scheduler)
@@ -179,7 +183,6 @@ Key constants in `backend/config.py` (all but `RETRIEVE_MODEL` can be overridden
 | `RAG_CONTEXT_PAPERS` | `5` | BOUN papers per researcher in the Stage 2 prompt |
 | `LLM_GENERATE_MODEL` | `llama3.2:3b` | Stage 2 Ollama model |
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama |
-| `OLLAMA_CLOUD_API_KEY`, `OLLAMA_CLOUD_MODEL` | unset, `qwen3:embedding` | Embedding fallback |
 | `OPENALEX_EMAIL` | unset | OpenAlex polite pool |
 | `JWT_EXPIRE_MINUTES` | `10080` | Login lifetime (7 days) |
 | `JOB_INTERVAL_HOURS` | `6` | Background job frequency |

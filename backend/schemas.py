@@ -19,6 +19,11 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class MeResponse(BaseModel):
+    email: str
+    is_admin: bool
+
+
 # ── Institutions ──────────────────────────────────────────────────────────────
 
 class InstitutionSearchResult(BaseModel):

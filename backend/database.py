@@ -69,6 +69,7 @@ async def init_db() -> None:
         for stmt in [
             "ALTER TABLE paper_researcher_matches ADD COLUMN IF NOT EXISTS matched_paper_ids TEXT",
             "ALTER TABLE paper_researcher_matches ADD COLUMN IF NOT EXISTS llm_score FLOAT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false",
         ]:
             await conn.execute(text(stmt))
 

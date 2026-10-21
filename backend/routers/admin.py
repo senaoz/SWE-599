@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.auth import get_current_user
+from backend.auth import require_admin
 from backend.database import get_db
 from sqlalchemy import text
 from backend.models import User, FetchedPaper, PaperResearcherMatch, Researcher, FetchCursor
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/status", response_model=AdminStatus)
 async def get_status(
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     paper_count = await db.scalar(select(func.count(FetchedPaper.openalex_id))) or 0
@@ -42,7 +42,7 @@ async def get_status(
 @router.post("/trigger", status_code=202)
 async def trigger_job(
     background_tasks: BackgroundTasks,
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_admin),
 ):
     from backend.services.matching import run_matching_job
     background_tasks.add_task(run_matching_job)
@@ -52,7 +52,7 @@ async def trigger_job(
 @router.post("/rematch-unmatched", status_code=202)
 async def rematch_unmatched(
     background_tasks: BackgroundTasks,
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """Re-run Stage 2 matching for fetched papers that have no researcher matches."""
