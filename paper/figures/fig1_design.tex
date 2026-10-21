@@ -1,0 +1,34 @@
+% Figure 1: the deployed two-stage recommender (a) and the evaluation design (b).
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style={draw=black!45, rounded corners=2pt, align=center, text width=1.62cm,
+              minimum height=0.95cm, inner sep=2pt, fill=black!3},
+  llm/.style={box, draw=black!70, dashed, fill=white},
+  lab/.style={draw=black!45, rounded corners=2pt, align=center, text width=3.55cm,
+              minimum height=0.95cm, inner sep=2pt, fill=black!8},
+  arr/.style={-{Stealth[length=4pt]}, black!60, line width=0.5pt},
+  tag/.style={font=\scriptsize\bfseries, anchor=west, inner sep=0pt}
+]
+  % (a) deployed system
+  \node[tag] at (-1.0, 0.82) {(a) Deployed recommender};
+  \node[box] (np) at (0,0) {New paper\\from a followed\\institution};
+  \node[box, right=0.32cm of np] (er) {Embedding\\retrieval\\(Qwen3)};
+  \node[llm, right=0.32cm of er] (rr) {LLM rerank\\(Llama)\\\textbf{helps?}};
+  \node[box, right=0.32cm of rr] (rs) {Researchers\\who work on\\the topic};
+  \draw[arr] (np) -- (er); \draw[arr] (er) -- (rr); \draw[arr] (rr) -- (rs);
+
+  % (b) evaluation
+  \node[tag] at (-1.0, -1.18) {(b) Evaluation};
+  \node[box, below=1.05cm of np] (q) {Query\\paper, or a\\researcher's papers};
+  \node[box, right=0.32cm of q] (c) {Candidates in a\\set order: first,\\shuffled, last};
+  \node[box, right=0.32cm of c] (m) {13 rankers +\\Llama 8B,\\trained reranker};
+  \node[box, right=0.32cm of m] (r) {Ranking};
+  \draw[arr] (q) -- (c); \draw[arr] (c) -- (m); \draw[arr] (m) -- (r);
+
+  \node[lab, below=0.55cm of c.south east, anchor=north east, xshift=0.16cm] (cl)
+    {\textbf{Citation labels}: a query's references; 118 queries; pools of 9--42 or an 11,967-paper corpus};
+  \node[lab, right=0.3cm of cl] (hl)
+    {\textbf{Human labels}: 58 researchers rate their expertise, 1--5 \citep{stelmakh2025gold}};
+  \draw[arr] (r.south) |- ++(0,-0.25) -| (cl.north);
+  \draw[arr] (r.south) -- (r.south |- hl.north);
+\end{tikzpicture}

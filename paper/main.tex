@@ -4,6 +4,8 @@
 \documentclass[sigconf,nonacm]{acmart}
 
 \usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
 
 \begin{document}
 
@@ -29,7 +31,14 @@ We find that small LLM rerankers are sensitive to candidate order in a model-dep
 % System (Fig. 1), research question, v1 result and its retraction, four contributions.
 A recommender for Boğaziçi University researchers led us to ask whether reranking embedding-retrieved papers with a small local LLM improves recommendations; our first evaluation said yes, and this paper shows why that answer was wrong.
 Code, data and per-query results are available at \url{https://github.com/senaoz/SWE-599}.
-% TODO before arXiv: link a release tag (e.g. paper-v1) instead of the default branch; add a LICENSE first.
+% TODO before arXiv: link a release tag (e.g. paper-v1) instead of the default branch; LICENSE added (MIT).
+
+\begin{figure}[t]
+  \centering
+  \input{figures/fig1_design}
+  \caption{(a) Our recommender retrieves Boğaziçi researchers for a new paper with an embedding model and was designed to rerank them with a small LLM; we ask whether that stage helps. (b) We present the same candidates to every ranker in a controlled order and score the ranking on two independent label sources.}
+  \label{fig:design}
+\end{figure}
 
 \section{Related Work}
 \label{sec:related}
