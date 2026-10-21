@@ -829,3 +829,10 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **D8.** 30-day backfill on first follow, once per institution, in PR 6 with a count call and the cap fix; asked before it runs (user).
 - **D9.** Alembic with PR 3 (baseline, then new tables); `init_db`'s drop-and-recreate of mismatched `embedding` columns is replaced by an error (user).
 - **D10.** Authorship leave-one-out canary only, in PR 5, as a regression signal; no citation canary (user).
+
+### 2026-10-21 — Matching PR 1 and PR 2 (`docs/MATCHING_DESIGN.md` §6)
+
+- **PR 1 (senaoz/SWE-599#6).** `MATCH_THRESHOLD` and `TOP_K_MATCHES` were already defined once (`backend/config.py`) and read by the read path; the duplicated piece was the cut-off rule, copied inline in both jobs. It is now `rank_researchers` in `backend/services/ranking.py`, with a test that it equals the old inline code on 50 random cases. No behaviour change.
+- **PR 2 (senaoz/SWE-599#7).** Stage 2 (`_llm_generate`, Llama 3.2 3B) removed; matches store the cosine score, `model = qwen3-embedding:latest` and no `llm_score` (column kept until the cleanup PR). Both jobs share `_embed_and_store` and `_match_and_store`; `run_stage2_for_unmatched` is now `run_rematch_unmatched`. Aggregation is a parameter (`MATCH_AGGREGATION`: `max`, default, or `mean_top3`; D3). `ollama-init` no longer pulls `llama3.2:3b`.
+- **Bug found.** With pgvector 0.5.1 (unpinned, so a fresh image installs it), raw-SQL reads return `pgvector.Vector` objects and `row_to_emb` raised `TypeError`, so the rematch job crashed on already-embedded papers. Fixed in `row_to_emb`.
+- **Checks.** 11 backend unit tests pass (`python -m pytest backend/tests`). A synthetic end-to-end run on a throwaway `pgvector/pgvector:pg16` container (7 researchers, 3 papers, encoder stubbed, no Ollama) stored the expected matches, and the feed showed 5 per paper and the detail page 6. Not run: the real Ollama encoder, the OpenAlex fetch and the frontend build.

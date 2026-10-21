@@ -124,7 +124,7 @@ export default function AdminPage() {
           Rematch Unmatched Papers
         </h2>
         <p className="mb-4 text-sm text-tertiary">
-          Re-runs Stage 2 scoring for the {status.unmatched_count} papers that currently have no researcher matches.
+          Re-runs matching for the {status.unmatched_count} papers that currently have no researcher matches.
         </p>
         <Button
           color="secondary"
