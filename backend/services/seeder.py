@@ -275,7 +275,7 @@ async def _compute_missing_paper_embeddings() -> None:
     from backend.database import SessionLocal
     from backend.models import Researcher, ResearcherPaper
     from backend.services.embedding import encode_checked, emb_to_list
-    from sqlalchemy import select, update as sa_update, text
+    from sqlalchemy import select, update as sa_update
 
     async with SessionLocal() as db:
         rows = list(await db.execute(
@@ -313,10 +313,10 @@ async def _compute_missing_paper_embeddings() -> None:
         COMMIT_EVERY = 500
         async with SessionLocal() as db:
             for i, (row, emb) in enumerate(from_cache):
-                vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
                 await db.execute(
-                    text(f"UPDATE researcher_papers SET embedding = '{vec_str}' WHERE id = :id"),
-                    {"id": row.id},
+                    sa_update(ResearcherPaper)
+                    .where(ResearcherPaper.id == row.id)
+                    .values(embedding=emb_to_list(emb))
                 )
                 if (i + 1) % COMMIT_EVERY == 0:
                     await db.commit()
@@ -343,10 +343,10 @@ async def _compute_missing_paper_embeddings() -> None:
 
         async with SessionLocal() as db:
             for row, emb in zip(chunk_rows, chunk_embs):
-                vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
                 await db.execute(
-                    text(f"UPDATE researcher_papers SET embedding = '{vec_str}' WHERE id = :id"),
-                    {"id": row.id},
+                    sa_update(ResearcherPaper)
+                    .where(ResearcherPaper.id == row.id)
+                    .values(embedding=emb_to_list(emb))
                 )
             await db.commit()
         log.info("Paper embeddings: %d/%d committed.", min(chunk_start + CHUNK, len(texts)), len(texts))
@@ -365,13 +365,10 @@ async def _compute_missing_paper_embeddings() -> None:
     async with SessionLocal() as db:
         for r_id, emb_list in r_embs.items():
             mean_emb = np.mean(emb_list, axis=0)
-            vec_str = "[" + ",".join(f"{float(x):.8g}" for x in mean_emb) + "]"
             await db.execute(
-                text(
-                    f"UPDATE researchers SET profile_embedding = '{vec_str}', "
-                    f"profile_updated_at = :ts WHERE id = :id"
-                ),
-                {"ts": datetime.now(timezone.utc), "id": r_id},
+                sa_update(Researcher)
+                .where(Researcher.id == r_id)
+                .values(profile_embedding=emb_to_list(mean_emb), profile_updated_at=datetime.now(timezone.utc))
             )
         await db.commit()
 

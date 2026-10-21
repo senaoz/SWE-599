@@ -183,6 +183,7 @@ async def run_rematch_unmatched() -> None:
 
 async def _run_rematch_unmatched_impl() -> None:
     from backend.database import SessionLocal
+    from backend.models import FetchedPaper
     from backend.services.embedding import row_to_emb
     from sqlalchemy import text as sa_text
 
@@ -197,7 +198,7 @@ async def _run_rematch_unmatched_impl() -> None:
                 "WHERE NOT EXISTS ("
                 "  SELECT 1 FROM paper_researcher_matches m WHERE m.paper_openalex_id = fp.openalex_id"
                 ") ORDER BY openalex_id"
-            )
+            ).columns(embedding=FetchedPaper.embedding.type)
         ))
 
     if not rows:
@@ -237,8 +238,9 @@ async def _embed_and_store(papers: list[dict], job: str) -> np.ndarray | None:
     """Embed papers and write the vectors to fetched_papers. Returns None if encoding fails."""
     import asyncio
     from backend.database import SessionLocal
-    from backend.services.embedding import encode_checked
-    from sqlalchemy import text as sa_text
+    from backend.models import FetchedPaper
+    from backend.services.embedding import encode_checked, emb_to_list
+    from sqlalchemy import update
 
     log.info("%s — encoding %d paper(s) with %s …", job, len(papers), RETRIEVE_MODEL)
     try:
@@ -249,10 +251,10 @@ async def _embed_and_store(papers: list[dict], job: str) -> np.ndarray | None:
 
     async with SessionLocal() as db:
         for paper, emb in zip(papers, embs):
-            vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
             await db.execute(
-                sa_text(f"UPDATE fetched_papers SET embedding = '{vec_str}' WHERE openalex_id = :oid"),
-                {"oid": paper["openalex_id"]},
+                update(FetchedPaper)
+                .where(FetchedPaper.openalex_id == paper["openalex_id"])
+                .values(embedding=emb_to_list(emb))
             )
         await db.commit()
     log.info("%s — stored %d paper embeddings", job, len(papers))
