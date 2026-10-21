@@ -742,3 +742,77 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Finding 2: raw-affiliation check.** BOUN addresses appear with HTML entities (`Bo&#x011F;azi&#x00E7;i`) and PDF splits (`Bogazic ¸i`); `src.boun_data.names_boun` normalises them. Then 78 of 12,008 small-work BOUN authorships (0.65%) do not recognisably name Boğaziçi (34 researchers rest only on them): a mix of mangled spellings and real OpenAlex errors (e.g. a Koç University address). Kept, not filtered. The first version of this check (483 authorships, 107 researchers, reported in chat) was wrong for the encoding reason.
 - **Finding 3.** OpenAlex splits some people into two author ids (e.g. "Ismail Okan Atakisi", 214 works, and "I. O. Atakisi", 213).
 - **Tests.** 27 pass (2 new: encodings, suspect collaborations).
+
+### 2026-10-15 — PR #4 merged into `main` [f802d55]
+
+- **What.** Branch `v2-phase6b` (PR senaoz/SWE-599#4, 37 commits) was merged into `main` with a merge commit, `f802d55`.
+- **State after the merge.** The cleaned BOUN data (`research/data/boun/`, Git LFS), its data card (`research/audit/BOUN_DATA.md`), notebook `v2/13_boun_data.ipynb`, `src/boun_data.py` with tests (27 in total), the restated app task and the no-human-evaluation decision are on `main`. Branch `app-mtplx-stage2` (stage 2 on MTPLX) stays unmerged: its read path still filters matches at the cosine threshold 0.3. Open: an evaluation design for the restated task, with the stage-1 field ablation on the new data.
+
+### 2026-10-15 — Stelmakh et al. gold-standard expertise data downloaded and profiled
+
+- **Why.** Citation labels measure "would cite", not topical expertise; a human-labelled, public expertise dataset lets the paper test which conclusions survive a change of label without running our own human study.
+- **What.** Sparse clone of `niharshah/goldstandard-reviewer-paper-match` at `00296730` into `research/data/external/goldstandard/` (gitignored, 144 MB; full-text folders, about 2.5 GB, skipped). Data card: `research/audit/GOLDSTANDARD_DATA.md`; numbers from `research/audit/goldstandard_report.py`.
+- **Findings.** 58 researchers, 477 self-rated expertise scores (1–5), 463 papers (458 of 462 CS), profiles of up to 20 own papers. Ranking direction is papers-per-researcher, not researchers-per-paper (13 papers have two raters), so cross-researcher calibration stays untested. Published baseline losses recomputed from the repository's prediction files: SPECTER2 with max over profile papers 0.221, o1-mini 0.245, Claude 3.5 Sonnet 0.311, constant 0.500 (to check against the paper's Table 3).
+
+### 2026-10-15 — Matching design draft (`docs/MATCHING_DESIGN.md`)
+
+- **What.** Design doc for the app's target matching flow (persistent per-work BOUN index, streamed external papers, researcher-level aggregation, no LLM stage 2, calibrated cut-off, versioned matches and feedback). Draft for review; no code, schema or embedding change.
+- **Findings from the code read.** pgvector cannot ANN-index 4,096-dim vectors (exact scan is fine at 7,822 works); `researcher_papers` embeds a work once per BOUN co-author; matches and feedback carry no model version; the read path filters at cosine 0.3 independently of the job; works with a followed-institution co-author can match their own BOUN authors; the fetch cursor uses `from_publication_date` and caps at 200 works per run.
+- **Open.** Decisions D1–D10 in the doc (model and dimension, runtime, aggregation, large collaborations, missing abstracts, self-matches, template, backfill, migrations, optional canaries).
+
+### 2026-10-15 — Bibliographic coupling on the gold standard: references and pre-registration
+
+- **Why.** Test whether coupling (a new paper and a researcher's paper cite the same works) predicts human-rated expertise, alone and on top of an embedding. Brief: `research/audit/BIBCOUPLING_PROMPT.md`.
+- **Module.** `research/src/bibcoupling.py` (coupling variants, IDF, aggregations, forward/reverse citation, a port of the official weighted Kendall-tau loss with a seeded bootstrap, z-score and RRF fusion, leave-one-participant-out selection); 11 tests [632c0f1, 04c3f55]. The port reproduces every published baseline from the authors' prediction files (SPECTER2 max 0.221, o1-mini 0.245, TPMS 0.281, ...). The authors' `evaluation_script.py` is not run because it imports code from the downloaded data folder (user decision).
+- **References from OpenAlex** (`research/scripts/fetch_goldstandard_openalex.py` [095add5]; cache `research/data/external/openalex_refs/`, gitignored). DOI and arXiv DOI (`10.48550/arxiv.<id>`) list calls; OpenAlex returns merged records whose main DOI can differ from the requested one, so results are matched through every DOI and arXiv id a record carries.
+  - Coverage, papers with ≥1 reference: profile 696/867 (80.3%) vs Semantic Scholar 286/867 (33.0%); rated 401/463 (86.6%) vs 282/463 (60.9%). Above the 70% stop line, so OpenAlex is used. 115 papers unmapped (114 with neither id).
+  - IDF: `cited_by_count` of the 29,579 distinct referenced works across all fetched records (592 list calls) and N = 101,086,105 OpenAlex works with references. 4,078 returned no count. Under the DOI-first rule 29,205 referenced works are in use, 4,037 of them without a count; those get the median weight.
+  - Cost $0.0035 + $0.0593, anonymous (the Keychain key could not be read from the session; the anonymous budget is $0.10/day). The planned title search for the 114 (~$0.11) did not fit and was skipped.
+- **Qwen3-Embedding check.** No HF reference weights locally, so the llama-server instance was checked against the verified v2 setup: 5 texts re-embedded match the cached v2 vectors (cosine 1.0000), and the server log shows `--pooling last` with no override warning.
+- **Pre-registration** committed before any coupling score was computed [0020c68], at the top of `research/v2/14_bibcoupling_goldstandard.ipynb`: primary = IDF-weighted cosine coupling, max over profile papers; the other variants are one ablation table; fusion parameters by leave-one-participant-out; Holm families fixed; a same-record rule drops profile papers that share an OpenAlex record with the rated paper.
+- **Results** (`research/v2/14_bibcoupling_goldstandard.ipynb`, outputs in `research/v2/goldstandard/`, figure `v2/figures/14_bibcoupling_goldstandard.*`) [8fe82c7]. Pooled loss, lower is better, 95% participant-bootstrap CI:
+  - Coupling (primary) **0.299 [0.248, 0.348]**; constant 0.500. Embeddings (max): MiniLM 0.242 [0.194, 0.292], SPECTER2 [CLS] 0.231 [0.183, 0.282] (published 0.221; within the 0.02 sanity check), Qwen3-Embedding-8B 0.222 [0.177, 0.274].
+  - Per-participant Wilcoxon, Holm over 10 tests: coupling beats constant (46 of 58 participants better, p_holm = 4.2e-06); coupling vs each embedding is not significant (p_holm ≥ 0.91; embeddings better for 32 participants).
+  - Fusion (leave-one-participant-out): linear coupling + SPECTER2 **0.197 [0.148, 0.247]** vs SPECTER2 0.231, p_holm = 8.3e-03 (35 better, 9 worse); coupling + Qwen3 0.212 [0.164, 0.264] vs 0.222, p_holm = 1.0; coupling + MiniLM 0.233 vs 0.242, p_holm = 1.0. RRF fusion gains nothing.
+  - Forward citation 0.468 [0.445, 0.488] (for 40 of 58 participants no rated paper cites a profile paper in any sample; 259 of 4,770 participant–paper–sample items are positive); reverse citation (selection artefact) 0.434 [0.403, 0.463].
+  - Ablation (coupling kind × aggregation): 0.292–0.324. IDF from global counts is nearly flat (weights 10.6–16.1 between the 5th and 95th percentile), so IDF-cosine is close to plain cosine.
+  - Pair-level stratification (descriptive): 70.2% of rated items share ≥1 reference with the profile. On pairs where both papers do, coupling 0.233 vs Qwen3 0.259; on the other pairs, coupling 0.362 vs Qwen3 0.187.
+- **Examples caveat.** The pre-registered example rule cannot tell "coupling says no" from "no reference list": the first example (*Erasure Coding in Windows Azure Storage*) has no OpenAlex references, so its coupling score of 0 is missing data.
+- **Not done.** Published baselines not yet checked against Table 3 of Stelmakh et al. (quoted from the authors' prediction files only); title search for the 114 papers without DOI or arXiv id (needs the API key); optional Experiment B (BOUN side).
+- **Run time.** Qwen3 embedding of 1,311 texts took about 13 min, longer than the 5–10 min estimate.
+
+### 2026-10-19 — Coupling follow-ups: Table 3, title search, coverage sensitivity
+
+- **Commits rewritten.** The seven coupling commits were rewritten to drop their `Co-Authored-By` trailers (new global rule; not pushed, trees identical); hashes above updated [785d8f5].
+- **Table 3 check.** All 11 published baselines recomputed from the authors' prediction files agree with Table 3 of arXiv 2303.16750v2 to the two decimals printed. The data card's "SPECTER2" (0.245) is "Specter2 Mean Pool" in the paper [93dec42].
+- **Title search** for the 114 papers with neither DOI nor arXiv id ($0.114, anonymous, within the day's budget after all; the budget resets at 17:00 PDT). Year ±1 and a shared surname let through other papers by the same author (e.g. a POS-tagging paper for a spelling-normalization paper), so a title rule was added: normalized similarity ≥ 0.9, or the shorter title (≥ 3 words) contained in the longer. 5 first-pass hits failed it and were dropped; 67 of 114 matched, 54 with references [9e86e75]. Counts for the 434 + new referenced works went to a separate file so the pre-registered run stays reproducible [64aef41].
+- **Pre-registered run reproduced.** Notebook 14 rebuilt with a `TITLE_SEARCH` option (addendum in its pre-registration cell) and rerun in the default mode: every CSV and prediction file is byte-identical [18f07b3].
+- **Coverage sensitivity** (`v2/14_bibcoupling_goldstandard_titlesearch.ipynb`) [ad22667]. Profile coverage 80.3% → 85.2%, rated 86.6% → 89.0%. Coupling 0.299 → 0.292 [0.238, 0.343]; coupling + SPECTER2 0.199 (Holm p = 1.6e-02); coupling + Qwen3 0.219 vs 0.222 (Holm p = 1.0). No test conclusion changes.
+
+### 2026-10-19 — BOUN-side coupling description (Experiment B, notebook 15)
+
+- **Data** (`research/scripts/experiment_b_data.py` [143e37f]). The 200 most recent articles (15–19 Oct 2026) from the 7 followed institutions with an abstract and no BOUN author (2 list calls, $0.0002; `data/external/followed_sample/`, gitignored). Qwen3-Embedding-8B vectors for the 7,822 cleaned BOUN works and the sample (`data/v2/embeddings_boun/`, gitignored, reusable by the app seeder if the text template matches): about 1 h 45 min, slower than the 80 min estimate.
+- **Brief correction.** The brief's "311 BOUN works with a followed co-author" came from the old `boun.csv`; the cleaned data has 642, of which 460 are 100+-author collaborations. The sanity check used the other 182 (152 with references, 110 with a BOUN author who has an earlier work).
+- **Results** (descriptive, no labels) [2df0171]: 101 of 200 papers have references and 52 share ≥ 1 with a BOUN work (all 52 also a non-trivial one, cited by ≤ 1% of BOUN works). 22.9% of coupling's top researchers (≤ 10) are in Qwen3's top 10; coupling's top researcher sits at median rank 17 of 3,648 in the embedding ranking. Sanity check: own BOUN author in the top 10 for 80.0% of queries (embedding) and 72.7% (coupling); embedding-only 14, coupling-only 6, both 74, neither 16. Co-authors' shared self-citations favour coupling in this check.
+- **Report.** README and `research/audit/SUMMARY.md` gained a gold-standard section (coupling, sensitivity, BOUN side) and an updated evaluation status.
+
+### 2026-10-19 — Coupling as a label (notebook 16, post-hoc)
+
+- **Why.** To back or refute a discussion point ("coupling cannot be a label") with numbers. Reuses notebook 14's pre-registered predictions; `bootstrap_ci` now accepts labels per profile sample [edcddde].
+- **Results.** Strong coupling is precise: top decile of non-zero coupling, mean rating 4.50 [4.26, 4.69], 88% rated ≥ 4 (all items 3.71, 56%; same-size Qwen3 top 4.30, 82%). Top-1 by coupling vs Qwen3: 4.39 vs 4.37 (p = 0.59). With coupling scores as labels Qwen3 is still best (0.212); SPECTER2 and MiniLM swap; human ratings score 0.245.
+- **Correction.** The earlier note's inference that a coupling-labelled benchmark would rank Qwen3 lower was wrong; PAPER_NOTES now says coupling is a high-precision silver positive with partial, biased coverage, not a full-ranking label.
+
+### 2026-10-19 — LLM and lexical methods on the gold standard (notebook 17)
+
+- **Why.** The label-dependent claim ("LLM reranking does not help") rested on citation labels only; this tests it on the Stelmakh et al. human expertise ratings.
+- **Code.** Prompt templates are now a parameter of the v2 rankers [cc6633f]; `research/src/goldstandard.py` holds expertise-framed prompts (same structure as v2), lexical scoring and resumable per-call caches in `data/v2/goldstandard_llm/` (gitignored) [015d62e].
+- **Runs.** Listwise Llama 3.2 3B, 3 orders × 5 seeds × 58 participants (seed s uses profile sample d_20_s): 870 calls, 867 ok, 3 partial, 0 failed, about 50 min (3.5 s per call). Pointwise Llama (profile titles + candidate): 4,770 calls, all ok (0.35 s per call). Qwen3-Reranker-4B (each profile paper as query, max): 7,573 unique pairs, all ok, but 5.4 h (≈2.6 s per pair) against a 1–2 h estimate; both pointwise runs approved by the user beforehand.
+- **Results** (pooled loss, 95% participant bootstrap; Holm vs Qwen3-Embedding 0.222) [c2aa0e3]: Qwen3-Reranker-4B 0.268 [0.210, 0.333] (p_holm = 9.4e-03), BM25 0.275 [0.216, 0.331] (1.0e-02), TF-IDF 0.289 [0.233, 0.349] (2.4e-03), pointwise Llama 0.337 [0.282, 0.395] (3.9e-04), listwise Llama shuffled 0.467 [0.442, 0.493] (1.6e-07). No LLM method beats the embedding.
+- **Position bias on human labels.** Listwise best-first 0.253 [0.179, 0.328], shuffled 0.467, worst-first 0.685 [0.604, 0.765]; all three order contrasts Holm p ≤ 1.8e-04. Shuffled, 35% of outputs repeat the shown order exactly (mean Kendall τ with it 0.32).
+
+### 2026-10-20 — Reranker fused with the embedding on the gold standard (notebook 18, post-hoc)
+
+- **Why.** Notebook 17 scored Qwen3-Reranker-4B alone, but on the citation benchmark its only gain came from fusion with the embedding (notebook 12). This is the fused comparison on human labels. It is post-hoc, uses the cached predictions, and makes no model calls.
+- **Method.** Linear fusion of within-participant z-scores (`bc.fuse_linear`, α = reranker weight), α on 0..1 step 0.1 chosen leave-one-participant-out (`bc.lopo_select`), as in notebook 14. One paired Wilcoxon test against Qwen3 alone.
+- **Results** [905d7ce]. Fusion 0.233 [0.187, 0.289] vs Qwen3-Embedding 0.222 [0.177, 0.274]. Per participant, 0 better, 18 worse, 40 tied (p = 1.96e-04). Fixed α = 0.8 (notebook 12's value) gives 0.249. In-sample, the best α (0.2) only ties Qwen3 alone (0.2223 for both).
+- **Caveat.** The significant "worse" comes mostly from LOPO on a flat optimum: every participant given α = 0.2 is one it hurts in-sample. Read it as "no gain", not as harm.

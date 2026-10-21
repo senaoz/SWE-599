@@ -1,0 +1,6 @@
+method,loss vs human labels,loss vs coupling labels,coupling lo,coupling hi
+qwen,0.222282,0.211534,0.166942,0.264264
+specter2,0.230667,0.241198,0.1918,0.301957
+minilm,0.241551,0.228287,0.172671,0.292148
+human ratings,0,0.244882,0.187714,0.307032
+coupling,0.298873,0,0,0

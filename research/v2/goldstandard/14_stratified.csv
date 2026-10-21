@@ -1,0 +1,6 @@
+method,all other pairs,both papers share ≥1 reference with the profile
+coupling_idf_cosine_max,0.361598,0.23338
+forward_citation,0.48852,0.446392
+minilm,0.187785,0.29766
+qwen,0.187055,0.259038
+specter2,0.196357,0.266454

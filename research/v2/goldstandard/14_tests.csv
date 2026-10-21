@@ -1,0 +1,13 @@
+a,b,mean loss a,mean loss b,mean diff (a-b),a better,b better,ties,W,p,p_holm,family
+coupling_idf_cosine_max,constant,0.303433,0.5,-0.196567,46,10,2,178,4.24841e-07,4.24841e-06,1
+coupling_idf_cosine_max,minilm,0.303433,0.280882,0.0225508,23,32,3,678.5,0.443295,1,1
+coupling_idf_cosine_max,specter2,0.303433,0.267475,0.0359574,24,32,2,632,0.175712,1,1
+coupling_idf_cosine_max,qwen,0.303433,0.255625,0.047808,21,32,5,537,0.114057,0.912455,1
+fusion_linear_minilm,minilm,0.252579,0.280882,-0.0283031,31,18,9,473,0.165244,1,1
+fusion_linear_specter2,specter2,0.232687,0.267475,-0.0347883,35,9,14,211,0.000918615,0.00826753,1
+fusion_linear_qwen,qwen,0.254318,0.255625,-0.00130672,25,22,11,482,0.385538,1,1
+fusion_rrf_minilm,minilm,0.264589,0.280882,-0.0162933,32,19,7,542,0.256715,1,1
+fusion_rrf_specter2,specter2,0.263039,0.267475,-0.00443667,30,24,4,647,0.41092,1,1
+fusion_rrf_qwen,qwen,0.264231,0.255625,0.00860673,27,25,6,665,0.826988,1,1
+forward_citation,constant,0.476276,0.5,-0.0237237,14,4,40,29,0.0138594,0.0138594,2
+reverse_citation,constant,0.44402,0.5,-0.0559799,26,6,26,65,0.000198365,0.000396731,2
