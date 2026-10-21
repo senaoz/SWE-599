@@ -1,0 +1,5 @@
+method,label,loss,lo,hi
+qwen,Qwen3-Embedding-8B (max),0.222282,0.176532,0.273692
+qwen3_reranker,Qwen3-Reranker-4B (max),0.268306,0.209913,0.332976
+fusion_lopo,"Reranker + Qwen3, linear z-score, α LOPO [tested]",0.233411,0.186573,0.288769
+fusion_alpha_0.8,"Reranker + Qwen3, linear z-score, α = 0.8 [descriptive]",0.2492,0.193381,0.316685
