@@ -12,11 +12,9 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSe
 
 @event.listens_for(engine.sync_engine, "connect")
 def on_connect(dbapi_connection, connection_record):
-    from pgvector.asyncpg import register_vector
-
+    # No asyncpg vector codec: it rejects the text that pgvector's SQLAlchemy type binds.
     async def setup(conn):
         await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        await register_vector(conn)
 
     dbapi_connection.run_async(setup)
 
