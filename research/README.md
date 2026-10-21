@@ -1,15 +1,15 @@
 # Research
 
-Citation-based paper recommendation benchmark. Work proceeds in stages: the original benchmark (v1), an audit of it, a rebuilt, leak-free benchmark (v2, notebooks 01–06), and Phase 5: full-corpus retrieval, leakage-controlled graph expansion and reranking (notebooks 07–12).
+Citation-based paper recommendation benchmark. Work proceeds in stages: the original benchmark (v1), an audit of it, a rebuilt, leak-free benchmark (v2, notebooks 01–06), Phase 5 (full-corpus retrieval, leakage-controlled graph expansion and reranking; notebooks 07–12), the cleaned Boğaziçi data (notebook 13) and the Stelmakh et al. human-labelled gold standard (notebooks 14–18).
 
 ```
 research/
 ├── src/          shared library (also imported by backend/, so keep this path)
 ├── v1/           frozen v1 benchmark (git tag v1-results)
-├── audit/        audit of v1, data quality, BOUN data card, plan and Phase 5 design
-├── v2/           numbered notebooks 01–12, eval_sets/, runs/, corpus/, runs_corpus/, stats/, figures/
-├── tests/        unit tests (leakage rules, expansion, reranking)
-├── scripts/      OpenAlex probe and BOUN fetch/clean, Qwen3-Reranker check, notebook cleanup, model removal
+├── audit/        audit of v1, data quality, BOUN and gold-standard data cards, plan, Phase 5 design, paper notes
+├── v2/           numbered notebooks 01–18, eval_sets/, runs/, corpus/, runs_corpus/, goldstandard/, stats/, figures/
+├── tests/        unit tests (leakage rules, expansion, reranking, coupling, BOUN data, gold standard)
+├── scripts/      OpenAlex probe, BOUN fetch/clean, gold-standard references, followed-institution sample, Qwen3-Reranker check, notebook cleanup, model removal
 ├── archive/      superseded or incomplete experiments
 └── data/         local caches (gitignored), except boun/ (cleaned Boğaziçi works, Git LFS; see audit/BOUN_DATA.md) and cleaned/boun.csv (the app's seed)
 ```
@@ -43,6 +43,8 @@ research/.venv/bin/python research/audit/data_quality.py   # regenerates audit/D
 | `audit/SUMMARY.md` | One-page summary of the project |
 | `audit/TODO.md`, `audit/IMPROVEMENT_IDEAS.md` | Research plan and ideas, with status notes |
 | `audit/PHASE5_DESIGN.md` | Phase 5 design and decisions |
+| `audit/BOUN_DATA.md`, `audit/GOLDSTANDARD_DATA.md` | Data cards for the cleaned Boğaziçi works and the Stelmakh et al. gold standard |
+| `audit/BIBCOUPLING_PROMPT.md`, `audit/PAPER_NOTES.md` | Coupling experiment brief; notes for the paper |
 
 ## Stage 3 — v2
 
@@ -98,6 +100,12 @@ Run the numbered notebooks in order. Each one ends with a **Findings** cell and 
 | 10 | `v2/10_graph_expansion.ipynb` | GRIT-style co-citation expansion; random-graph, kNN, rule-ablation and canary controls; LADR-style run | no |
 | 11 | `v2/11_end_to_end.ipynb` | Pointwise Llama 3.2 3B reranking of the full-corpus lists | yes |
 | 12 | `v2/12_qwen3_reranker.ipynb` | Qwen3-Reranker-4B reranking (Hugging Face, 8 GB, in-process) | no |
+| 13 | `v2/13_boun_data.ipynb` | Exploration and attribution checks of the cleaned Boğaziçi data (`data/boun/`) | no |
+| 14 | `v2/14_bibcoupling_goldstandard.ipynb` | Gold standard: pre-registered bibliographic coupling, embeddings, fusions (`_titlesearch` copy: coverage sensitivity); needs the gold-standard clone (`audit/GOLDSTANDARD_DATA.md`) | yes (Qwen3-Embedding) |
+| 15 | `v2/15_bibcoupling_boun.ipynb` | Coupling vs embedding on new followed-institution papers and Boğaziçi works (descriptive) | no |
+| 16 | `v2/16_coupling_as_label.ipynb` | Coupling as a label (post-hoc) | no |
+| 17 | `v2/17_llm_goldstandard.ipynb` | Gold standard: listwise and pointwise Llama, Qwen3-Reranker-4B, BM25, TF-IDF; position bias | yes |
+| 18 | `v2/18_reranker_fusion_goldstandard.ipynb` | Gold standard: Qwen3-Reranker-4B fused with the embedding (post-hoc, cached predictions) | no |
 
 Code lives in `src/`:
 - `pipeline_v2.py`: the steps
@@ -106,8 +114,9 @@ Code lives in `src/`:
 - `stats_v2.py`: statistics and analyses
 - `figures.py`: paper figures
 - Phase 5: `corpus.py` (citers and corpus), `cograph.py` (duplicates, leakage rules, co-citation graph), `retrieval.py` (full-corpus ranking), `expansion.py` (GRIT- and LADR-style expansion), `rerank.py` (cached pointwise scores)
+- Later: `boun_data.py` (Boğaziçi data build), `bibcoupling.py` (coupling, the gold-standard loss, bootstrap, fusion), `goldstandard.py` (gold-standard prompts, lexical scoring, LLM caches)
 
-Unit tests for the leakage rules and the Phase 5 code: `.venv/bin/python -m pytest tests`.
+Unit tests for the leakage rules and the later code: `.venv/bin/python -m pytest tests`.
 
 The two benchmarks differ only in their negatives. Both draw them from other queries' references published before the query paper, excluding the query's own references and shared authors.
 

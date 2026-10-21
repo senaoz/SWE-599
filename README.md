@@ -1,40 +1,54 @@
 # Does LLM Reranking Help Scientific Paper Recommendation?
 
-**A 13-method benchmark on citation-based relevance, an audit of its first version, and a deployed two-stage recommender for Boğaziçi University researchers**
+**A 13-method benchmark on citation-based relevance, an audit of its first version, a check against human expertise labels, and a deployed two-stage recommender for Boğaziçi University researchers**
 
 Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software Engineering (SWE 599), 2026
 
 [One-page summary](research/audit/SUMMARY.md) · [Statistics](research/v2/stats/) · [v1 → v2 comparison](research/audit/BEFORE_AFTER.md) · [Audit of v1](research/audit/AUDIT.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md) · [Final report (PDF, v1)](SWE599_Final_2026S_OZ_Sena.pdf)
 
+Researchers miss relevant work from institutions they don't routinely follow. This project has two parts:
 
-> **Correction (October 2026).** The final report (May 2026) presents v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)):
-> - candidates were always shown positives-first;
-> - the prompt's example pointed at a positive;
-> - positive candidates carried other papers' text.
->
-> The results below are from the rebuilt, leak-free v2 benchmark and supersede v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
-
-![System overview: v1 audit, v2 pipeline, local models, results and the deployed app](docs/figures/system_overview.svg)
-
-Researchers miss relevant work from institutions they don't routinely follow. I built a system that monitors new papers from selected institutions via [OpenAlex](https://openalex.org) and recommends them to Boğaziçi researchers, and I used it to ask a research question:
+- **An app** that fetches new papers from followed institutions (MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google, Google DeepMind) via [OpenAlex](https://openalex.org) and lists, under each paper, the Boğaziçi researchers who work on its topic. It ranks researchers with embeddings (stage 1) and then reranks them with a small local LLM (stage 2).
+- **A research question** behind stage 2:
 
 > **Does reranking embedding-retrieved candidates with a small local LLM improve recommendation quality, and under what conditions?**
 
-**Findings** (v2; 118 test queries; R-precision with 95% bootstrap CIs; Holm-corrected paired Wilcoxon tests; LLM methods averaged over 5 shuffle seeds):
+**Short answer: no.** On citation labels, on a 12k-paper corpus and on human expertise labels, a good embedding model (Qwen3-Embedding-8B) alone is best. A small general LLM (Llama 3.2 3B) used as a reranker lowers the ranking, and its listwise variant mostly copies the order it is shown.
 
-1. **No: embedding models beat every LLM variant.**
-   - Qwen3-Embedding-8B is best, with R-precision 87.0% [84.2, 89.7] on random negatives and 80.1% [77.0, 83.0] on topically matched negatives.
-   - Listwise Llama 3.2 3B scores 43.9% and 42.0%, close to chance (33.3%) and about 40 points below Qwen3 (p ≈ 2·10⁻¹⁹).
-2. **The earlier "LLM advantage" was position bias.**
-   - With only the candidate order changed, the same model on the same queries gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56).
-   - Most of the time it returns the candidates in the order it was given them.
-3. **Reranking hurts the two-stage pipeline, and stage 1 is not the reason.**
-   - Qwen3's top 10 already holds about 90% of the true references.
-   - Reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
-4. **Small embedding models are almost as good as large ones.**
-   - MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B (mean per-query difference).
-   - SPECTER2 and MiniLM are indistinguishable (Holm p ≥ 0.84).
-   - Among LLM variants, only pointwise scoring (78.8 / 73.9) beats the lexical baselines.
+> **Correction (October 2026).** The final report (May 2026) presents v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)): candidates were always shown positives-first, the prompt's example pointed at a positive, and positive candidates carried other papers' text. Everything below comes from the rebuilt, leak-free v2 benchmark and later phases, and supersedes v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
+
+## Status (October 2026)
+
+| Part | State |
+|---|---|
+| Research | Done through notebook 18 (`research/v2/`). Paper being written as a benchmark paper with position bias as the headline ([PAPER_NOTES.md](research/audit/PAPER_NOTES.md)). |
+| Deployed app | **Unchanged since v1:** still Qwen3-Embedding → Llama 3.2 3B, seeded from the old `boun.csv`. The research says stage 2 should go; [APP_NOTES.md](APP_NOTES.md) collects what the app needs. |
+| App redesign | Draft in [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md): no LLM stage 2, a per-work Boğaziçi index on the cleaned data, versioned matches and feedback. Decisions D1–D10 open; no code yet. |
+| Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **On hold, not to be merged as is:** the feed's cosine filter (0.3) would hide every LLM-scored match. |
+
+## The project at a glance
+
+| Phase | Question | Answer in one line | Notebooks · details |
+|---|---|---|---|
+| **v1** (May 2026) | Does LLM reranking beat embeddings? | Seemed so (MRR 0.84 vs 0.51) | `research/v1/` · [final report](SWE599_Final_2026S_OZ_Sena.pdf) |
+| **Audit** | Is the v1 evaluation valid? | No: nine problems (F1–F9), headline was an artifact | [AUDIT.md](research/audit/AUDIT.md) · `verify_v1.py` |
+| **v2 benchmark** | Same question, leak-free, 13 methods | Embeddings win; listwise Llama ≈ chance | `01`–`06` · [BEFORE_AFTER.md](research/audit/BEFORE_AFTER.md) |
+| **Phase 5** | Does it hold on a full 12k-paper corpus, with co-citation expansion and reranking? | Yes; co-citation adds nothing significant; only a trained reranker (fused) helps a little | `07`–`12` · [PHASE5_DESIGN.md](research/audit/PHASE5_DESIGN.md) |
+| **Boğaziçi data** | Is the app's researcher data sound? | Partly: rebuilt as 7,822 cleaned works | `13` · [BOUN_DATA.md](research/audit/BOUN_DATA.md) |
+| **Gold standard** | Do the conclusions hold on human expertise labels? Does bibliographic coupling help? | Yes, same winner; coupling is real but adds nothing to Qwen3 | `14`–`18` · [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) |
+
+![System overview: v1 audit, v2 pipeline, local models, Phase 5 and the deployed app](docs/figures/system_overview.svg)
+
+*The overview diagram covers the project up to Phase 5; the gold-standard work is in the section below.*
+
+## Main findings
+
+1. **Embedding models beat every LLM variant.** On v2, Qwen3-Embedding-8B reaches R-precision 87.0% [84.2, 89.7] on random negatives and 80.1% [77.0, 83.0] on topically matched ones. Listwise Llama 3.2 3B scores 43.9% and 42.0%, close to chance (33.3%) and about 40 points below Qwen3 (p ≈ 2·10⁻¹⁹).
+2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them.
+3. **Reranking hurts the two-stage pipeline, and stage 1 is not the reason.** Qwen3's top 10 already holds about 90% of the true references; reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
+4. **Small embedding models are almost as good as large ones.** MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B.
+5. **The full corpus is much harder, and extra signals add little.** Against 11,967 papers, Qwen3's R-precision falls to 25.1%. Leakage-controlled co-citation expansion adds nothing significant; pointwise Llama halves nDCG@10; only Qwen3-Reranker-4B, fused with the embedding, helps modestly.
+6. **Human labels agree.** On the Stelmakh et al. expertise ratings, Qwen3-Embedding again has the lowest loss, every LLM method is significantly worse, and the position bias replicates (best-first 0.253, shuffled 0.467, worst-first 0.685).
 
 ![R-precision with 95% confidence intervals, random benchmark](research/v2/figures/05_rprec_ci_random.svg)
 
@@ -82,6 +96,9 @@ Share of candidates that share at least one top-5 concept with their query (all 
 
 So `concept` negatives look like positives on the concept tags; in fact they match more often than the positives do. Most of them match only through a broad field label, though, so `concept` means **same field, not same topic**. It is a harder setting, not a true hard-negative benchmark. Every method scores lower on `concept`, by 1.9 (listwise Llama, already near chance) to 9.9 (TF-IDF) R-precision points.
 
+<details>
+<summary>Two worked examples</summary>
+
 **Example 1** (test query, 2021): *LocusZoom.js: interactive and embeddable visualization of genetic association study results*. Top-5 concepts: Computer science, MIT License, Annotation, JavaScript, Visualization.
 
 | Role | Paper (year) | Shared top-5 concepts |
@@ -112,11 +129,13 @@ All six `concept` negatives of this query match only through "Computer science";
 
 Shown: 2 of 4 positives, 2 of 8 `random` and 3 of 8 `concept` negatives. Here 7 of the 8 `concept` negatives match only through "Medicine" or "Health care". Some `random` negatives (the racial-bias paper) are arguably as close to the query as any `concept` negative.
 
+</details>
+
 Construction and runs: numbered notebooks in [`research/v2/`](research/v2/) (01 fetch → 02 build → 03 dev tuning → 04 test runs → 05 statistics → 06 analyses). Per-query runs: [`research/v2/runs/`](research/v2/runs/).
 
 ## Results (v2, test split)
 
-R-precision % [95% CI] and MRR. The chance level (a random ranking) is 33.3% R-precision and 0.559 MRR.
+R-precision % [95% CI] and MRR. The chance level (a random ranking) is 33.3% R-precision and 0.559 MRR. LLM methods are averaged over 5 shuffle seeds; significance is Holm-corrected paired Wilcoxon.
 
 | Method | R-prec, `random` | R-prec, `concept` | MRR, `random` | MRR, `concept` |
 |---|---|---|---|---|
@@ -134,7 +153,7 @@ R-precision % [95% CI] and MRR. The chance level (a random ranking) is 33.3% R-p
 | Llama 3.2 3B, listwise, sliding window | 55.6 [53.5, 57.8] | 52.2 [49.9, 54.5] | 0.797 | 0.777 |
 | Llama 3.2 3B, listwise, full list | 43.9 [41.9, 46.0] | 42.0 [40.2, 43.9] | 0.662 | 0.638 |
 
-Significance tests: [`research/v2/stats/`](research/v2/stats/); seed spread: [`05_stats.ipynb`](research/v2/05_stats.ipynb). All figures (PDF and SVG): [`research/v2/figures/`](research/v2/figures/).
+SPECTER2 and MiniLM are indistinguishable (Holm p ≥ 0.84). Among LLM variants, only pointwise scoring beats the lexical baselines. Significance tests: [`research/v2/stats/`](research/v2/stats/); seed spread: [`05_stats.ipynb`](research/v2/05_stats.ipynb). All figures (PDF and SVG): [`research/v2/figures/`](research/v2/figures/).
 
 **Position bias** (listwise Llama, same 118 test queries and candidates, only the order changed; `random` / `concept`):
 
@@ -146,7 +165,10 @@ Significance tests: [`research/v2/stats/`](research/v2/stats/); seed spread: [`0
 
 Only the order changes in this experiment; prompt and candidate text are v2's. So order alone reproduces v1's MRR 0.84.
 
-The order dependence also shows directly in the outputs. Across 1,177 shuffled test rankings, the Spearman correlation between the output order and the input order has median **0.98**:
+<details>
+<summary>How the model copies the input order, and other v2 findings</summary>
+
+Across 1,177 shuffled test rankings, the Spearman correlation between the output order and the input order has median **0.98**:
 - **50.6%** of outputs copy the input list (ρ > 0.8);
 - **6.7%** reverse it (ρ < −0.8);
 - only 29.5% look order-independent (|ρ| ≤ 0.3).
@@ -157,24 +179,19 @@ The order dependence also shows directly in the outputs. Across 1,177 shuffled t
 >
 > Qwen3 ranks the cited papers 1st, 2nd, 4th and 5th in every order.
 
-**Other findings**
 - **Stage-1 recall.** Qwen3's top 10 holds 93% / 89% of the cited references, and its top 20 holds 99% / 98%. BM25 holds 81% / 76% at k = 10. A BM25 + Qwen3 hybrid (reciprocal rank fusion) holds 89% / 84%, and its R-precision (78.7 / 72.8) is below Qwen3 alone.
 - **Listwise output reliability.** Full-list Llama returns a partial ranking in 38% of calls. The sliding window (at most 10 candidates per call) brings this down to about 2% of queries.
 - **Candidate text.** On dev, adding abstracts helps lexical methods most (TF-IDF +16 points on `random`). Qwen3 is insensitive to the input fields, while bge-reranker and listwise Llama get worse with longer text.
 - **Seeds.** Across 5 shuffle seeds, the standard deviation of each LLM method's R-precision is 0.8–2.0 points. Full-list Llama's best seed (46.3 on `random`, 43.3 on `concept`) is still below every other method's mean.
+
+</details>
 
 ## Phase 5: full corpus, graph expansion and reranking (test split)
 
 v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes the task realistic: each query is ranked against **11,967 papers**, about 11k of them candidates per query. Notebooks `07`–`12` in [`research/v2/`](research/v2/); design and decisions in [PHASE5_DESIGN.md](research/audit/PHASE5_DESIGN.md).
 
 - **Corpus.** For each query, an OpenAlex title search found papers published before it ("citers"). The corpus is every eligible positive plus every work cited by at least 5 citers. Duplicate records are merged in the corpus, the labels and the graph.
-- **Co-citation graph under leakage rules.** The following never enter a query's graph, each rule with a unit test:
-  - the query's own references;
-  - copies or earlier versions of a query;
-  - citers dated on or after the query, using a conservative date because 24% of citers carry year-only Jan 1 dates;
-  - other query papers.
-
-  The checks found real leaks, for example a 2012 record of a Cochrane review that held all 10 references of a 2020 query.
+- **Co-citation graph under leakage rules.** The query's own references, copies or earlier versions of a query, citers dated on or after the query (with a conservative date, because 24% of citers carry year-only Jan 1 dates) and other query papers never enter a query's graph. Each rule has a unit test. The checks found real leaks, for example a 2012 record of a Cochrane review that held all 10 references of a 2020 query.
 
 | Recall@100 (118 test queries) | % [95% CI] |
 |---|---|
@@ -194,93 +211,102 @@ v2 ranks each query against a fixed pool of at most 42 candidates. Phase 5 makes
 
 **What this shows**
 1. **The full corpus is much harder.** Qwen3-Embedding's R-precision falls from 87.0% on the v2 pools to 25.1%, and over a third of cited papers fall outside the top 100.
-2. **Leakage-controlled co-citation expansion adds nothing significant on top of a strong dense first stage.**
-   - Only 54.7% of test positives are reachable through an allowed citer at all.
-   - The canary shows the method works when the signal is present.
-   - Relaxing the rules would have inflated reachability to 62.9–70.1%.
-3. **A small general LLM does not help as a reranker, even pointwise.** A model trained for reranking does, modestly, when fused with the embedding score.
-   - The reranker was released in 2025 and may have seen these papers in pretraining.
-   - The app's stage 2 is pointwise Llama, so this is evidence about the app, not a direct test of it ([APP_NOTES.md](APP_NOTES.md)).
+2. **Leakage-controlled co-citation expansion adds nothing significant on top of a strong dense first stage.** Only 54.7% of test positives are reachable through an allowed citer at all; the canary shows the method works when the signal is present; relaxing the rules would have inflated reachability to 62.9–70.1%.
+3. **A small general LLM does not help as a reranker, even pointwise.** A model trained for reranking does, modestly, when fused with the embedding score. That reranker was released in 2025 and may have seen these papers in pretraining.
 
 ![Recall@k over the full corpus](research/v2/figures/09_full_corpus_recall.svg)
 
 ![Second-stage reranking: Llama 3.2 3B vs Qwen3-Reranker-4B](research/v2/figures/12_qwen3_reranker.svg)
 
+## Boğaziçi researcher data
+
+The app matches papers to Boğaziçi researchers through their own papers. Its seed file (`research/data/cleaned/boun.csv`, 4,608 papers) turned out to keep errata and editorials, miss conference papers and preprints, and cut author lists at 100. The data were refetched from OpenAlex (all research types since 2020) and cleaned: **7,822 works, 3,648 Boğaziçi researchers, text for 84.2% of works**, duplicates merged, misattributed authors on large physics collaborations removed. They live in [`research/data/boun/`](research/data/boun/) (Git LFS); data card: [BOUN_DATA.md](research/audit/BOUN_DATA.md); exploration: notebook `13`. The app does not use them yet.
+
 ## Human-labelled expertise: Stelmakh et al. gold standard
 
-Citation labels measure "would cite", not expertise. To check the conclusions against human labels, the same scoring function the app uses (a paper against a researcher's own papers, max over those papers) is evaluated on the public gold standard of Stelmakh et al. (TMLR 2025): 58 researchers rated their expertise (1–5) on 477 papers they had read. Each researcher is a profile of up to 20 of their own papers (10 random samples). The metric is the authors' weighted Kendall-tau loss (lower is better, constant = 0.5) with a participant bootstrap; our port of it reproduces all 11 published baselines, which agree with the paper's Table 3. Data card: [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md); notebooks `14`–`18` in [`research/v2/`](research/v2/).
+Citation labels measure "would cite", not expertise. To check the conclusions against human labels, the same scoring function the app uses (a paper against a researcher's own papers, max over those papers) is evaluated on the public gold standard of Stelmakh et al. (TMLR 2025): 58 researchers rated their expertise (1–5) on 477 papers they had read. Each researcher is a profile of up to 20 of their own papers (10 random samples). The metric is the authors' weighted Kendall-tau loss (lower is better, constant = 0.5) with a participant bootstrap; our port of it reproduces all 11 published baselines, which agree with the paper's Table 3. Data card: [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md); notebooks `14`–`18` in [`research/v2/`](research/v2/), outputs in [`research/v2/goldstandard/`](research/v2/goldstandard/).
 
 It also tests **bibliographic coupling** (a new paper and a researcher's paper cite the same works), a signal available the moment a paper is published. The method was pre-registered before any score was computed: IDF-weighted cosine over OpenAlex reference lists (80.3% of profile papers have one, against 33.0% in Semantic Scholar), max over profile papers; fusion weights chosen by leave-one-participant-out.
 
-| Loss (d_20_1..10) [95% CI] | |
-|---|---|
-| Qwen3-Embedding-8B, max | **0.222** [0.177, 0.274] |
-| SPECTER2 [CLS], max (published: 0.221) | 0.231 [0.183, 0.282] |
-| MiniLM, max | 0.242 [0.194, 0.292] |
-| o1-mini (published) | 0.245 |
-| Coupling, IDF-cosine, max (pre-registered) | 0.299 [0.248, 0.348] |
-| Coupling + SPECTER2, linear fusion | 0.197 [0.148, 0.247] |
-| Coupling + Qwen3-Embedding, linear fusion | 0.212 [0.164, 0.264] |
-| Forward citation (new paper cites a profile paper) | 0.468 [0.445, 0.488] |
-| Constant | 0.500 |
-
-**LLM reranking on human labels** (notebooks `17`–`18`). The prompts ask how qualified the researcher is to review the paper, with the same structure as on the citation benchmark. Listwise and pointwise Llama see the profile titles. Qwen3-Reranker-4B takes each profile paper as the query, max over the profile. Holm p against Qwen3-Embedding:
-
-| Loss [95% CI] | | vs Qwen3-Embedding |
+| Loss (d_20_1..10) [95% CI] | | vs Qwen3-Embedding |
 |---|---|---|
 | Qwen3-Embedding-8B, max | **0.222** [0.177, 0.274] | |
-| Qwen3-Reranker-4B + Qwen3-Embedding, fused (weight by leave-one-participant-out; post-hoc) | 0.233 [0.187, 0.289] | no gain (p = 1.96·10⁻⁴; 0 better, 18 worse, 40 tied) |
+| SPECTER2 [CLS], max (published: 0.221) | 0.231 [0.183, 0.282] | |
+| MiniLM, max | 0.242 [0.194, 0.292] | |
+| o1-mini (published) | 0.245 | |
+| Qwen3-Reranker-4B + Qwen3-Embedding, fused (post-hoc) | 0.233 [0.187, 0.289] | no gain |
 | Qwen3-Reranker-4B, max | 0.268 [0.210, 0.333] | worse, Holm p = 9.4·10⁻³ |
 | BM25, max | 0.275 [0.216, 0.331] | worse, Holm p = 1.0·10⁻² |
 | TF-IDF, max | 0.289 [0.233, 0.349] | worse, Holm p = 2.4·10⁻³ |
+| Coupling, IDF-cosine, max (pre-registered) | 0.299 [0.248, 0.348] | not significant |
 | Pointwise Llama 3.2 3B | 0.337 [0.282, 0.395] | worse, Holm p = 3.9·10⁻⁴ |
 | Listwise Llama 3.2 3B, shuffled | 0.467 [0.442, 0.493] | worse, Holm p = 1.6·10⁻⁷ |
-| Listwise Llama, best-first (true order shown) | 0.253 [0.179, 0.328] | |
-| Listwise Llama, worst-first | 0.685 [0.604, 0.765] | |
+| Forward citation (new paper cites a profile paper) | 0.468 [0.445, 0.488] | |
+| Constant | 0.500 | |
+
+<details>
+<summary>Fusions, position-bias orders and the fused reranker in detail</summary>
+
+| Loss [95% CI] | |
+|---|---|
+| Coupling + SPECTER2, linear fusion | 0.197 [0.148, 0.247] |
+| Coupling + Qwen3-Embedding, linear fusion | 0.212 [0.164, 0.264] |
+| Listwise Llama, best-first (true order shown) | 0.253 [0.179, 0.328] |
+| Listwise Llama, worst-first | 0.685 [0.604, 0.765] |
+
+The LLM prompts (notebook `17`) ask how qualified the researcher is to review the paper, with the same structure as on the citation benchmark. Listwise and pointwise Llama see the profile titles. Qwen3-Reranker-4B takes each profile paper as the query, max over the profile. The fused reranker (notebook `18`, weight by leave-one-participant-out) is better for 0 researchers, worse for 18 and tied for 40 (p = 1.96·10⁻⁴).
+
+</details>
 
 **What this shows**
 1. **Qwen3-Embedding again has the lowest loss**, as on the citation benchmarks, and all three embeddings score below the published LLM baseline o1-mini. These are point estimates; the CIs overlap and the embeddings were not tested against each other.
-2. **Coupling is a real but weaker signal.** It beats the constant predictor for 46 of 58 researchers (Holm p = 4.2·10⁻⁶) but trails every embedding (not significantly).
-3. **Coupling adds nothing significant on top of Qwen3-Embedding** (Holm p = 1.0). One of six pre-registered fusions reached significance (with SPECTER2, Holm p = 8.3·10⁻³), so coupling is no reason to change the app's design, just like co-citation in Phase 5.
-   - **Coverage sensitivity.** A title search for the 114 papers with neither DOI nor arXiv id raised profile coverage to 85.2%; coupling moves to 0.292 [0.238, 0.343] and no test conclusion changes.
-4. **On the app's own data (descriptive, no labels; notebook `15`).** Of 200 new papers from the followed institutions (15–19 Oct 2026), 101 have references in OpenAlex and 52 share at least one with a Boğaziçi work. Coupling and Qwen3-Embedding mostly pick different researchers: 22.9% of coupling's top researchers are in the embedding's top 10. In a sanity check on 110 Boğaziçi works with a followed-institution co-author (index restricted to earlier works), the work's own Boğaziçi author is in the top 10 for 80.0% of queries with the embedding and 72.7% with coupling, although co-authors' shared self-citations favour coupling.
-5. **LLM reranking does not help on human labels either.** Every LLM method is significantly worse than Qwen3-Embedding. Fusing Qwen3-Reranker-4B with the embedding, its only gain on the citation benchmark, adds nothing here: the best in-sample weight only ties the embedding. The significant "worse" mostly comes from choosing the weight leave-one-participant-out on a flat optimum, so read it as no gain.
-6. **The position bias replicates.** Listwise Llama's loss follows the order it is shown: best-first 0.253, shuffled 0.467, worst-first 0.685 (best- vs worst-first Holm p = 1.4·10⁻⁵). Shuffled, it is barely better than the constant, and 35% of its answers repeat the shown order exactly (lists of 3–10 papers).
-5. **Scope.** The dataset orders papers *for one researcher*; the app orders *researchers for one paper*, and cross-researcher calibration is untested. Almost all papers are CS/ML.
+2. **LLM reranking does not help on human labels either.** Every LLM method is significantly worse than Qwen3-Embedding. Fusing Qwen3-Reranker-4B with the embedding, its only gain on the citation benchmark, adds nothing here: the best in-sample weight only ties the embedding. The significant "worse" mostly comes from choosing the weight leave-one-participant-out on a flat optimum, so read it as no gain.
+3. **The position bias replicates.** Listwise Llama's loss follows the order it is shown: best-first 0.253, shuffled 0.467, worst-first 0.685 (best- vs worst-first Holm p = 1.4·10⁻⁵). Shuffled, it is barely better than the constant, and 35% of its answers repeat the shown order exactly (lists of 3–10 papers).
+4. **Coupling is a real but weaker signal.** It beats the constant predictor for 46 of 58 researchers (Holm p = 4.2·10⁻⁶) but trails every embedding (not significantly). Its strongest matches are precise (top decile of non-zero coupling: mean rating 4.50, 88% rated ≥ 4; notebook `16`), so it could serve as a high-precision silver label, not a full ranking.
+5. **Coupling adds nothing significant on top of Qwen3-Embedding** (Holm p = 1.0). One of six pre-registered fusions reached significance (with SPECTER2, Holm p = 8.3·10⁻³), so coupling is no reason to change the app's design, just like co-citation in Phase 5. A title search that raised profile coverage to 85.2% moves coupling to 0.292 [0.238, 0.343] and changes no test conclusion.
+6. **On the app's own data (descriptive, no labels; notebook `15`).** Of 200 new papers from the followed institutions (15–19 Oct 2026), 101 have references in OpenAlex and 52 share at least one with a Boğaziçi work. Coupling and Qwen3-Embedding mostly pick different researchers: 22.9% of coupling's top researchers are in the embedding's top 10. In a sanity check on 110 Boğaziçi works with a followed-institution co-author (index restricted to earlier works), the work's own Boğaziçi author is in the top 10 for 80.0% of queries with the embedding and 72.7% with coupling, although co-authors' shared self-citations favour coupling.
+7. **Scope.** The dataset orders papers *for one researcher*; the app orders *researchers for one paper*, and cross-researcher calibration is untested. Almost all papers are CS/ML.
+
+![Bibliographic coupling and embeddings on the gold standard](research/v2/figures/14_bibcoupling_goldstandard.svg)
+
+## Tried and set aside
+
+So that nobody repeats them without a reason:
+
+- **A larger LLM as the app's stage 2** (Qwen3.8-27B via MTPLX, branch `app-mtplx-stage2`). The old prompt dropped nearly every researcher; a score-only prompt parsed well but gave coarse, low scores at 3.6–31 s per call against 0.35 s for Llama. On hold ([DEVLOG](docs/DEVLOG.md), 2026-10-14).
+- **Citation labels for the app's task** (Phase 6B as first planned: "the researcher later cited it"). Citers often cite methods and background, not their topic, so the app's task was restated as topical expertise and this design is paused.
+- **Co-citation graph expansion** (Phase 5) and **bibliographic coupling** (gold standard): real signals, no significant gain on top of Qwen3-Embedding.
+- **A human study of our own.** Dropped; the public Stelmakh et al. ratings and the app's thumbs-up/down feedback are the human signals.
 
 ## Limitations
 
 - **Citation is a proxy for relevance.** Researchers may find uncited papers relevant and cited ones irrelevant. The project collects no human judgments of its own; the only human labels are the public Stelmakh et al. expertise ratings (CS/ML, papers ranked within one researcher).
 - **v2 negatives are not same-topic hard negatives.** The `concept` match often rests on a broad field label such as "Medicine". Phase 5 ranks against a full corpus built from the queries' topical neighbourhoods instead.
-- **Few rerankers.** The LLM results are for Llama 3.2 3B (Q4_K_M). Phase 5 adds one retrieval-tuned model, Qwen3-Reranker-4B; larger general LLMs were not tested.
+- **Few rerankers.** The LLM results are for Llama 3.2 3B (Q4_K_M). Phase 5 adds one retrieval-tuned model, Qwen3-Reranker-4B; larger general LLMs were not benchmarked.
 - **Pretraining contamination is untested.** Only one test query was published after Llama 3.2's December 2023 knowledge cutoff. Qwen3-Reranker-4B (2025) postdates every query.
 - **Simplified embedding inputs.** Qwen3-Embedding and EmbeddingGemma run without their recommended instruction prefixes, and bge-reranker-base truncates query-candidate pairs at 512 tokens.
-- **Data quality** ([DATA_QUALITY.md](research/audit/DATA_QUALITY.md)).
-  - 155 listed references no longer exist in OpenAlex.
-  - 1.4% of positives are duplicate OpenAlex records of the same paper.
-  - About 6% of papers have an "abstract" that is not one: author lists, citation strings, or another paper's title. Dropping the affected test queries changes no method by more than about 1 point.
+- **Data quality** ([DATA_QUALITY.md](research/audit/DATA_QUALITY.md)). 155 listed references no longer exist in OpenAlex; 1.4% of positives are duplicate OpenAlex records of the same paper; about 6% of papers have an "abstract" that is not one. Dropping the affected test queries changes no method by more than about 1 point.
 - **Not a paired re-run of v1.** v1's candidate pools cannot be regenerated, so v1 and v2 numbers are compared claim by claim, not query by query ([BEFORE_AFTER.md](research/audit/BEFORE_AFTER.md)).
+- **No labelled benchmark for the app's direction** (researchers ranked for one paper). Model and scoring decisions rest on the citation benchmarks and the gold standard, which agree.
 
 ## Next steps
 
-Planned in [`research/audit/TODO.md`](research/audit/TODO.md), with the motivation in [`IMPROVEMENT_IDEAS.md`](research/audit/IMPROVEMENT_IDEAS.md):
-
-1. **Evaluation on the app's own task.** Under each new paper from a followed institution, the app lists the Boğaziçi researchers who work on its topic, so relevance means topical expertise. Citation labels ("the researcher later cited it") do not measure this, and the citation-based design of Phase 6B is paused.
-   - The Boğaziçi data were refetched from OpenAlex and cleaned for this: 7,822 works of all research types, full author lists for large collaborations, and text for 84.2% of works ([BOUN_DATA.md](research/audit/BOUN_DATA.md)).
-   - No labelled benchmark covers this direction (researchers ranked for one paper). Model and scoring decisions rest on the citation benchmarks and the Stelmakh et al. gold standard, which agree; the app's cut-off and cross-researcher calibration rest on the consistency checks and the user feedback planned in [`docs/MATCHING_DESIGN.md`](docs/MATCHING_DESIGN.md) section 5.
-2. **Benchmark labels.** Same-topic hard negatives. Graded labels from citation intent are deprioritized, since the app needs topical labels rather than better citation labels.
-3. **The deployed system's feedback.** The app records thumbs-up/down on each paper–researcher match; relating it to offline scores needs a database dump. No new human study is planned.
+1. **Rebuild the app's matching** as drafted in [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md): the cleaned Boğaziçi data, one embedding per work, no LLM stage 2, a calibrated cut-off, and a model version on every match and feedback row. Decisions D1–D10 come first.
+2. **Use the app's feedback.** The app records thumbs-up/down on each paper–researcher match; relating it to offline scores needs a database dump.
+3. **The paper.** Benchmark paper with position bias as the headline; working notes in [PAPER_NOTES.md](research/audit/PAPER_NOTES.md). The full research plan with status notes is in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
 
 ---
 
-## The system
+## The system (as deployed)
 
-A fully containerized recommender that runs the two-stage pipeline every six hours:
+A containerized recommender. Every 6 hours (`JOB_INTERVAL_HOURS`, or on demand from the admin panel) it:
 
-1. **Fetch** new papers from followed institutions (OpenAlex API, cursor-based incremental fetching).
-2. **Stage 1, Retrieve:** Qwen3 embeddings (`qwen3-embedding`, 4096-d, stored in PostgreSQL with pgvector); cosine similarity against ~7,800 Boğaziçi paper embeddings; top-10 researchers above a 0.3 threshold.
-3. **Stage 2, Rerank:** Llama 3.2 3B (Ollama) decides `RELEVANT <score>` / `IRRELEVANT <score>` for each candidate researcher. Falls back to Stage-1 scores if the LLM is unavailable. *The v2 benchmark finds that listwise LLM reranking lowers Qwen3's own ranking. In Phase 5, pointwise Llama 3.2 3B reranking of a full-corpus list halves nDCG@10 when used alone and changes nothing when fused. The app's own task (paper → researcher) is not benchmarked yet; see [`APP_NOTES.md`](APP_NOTES.md).*
-4. **Serve** a React 19 + TypeScript interface: paper feed, researcher pages, institution following, relevance feedback, admin panel.
+1. **Fetches** new papers from the followed institutions (a fixed list of seven) through the OpenAlex API, starting from each institution's last fetched publication date, at most 200 per run.
+2. **Stage 1, retrieve.** Embeds each paper with Qwen3-Embedding (Ollama `qwen3-embedding`, 4096-d, stored in PostgreSQL with pgvector; Ollama Cloud as a fallback) and compares it with the embeddings of Boğaziçi researchers' papers (about 7,800 researcher–paper rows, 4,608 papers, from `boun.csv`). Papers below cosine 0.3 are dropped; each researcher scores by their best-matching paper (max); the top 10 researchers go on.
+3. **Stage 2, rerank.** Llama 3.2 3B (Ollama) sees the paper and each researcher's top 5 matching papers, one researcher at a time, and answers `RELEVANT <score>` or `IRRELEVANT`. Its score replaces the cosine score; `IRRELEVANT` or an unparseable answer drops the researcher; if the call fails, the cosine score is kept.
+4. **Serves** a React 19 + TypeScript interface: paper feed (up to 5 researchers per paper, score ≥ 0.3), researcher pages, institution following, thumbs-up/down feedback (stored, not yet used) and an admin panel.
+
+*Stage 2 is what the research argues against: on every benchmark above, Llama 3.2 3B reranking lowers or does not improve Qwen3-Embedding's ranking. Known issues and the planned changes are in [APP_NOTES.md](APP_NOTES.md) and [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md).*
 
 Stack: FastAPI · SQLAlchemy (async) · PostgreSQL 16 + pgvector · Ollama · React 19 · Vite · Tailwind · Docker Compose. Setup instructions: [`README_APP.md`](README_APP.md).
 
@@ -296,22 +322,51 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/papermill v2/06_analysis.ipynb v2/06_analysis.ipynb --cwd v2
 ```
 
-To re-run the methods themselves, serve the two GGUF models with llama.cpp's `llama-server` (OpenAI-compatible API on `127.0.0.1:1337`) and run notebooks 01–04. Phase 5 is notebooks 07–12; `.venv/bin/python -m pytest tests` runs the leakage-rule unit tests. See [`research/README.md`](research/README.md). The v1 audit is reproduced by `python research/audit/verify_v1.py`.
+- **Re-running the model calls** (notebooks 03, 04, 09, 11, 14, 17) needs the two GGUF models served by llama.cpp's `llama-server` (OpenAI-compatible API on `127.0.0.1:1337`); notebooks 12 and 17 also load Qwen3-Reranker-4B in-process. Setup: [`research/README.md`](research/README.md).
+- **Gold-standard notebooks (14–18)** need a sparse clone of [niharshah/goldstandard-reviewer-paper-match](https://github.com/niharshah/goldstandard-reviewer-paper-match) at commit `00296730` in `research/data/external/goldstandard/` (gitignored; see [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md)).
+- **Boğaziçi data** (`research/data/boun/`) is stored with Git LFS; run `git lfs pull` after cloning.
+- **Unit tests** for the leakage rules, expansion, reranking, coupling, the Boğaziçi data build and the gold-standard code: `.venv/bin/python -m pytest tests` (from `research/`).
+- **The v1 audit** is reproduced by `python research/audit/verify_v1.py`.
 
 ## Repository structure
 
 ```
 research/                      see research/README.md
-  src/                         shared code: v2 pipeline, rankers, stats, figures; Phase 5 corpus, graph, retrieval, expansion, reranking; v1 similarity/metrics
-  v1/                          numbered notebooks · results/ (per-query rankings) · stats/
-  audit/                       v1 audit (AUDIT.md, verify_v1.py) · BEFORE_AFTER.md · DATA_QUALITY.md · SUMMARY.md · TODO.md · IMPROVEMENT_IDEAS.md · PHASE5_DESIGN.md
-  v2/                          notebooks 01–06 (v2 benchmark) and 07–12 (Phase 5) · eval_sets/ · runs/ · corpus/ · runs_corpus/ · stats/ · figures/
-  tests/                       unit tests for the leakage rules, expansion and reranking
-  scripts/                     OpenAlex probe, Qwen3-Reranker check, notebook cleanup
+  src/                         shared code (also imported by backend/): v2 pipeline, rankers, stats, figures;
+                               Phase 5 corpus, graph, retrieval, expansion, reranking; coupling; BOUN data; gold standard
+  v1/                          frozen v1 notebooks · results/ (per-query rankings) · stats/
+  audit/                       audit and data cards, plans, design notes (see "Where to read more")
+  v2/                          notebooks 01–06 (v2), 07–12 (Phase 5), 13 (BOUN data), 14–18 (gold standard)
+                               eval_sets/ · runs/ · corpus/ · runs_corpus/ · goldstandard/ · stats/ · figures/
+  data/boun/                   cleaned Boğaziçi works and researchers (Git LFS)
+  data/cleaned/boun.csv        the app's current seed (Git LFS)
+  tests/                       unit tests
+  scripts/                     OpenAlex fetches (BOUN, gold-standard references, followed-institution sample), BOUN build, checks
+  archive/                     superseded or incomplete experiments
 backend/                       FastAPI service, scheduler, matching pipeline
 frontend/                      React application
-docs/DEVLOG.md                 development log, incl. the dated v2 audit and Phase 5 log
+docs/DEVLOG.md                 dated development log of every phase
+docs/MATCHING_DESIGN.md        draft redesign of the app's matching
 docs/figures/                  system overview and ranking primer diagrams
-APP_NOTES.md                   follow-ups for the deployed app
-SWE599_Final_2026S_OZ_Sena.pdf final report
+APP_NOTES.md                   backlog for the deployed app
+README_APP.md                  app setup
+SWE599_Progress_2026S_OZ_Sena.pdf, SWE599_Final_2026S_OZ_Sena.pdf   course reports (v1 results)
 ```
+
+## Where to read more
+
+| Document | Read it for |
+|---|---|
+| [SUMMARY.md](research/audit/SUMMARY.md) | The whole project on one page |
+| [AUDIT.md](research/audit/AUDIT.md) | The nine v1 problems (F1–F9), with evidence |
+| [BEFORE_AFTER.md](research/audit/BEFORE_AFTER.md) | v1 vs v2, claim by claim |
+| [DATA_QUALITY.md](research/audit/DATA_QUALITY.md) | Abstracts that are not abstracts, and a sensitivity check |
+| [PHASE5_DESIGN.md](research/audit/PHASE5_DESIGN.md) | Full-corpus and graph-expansion design and decisions |
+| [BOUN_DATA.md](research/audit/BOUN_DATA.md) | Data card for the cleaned Boğaziçi works |
+| [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) | Data card for the Stelmakh et al. gold standard |
+| [BIBCOUPLING_PROMPT.md](research/audit/BIBCOUPLING_PROMPT.md) | Brief for the bibliographic-coupling experiment |
+| [PAPER_NOTES.md](research/audit/PAPER_NOTES.md) | Decisions for the paper in progress |
+| [TODO.md](research/audit/TODO.md), [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md) | Research plan and ideas, with status notes |
+| [research/README.md](research/README.md) | How to set up models and run the notebooks |
+| [DEVLOG.md](docs/DEVLOG.md) | Every step, dated, with commits |
+| [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md), [APP_NOTES.md](APP_NOTES.md) | The app's planned changes and known issues |
