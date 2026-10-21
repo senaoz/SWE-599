@@ -27,6 +27,7 @@ services:
       OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY}
       OLLAMA_CLOUD_MODEL: ${OLLAMA_CLOUD_MODEL:-qwen3:embedding}
       OLLAMA_URL: http://ollama:11434
+      OPENALEX_EMAIL: ${OPENALEX_EMAIL:-}
     volumes:
       - ./research/data:/app/research/data
     depends_on:
@@ -68,7 +69,7 @@ services:
     image: ollama/ollama
     entrypoint: >
       sh -c "
-        ollama pull qwen3:embedding &&
+        ollama pull qwen3-embedding &&
         ollama pull llama3.2:3b
       "
     environment:
