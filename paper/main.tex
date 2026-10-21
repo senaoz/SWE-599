@@ -99,10 +99,42 @@ The bibliographic-coupling analysis on human labels was pre-registered, the LLM 
 
 \section{RQ1: Candidate Order Changes the Answer}
 \label{sec:rq1}
-% Fig. 2 (main figure): 3B and 8B x {positives first, shuffled, positives last} x {citation, human labels}.
-% Numbers below: citation, random negatives, test, seed 0. PROVISIONAL: 8B on concept (positives last) and on human labels pending; 8B is one seed.
-% Mechanism: 3B copies the shown order (median rho 0.98, 50.6%); 8B rarely copies but reverses more often (dev).
 Reversing a candidate list that starts with the cited papers, with nothing else changed, lowers the 3B model's R-precision from 72.3 to 30.0 but raises the 8B model's from 73.9 to 89.4, so order sensitivity persists at the larger size but changes direction.
+
+We show each listwise model the same candidates in three orders: cited papers first, the order of our first evaluation; shuffled; and the reverse of the first order, so that the cited papers come last.
+Prompt, text and decoding are those of Section~\ref{sec:methods}; the comparison uses the 118 test queries of both benchmarks and one shuffle seed.
+Table~\ref{tab:order} gives the results.
+
+\begin{table}[t]
+  \caption{R-precision (\%) of listwise rerankers under three candidate orders, citation labels, test split, one seed (\emph{random} / \emph{concept} negatives). Qwen3-Embedding does not depend on order. A random ranking scores 33.3.}
+  \label{tab:order}
+  \small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Model & Cited first & Shuffled & Cited last \\
+    \midrule
+    Llama 3.2 3B & 72.3 / 74.1 & 46.3 / 43.1 & 30.0 / 19.9 \\
+    Llama 3.1 8B & 73.9 / 69.0 & 67.1 / 60.6 & 89.4 / 85.9 \\
+    \midrule
+    Qwen3-Embedding-8B & \multicolumn{3}{c}{87.0 / 80.1} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The 3B model favours early candidates.
+Moving the cited papers from first to last costs it 42.3 R-precision points on \emph{random} and 54.2 on \emph{concept} negatives (paired Wilcoxon, $p \le 6 \cdot 10^{-12}$), and its MRR falls from 0.95 and 0.98 to 0.33 and 0.27, below the 0.56 of a random ranking on both benchmarks; R-precision falls below chance only on \emph{concept}.
+With the cited papers first, its MRR exceeds the 0.84 that our first evaluation reported, so candidate order alone can account for that result.
+
+The 8B model favours late candidates.
+Its R-precision rises by 15.5 and 16.9 points when the cited papers move to the end ($p < 10^{-4}$), and in that order it scores above Qwen3-Embedding on both benchmarks.
+The two models fail in different ways.
+In shuffled lists, 52.6\% of the 3B model's rankings follow the order they were shown in (Spearman $\rho > 0.8$ between output and input position, over rankings with at least five candidates), against 0.9\% of the 8B model's; the 8B model reverses the shown order more often (10.3\% vs.\ 5.1\%), and half of its rankings (51.5\%) are close to order-independent ($|\rho| \le 0.3$).
+Order sensitivity therefore does not disappear with scale: a single fixed order can make the 8B model look better than dense retrieval, as it made the 3B model look better in our first evaluation.
+
+On human labels, the 3B model shows the same primacy effect: its loss is 0.253 with the highest-rated papers first, 0.467 shuffled and 0.685 with them last (best- vs.\ worst-first, Holm $p = 1.4 \cdot 10^{-5}$).
+% PENDING (tier 2, ~18:20): 8B on human labels, 3 orders x 5 seeds. Add one sentence and a column/figure panel.
+% Fig. 2 (planned): both models x three orders x both label sources.
+% Partial outputs per condition (test, seed 0): 3B 39-56 of 118; 8B 8-21 of 118.
 
 \section{RQ2: Which Method Wins Under Controlled Order?}
 \label{sec:rq2}
