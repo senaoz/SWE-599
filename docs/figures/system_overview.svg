@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1090" width="1200" height="1090" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
   <title id="t">SWE-599 system overview</title>
-  <desc id="d">The v1 benchmark was audited (nine problems) and rebuilt as a leak-free v2 pipeline of six notebooks running only local models. Embedding models lead; listwise Llama ranks last and follows candidate order. Phase 5 ranks each query against a 11,967-work corpus with a leakage-controlled co-citation graph: Qwen3 recall@100 is 64.0%, and graph expansion adds +0.8 points (not significant) while a canary adds +5.8. The deployed app uses BOUN data and a pointwise LLM stage that is not yet benchmarked.</desc>
+  <desc id="d">The v1 benchmark was audited (nine problems) and rebuilt as a leak-free v2 pipeline running only local models. Embedding models lead on citation labels; listwise Llama 3.2 3B follows candidate order and ranks last, and Llama 3.1 8B is better but favours late candidates. Phase 5 ranks each query against an 11,967-work corpus with a leakage-controlled co-citation graph, which adds nothing significant. On human expertise labels (Stelmakh et al.) Qwen3-Embedding again has the lowest loss and no LLM method or fusion beats it. The deployed app has dropped its LLM stage.</desc>
   <style>
     .bg { fill: #fcfcfb; }
     .box { fill: #ffffff; stroke: #d9d7cf; stroke-width: 1; }
@@ -44,11 +44,11 @@
     </marker>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1200" height="900" rx="14"/>
+  <rect class="bg" x="0" y="0" width="1200" height="1090" rx="14"/>
 
   <!-- Title -->
-  <text class="ink title" x="40" y="38">SWE-599: audit of v1, a leak-free v2 benchmark, and leakage-controlled graph expansion</text>
-  <text class="muted sub" x="40" y="58">Does reranking with a small local LLM help citation-based paper recommendation? Short answer: no.</text>
+  <text class="ink title" x="40" y="38">SWE-599: audit of v1, a leak-free v2 benchmark, graph expansion, and human-label validation</text>
+  <text class="muted sub" x="40" y="58">Does reranking with a small local LLM help scientific paper recommendation? On citation and on human expertise labels: no.</text>
 
   <!-- Row 1: v1 and audit -->
   <text class="v1 lab" x="40" y="90">1 · v1 (May 2026) and audit</text>
@@ -72,8 +72,7 @@
   <text class="muted t" x="710" y="218">rebuilt as v2</text>
 
   <!-- Row 2: v2 pipeline -->
-  <text class="v2 lab" x="40" y="226">2 · v2 pipeline (research/v2/, numbered notebooks)</text>
-
+  <text class="v2 lab" x="40" y="226">2 · v2 citation benchmark (research/v2/, notebooks 01–06)</text>
   <g>
     <rect class="box" x="40" y="236" width="124" height="94" rx="8"/>
     <rect class="v2" x="40" y="236" width="124" height="4" rx="2"/>
@@ -146,16 +145,16 @@
 
   <rect class="box" x="320" y="390" width="264" height="80" rx="8"/>
   <rect class="mod" x="320" y="390" width="4" height="80" rx="2"/>
-  <text class="ink h" x="336" y="412">llama-server (launchd, :1337)</text>
-  <text class="muted t" x="336" y="432">Llama 3.2 3B Instruct Q4_K_M · ctx 16k</text>
+  <text class="ink h" x="336" y="412">llama-server (:1337; 8B on :1338)</text>
+  <text class="muted t" x="336" y="432">Llama 3.2 3B · Llama 3.1 8B, Q4_K_M</text>
   <text class="muted t" x="336" y="448">Qwen3-Embedding-8B Q4_K_M</text>
   <text class="muted t" x="336" y="464">last-token pooling (verified)</text>
 
   <rect class="box" x="600" y="390" width="264" height="80" rx="8"/>
   <rect class="mod" x="600" y="390" width="4" height="80" rx="2"/>
-  <text class="ink h" x="616" y="412">sentence-transformers (in-process)</text>
+  <text class="ink h" x="616" y="412">in-process models (Python)</text>
   <text class="muted t" x="616" y="432">MiniLM · SPECTER2 [CLS] · bge-reranker</text>
-  <text class="muted t" x="616" y="448">EmbeddingGemma with Dense layers</text>
+  <text class="muted t" x="616" y="448">EmbeddingGemma · Qwen3-Reranker-4B</text>
   <text class="muted t" x="616" y="464">BM25 · TF-IDF (no model)</text>
 
   <!-- bus from models to 03 and 04 -->
@@ -172,43 +171,48 @@
   <text class="muted t" x="914" y="142">R-precision %, random / concept</text>
 
   <g class="t">
-    <text class="ink t" x="914" y="168">Qwen3-Embedding-8B</text>
-    <text class="ink t" x="1146" y="168" text-anchor="end">87.0 / 80.1</text>
-    <rect class="barbg" x="914" y="174" width="232" height="6" rx="3"/>
-    <rect class="mod" x="914" y="174" width="201.8" height="6" rx="3"/>
+    <text class="ink t" x="914" y="166">Qwen3-Embedding-8B</text>
+    <text class="ink t" x="1146" y="166" text-anchor="end">87.0 / 80.1</text>
+    <rect class="barbg" x="914" y="172" width="232" height="6" rx="3"/>
+    <rect class="mod" x="914" y="172" width="201.8" height="6" rx="3"/>
 
-    <text class="ink t" x="914" y="198">MiniLM (22M params)</text>
-    <text class="ink t" x="1146" y="198" text-anchor="end">83.3 / 75.7</text>
-    <rect class="barbg" x="914" y="204" width="232" height="6" rx="3"/>
-    <rect class="mod" x="914" y="204" width="193.3" height="6" rx="3"/>
+    <text class="ink t" x="914" y="192">MiniLM (22M params)</text>
+    <text class="ink t" x="1146" y="192" text-anchor="end">83.3 / 75.7</text>
+    <rect class="barbg" x="914" y="198" width="232" height="6" rx="3"/>
+    <rect class="mod" x="914" y="198" width="193.3" height="6" rx="3"/>
 
-    <text class="ink t" x="914" y="228">Llama pointwise</text>
-    <text class="ink t" x="1146" y="228" text-anchor="end">78.8 / 73.9</text>
-    <rect class="barbg" x="914" y="234" width="232" height="6" rx="3"/>
-    <rect class="app" x="914" y="234" width="182.8" height="6" rx="3"/>
+    <text class="ink t" x="914" y="218">Llama 3B pointwise</text>
+    <text class="ink t" x="1146" y="218" text-anchor="end">78.8 / 73.9</text>
+    <rect class="barbg" x="914" y="224" width="232" height="6" rx="3"/>
+    <rect class="app" x="914" y="224" width="182.8" height="6" rx="3"/>
 
-    <text class="ink t" x="914" y="258">Qwen3 → Llama (k = 10)</text>
-    <text class="ink t" x="1146" y="258" text-anchor="end">74.0 / 69.7</text>
-    <rect class="barbg" x="914" y="264" width="232" height="6" rx="3"/>
-    <rect class="app" x="914" y="264" width="171.7" height="6" rx="3"/>
+    <text class="ink t" x="914" y="244">Qwen3 → Llama 3B (k = 10)</text>
+    <text class="ink t" x="1146" y="244" text-anchor="end">74.0 / 69.7</text>
+    <rect class="barbg" x="914" y="250" width="232" height="6" rx="3"/>
+    <rect class="app" x="914" y="250" width="171.7" height="6" rx="3"/>
 
-    <text class="ink t" x="914" y="288">Llama listwise (v1 "winner")</text>
-    <text class="ink t" x="1146" y="288" text-anchor="end">43.9 / 42.0</text>
-    <rect class="barbg" x="914" y="294" width="232" height="6" rx="3"/>
-    <rect class="v1" x="914" y="294" width="101.8" height="6" rx="3"/>
+    <text class="ink t" x="914" y="270">Llama 8B listwise (1 seed)</text>
+    <text class="ink t" x="1146" y="270" text-anchor="end">67.1 / 60.6</text>
+    <rect class="barbg" x="914" y="276" width="232" height="6" rx="3"/>
+    <rect class="app" x="914" y="276" width="155.7" height="6" rx="3"/>
 
-    <line class="chance" x1="991.3" y1="160" x2="991.3" y2="304"/>
-    <text class="muted t" x="995" y="318">chance 33.3 (bars: random)</text>
+    <text class="ink t" x="914" y="296">Llama 3B listwise (v1)</text>
+    <text class="ink t" x="1146" y="296" text-anchor="end">43.9 / 42.0</text>
+    <rect class="barbg" x="914" y="302" width="232" height="6" rx="3"/>
+    <rect class="v1" x="914" y="302" width="101.8" height="6" rx="3"/>
+
+    <line class="chance" x1="991.3" y1="156" x2="991.3" y2="312"/>
+    <text class="muted t" x="995" y="324">chance 33.3 (bars: random)</text>
   </g>
 
   <line class="box" x1="914" y1="334" x2="1146" y2="334" style="stroke-width:1"/>
-  <text class="ink h" x="914" y="356">Why listwise fails</text>
-  <text class="muted t" x="914" y="376">Same candidates, only order changed:</text>
-  <text class="ink t" x="914" y="394">positives first → MRR 0.95 / 0.98</text>
-  <text class="ink t" x="914" y="410">positives last → MRR 0.33 / 0.27</text>
-  <text class="muted t" x="914" y="430">51% of outputs copy the input list</text>
-  <text class="muted t" x="914" y="446">(median Spearman ρ = 0.98)</text>
-  <text class="muted t" x="914" y="462">Llama reranking: −13 / −10 points</text>
+  <text class="ink h" x="914" y="356">Why listwise fails: order</text>
+  <text class="muted t" x="914" y="376">Only the order changed, R-precision:</text>
+  <text class="ink t" x="914" y="394">3B: cited first 72 / 74 → last 30 / 20</text>
+  <text class="ink t" x="914" y="410">8B: cited first 74 / 69 → last 89 / 86</text>
+  <text class="muted t" x="914" y="428">3B copies the shown order (51%);</text>
+  <text class="muted t" x="914" y="444">8B rarely copies, favours late items</text>
+  <text class="muted t" x="914" y="462">Llama 3B reranking: −13 / −10 points</text>
 
   <!-- Row 4: Phase 5 -->
   <text class="v2 lab" x="40" y="520">4 · Phase 5 (Oct 2026): full corpus, leakage-controlled graph, reranking (notebooks 07–12)</text>
@@ -250,7 +254,7 @@
     <rect class="v2" x="562" y="532" width="158" height="4" rx="2"/>
     <text class="v2 num" x="574" y="554">10</text>
     <text class="ink h" x="596" y="554">Expansion</text>
-    <text class="muted t" x="574" y="576">GRIT-style: top 5 seed,</text>
+    <text class="muted t" x="574" y="576">GAR-style: top 5 seed,</text>
     <text class="muted t" x="574" y="592">bottom 10% replaced</text>
     <text class="muted t" x="574" y="608">random / kNN / LADR</text>
     <text class="muted t" x="574" y="624">ablations + canary</text>
@@ -272,10 +276,73 @@
   <text class="muted t" x="760" y="644">Positives reachable through the graph: 54.7% (62.9% with raw dates)</text>
   <text class="muted t" x="760" y="662">Leaks caught: a 2012 copy with 10/10 refs; 24% year-only dates</text>
 
-  <!-- Row 5: deployed app -->
-  <g transform="translate(0,210)">
+  <!-- Row 5: human expertise labels -->
+  <text class="mod lab" x="40" y="712">5 · human expertise labels: Stelmakh et al. gold standard (notebooks 14–18)</text>
+  <g>
+    <rect class="box" x="40" y="724" width="158" height="112" rx="8"/>
+    <rect class="mod" x="40" y="724" width="158" height="4" rx="2"/>
+    <text class="mod num" x="52" y="746">14</text>
+    <text class="ink h" x="74" y="746">Gold standard</text>
+    <text class="muted t" x="52" y="768">58 researchers rate</text>
+    <text class="muted t" x="52" y="784">477 papers, 1–5</text>
+    <text class="muted t" x="52" y="800">Kendall-τ loss (0.5 = flat)</text>
+    <text class="muted t" x="52" y="816">baselines reproduced</text>
+  </g>
+  <line class="line" x1="198" y1="780" x2="210" y2="780" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="214" y="724" width="158" height="112" rx="8"/>
+    <rect class="mod" x="214" y="724" width="158" height="4" rx="2"/>
+    <text class="mod num" x="226" y="746">14–16</text>
+    <text class="ink h" x="270" y="746">Coupling</text>
+    <text class="muted t" x="226" y="768">shared references,</text>
+    <text class="muted t" x="226" y="784">pre-registered (14)</text>
+    <text class="muted t" x="226" y="800">as a label (16): precise</text>
+    <text class="muted t" x="226" y="816">but silent on 30%</text>
+  </g>
+  <line class="line" x1="372" y1="780" x2="384" y2="780" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="388" y="724" width="158" height="112" rx="8"/>
+    <rect class="mod" x="388" y="724" width="158" height="4" rx="2"/>
+    <text class="mod num" x="400" y="746">17</text>
+    <text class="ink h" x="422" y="746">LLMs + lexical</text>
+    <text class="muted t" x="400" y="768">expertise prompts</text>
+    <text class="muted t" x="400" y="784">listwise: 3 orders × 5</text>
+    <text class="muted t" x="400" y="800">pointwise · reranker</text>
+    <text class="muted t" x="400" y="816">design fixed first</text>
+  </g>
+  <line class="line" x1="546" y1="780" x2="558" y2="780" marker-end="url(#arrow)"/>
+  <g>
+    <rect class="box" x="562" y="724" width="158" height="112" rx="8"/>
+    <rect class="mod" x="562" y="724" width="158" height="4" rx="2"/>
+    <text class="mod num" x="574" y="746">18</text>
+    <text class="ink h" x="596" y="746">Fusion</text>
+    <text class="muted t" x="574" y="768">reranker + Qwen3,</text>
+    <text class="muted t" x="574" y="784">weight chosen by</text>
+    <text class="muted t" x="574" y="800">leave-one-out</text>
+    <text class="muted t" x="574" y="816">(post-hoc)</text>
+  </g>
+
+  <rect class="box" x="742" y="700" width="418" height="166" rx="8"/>
+  <rect class="mod" x="742" y="700" width="4" height="166" rx="2"/>
+  <text class="ink h" x="760" y="722">Human-label results (loss, lower is better)</text>
+  <text class="ink t" x="760" y="744">Qwen3-Embedding-8B · MiniLM</text>
+  <text class="ink t" x="1146" y="744" text-anchor="end">0.222 · 0.242</text>
+  <text class="ink t" x="760" y="762">Qwen3-Reranker-4B · BM25</text>
+  <text class="ink t" x="1146" y="762" text-anchor="end">0.268 · 0.275</text>
+  <text class="ink t" x="760" y="780">Llama 3B pointwise · listwise (shuffled)</text>
+  <text class="ink t" x="1146" y="780" text-anchor="end">0.337 · 0.467</text>
+  <text class="v1 t" x="760" y="798">Llama 3B listwise, best first / worst first</text>
+  <text class="v1 t" x="1146" y="798" text-anchor="end">0.253 / 0.685</text>
+  <text class="ink t" x="760" y="816">reranker + Qwen3 fusion</text>
+  <text class="ink t" x="1146" y="816" text-anchor="end">0.233 (no gain)</text>
+  <text class="ink t" x="760" y="834">coupling alone · + SPECTER2</text>
+  <text class="ink t" x="1146" y="834" text-anchor="end">0.299 · 0.197</text>
+  <text class="muted t" x="760" y="854">Llama 3.1 8B listwise on these labels: running (Oct 2026)</text>
+
+  <!-- Row 6: deployed app -->
+  <g transform="translate(0,390)">
   <rect class="lane" x="24" y="500" width="1152" height="172" rx="12"/>
-  <text class="app lab" x="40" y="524">5 · deployed app (backend/ + frontend/, unchanged in this work)</text>
+  <text class="app lab" x="40" y="524">6 · deployed app (backend/ + frontend/)</text>
 
   <rect class="box" x="40" y="538" width="200" height="72" rx="8"/>
   <rect class="app" x="40" y="538" width="4" height="72" rx="2"/>
@@ -286,32 +353,33 @@
 
   <rect class="box" x="280" y="538" width="250" height="72" rx="8"/>
   <rect class="app" x="280" y="538" width="4" height="72" rx="2"/>
-  <text class="ink h" x="296" y="560">Stage 1: Qwen3 embeddings</text>
+  <text class="ink h" x="296" y="560">Qwen3 embeddings only</text>
   <text class="muted t" x="296" y="580">vs ~7,800 BOUN researcher–paper rows</text>
-  <text class="muted t" x="296" y="596">top researchers (pgvector)</text>
+  <text class="muted t" x="296" y="596">top 5 per paper, cosine ≥ 0.3</text>
   <line class="line" x1="530" y1="574" x2="566" y2="574" marker-end="url(#arrow)"/>
 
   <rect class="box" x="570" y="538" width="250" height="72" rx="8"/>
   <rect class="app" x="570" y="538" width="4" height="72" rx="2"/>
-  <text class="ink h" x="586" y="560">Stage 2: Llama, pointwise</text>
-  <text class="muted t" x="586" y="580">RELEVANT / IRRELEVANT + score</text>
-  <text class="app t" x="586" y="596">not benchmarked directly (APP_NOTES.md)</text>
+  <text class="ink h" x="586" y="560">LLM stage 2 removed</text>
+  <text class="muted t" x="586" y="580">Llama rerank dropped (PR #7)</text>
+  <text class="app t" x="586" y="596">D1–D10 in MATCHING_DESIGN.md</text>
   <line class="line" x1="820" y1="574" x2="856" y2="574" marker-end="url(#arrow)"/>
 
   <rect class="box" x="860" y="538" width="300" height="72" rx="8"/>
   <rect class="app" x="860" y="538" width="4" height="72" rx="2"/>
   <text class="ink h" x="876" y="560">React UI</text>
   <text class="muted t" x="876" y="580">paper feed · researcher pages</text>
-  <text class="muted t" x="876" y="596">thumbs-up/down feedback → trust study</text>
+  <text class="muted t" x="876" y="596">thumbs-up/down feedback per match</text>
 
   <rect class="box" x="280" y="622" width="272" height="40" rx="8"/>
   <text class="ink t" x="296" y="646">boun.csv: 4,608 papers · 2,671 researchers</text>
   <line class="line" x1="405" y1="622" x2="405" y2="614" marker-end="url(#arrow)"/>
-  <text class="muted t" x="570" y="646">BOUN data is used only by the app, not by any benchmark; 1,605 of its papers lack an abstract</text>
+  <text class="muted t" x="570" y="640">Planned: the cleaned BOUN data (7,822 works, 3,648 researchers)</text>
+  <text class="muted t" x="570" y="656">and the research embedding setup (llama-server, Qwen3-Embedding-8B)</text>
 
   </g>
 
-  <!-- evidence link from results to stage 2 -->
-  <path class="dash" d="M 1160 300 L 1184 300 L 1184 688 L 695 688 L 695 744" marker-end="url(#arrow)"/>
-  <text class="muted t" x="706" y="684">evidence: Llama reranking does not help; a trained reranker helps a little</text>
+  <!-- evidence link from results to the removed stage 2 -->
+  <path class="dash" d="M 1160 300 L 1184 300 L 1184 900 L 695 900 L 695 924" marker-end="url(#arrow)"/>
+  <text class="muted t" x="706" y="917">evidence: no LLM reranker beats the embedding on either label source</text>
 </svg>

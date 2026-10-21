@@ -37,7 +37,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 | **Boğaziçi data** | Is the app's researcher data sound? | Partly: rebuilt as 7,822 cleaned works | `13` · [BOUN_DATA.md](research/audit/BOUN_DATA.md) |
 | **Gold standard** | Do the conclusions hold on human expertise labels? Does bibliographic coupling help? | Yes, same winner; coupling is real but adds nothing to Qwen3 | `14`–`18` · [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) |
 
-![System overview: v1 audit, v2 pipeline, local models, Phase 5 and the deployed app](docs/figures/system_overview.svg)
+![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
 
 *The overview diagram covers the project up to Phase 5; the gold-standard work is in the section below.*
 
