@@ -39,12 +39,12 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 ![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
 
-*The overview diagram covers the project up to Phase 5; the gold-standard work is in the section below.*
+*The overview diagram covers every part of the project; each part has its own section below.*
 
 ## Main findings
 
 1. **Embedding models beat every LLM variant.** On v2, Qwen3-Embedding-8B reaches R-precision 87.0% [84.2, 89.7] on random negatives and 80.1% [77.0, 83.0] on topically matched ones. Listwise Llama 3.2 3B scores 43.9% and 42.0%, close to chance (33.3%) and about 40 points below Qwen3 (p ≈ 2·10⁻¹⁹).
-2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them.
+2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them. A larger model does not remove the effect but reverses it: Llama 3.1 8B favours the *last* candidates, with R-precision 73.9 / 69.0 when the cited papers come first and 89.4 / 85.9 when they come last, above Qwen3-Embedding (one shuffle seed; its human-label runs are in progress).
 3. **Reranking hurts the two-stage pipeline, and stage 1 is not the reason.** Qwen3's top 10 already holds about 90% of the true references; reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
 4. **Small embedding models are almost as good as large ones.** MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B.
 5. **The full corpus is much harder, and extra signals add little.** Against 11,967 papers, Qwen3's R-precision falls to 25.1%. Leakage-controlled co-citation expansion adds nothing significant; pointwise Llama halves nDCG@10; only Qwen3-Reranker-4B, fused with the embedding, helps modestly.
@@ -52,7 +52,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 ![R-precision with 95% confidence intervals, random benchmark](research/v2/figures/05_rprec_ci_random.svg)
 
-![Listwise Llama under three candidate orders](research/v2/figures/06_position_bias.svg)
+![Listwise Llama 3.2 3B and 3.1 8B under three candidate orders, with Qwen3-Embedding for reference](research/v2/figures/position_bias_3b_8b.svg)
 
 ---
 
@@ -266,6 +266,8 @@ The LLM prompts (notebook `17`) ask how qualified the researcher is to review th
 5. **Coupling adds nothing significant on top of Qwen3-Embedding** (Holm p = 1.0). One of six pre-registered fusions reached significance (with SPECTER2, Holm p = 8.3·10⁻³), so coupling is no reason to change the app's design, just like co-citation in Phase 5. A title search that raised profile coverage to 85.2% moves coupling to 0.292 [0.238, 0.343] and changes no test conclusion.
 6. **On the app's own data (descriptive, no labels; notebook `15`).** Of 200 new papers from the followed institutions (15–19 Oct 2026), 101 have references in OpenAlex and 52 share at least one with a Boğaziçi work. Coupling and Qwen3-Embedding mostly pick different researchers: 22.9% of coupling's top researchers are in the embedding's top 10. In a sanity check on 110 Boğaziçi works with a followed-institution co-author (index restricted to earlier works), the work's own Boğaziçi author is in the top 10 for 80.0% of queries with the embedding and 72.7% with coupling, although co-authors' shared self-citations favour coupling.
 7. **Scope.** The dataset orders papers *for one researcher*; the app orders *researchers for one paper*, and cross-researcher calibration is untested. Almost all papers are CS/ML.
+
+![LLM and lexical methods on the gold standard, including listwise Llama under three orders](research/v2/figures/17_llm_goldstandard.svg)
 
 ![Bibliographic coupling and embeddings on the gold standard](research/v2/figures/14_bibcoupling_goldstandard.svg)
 
