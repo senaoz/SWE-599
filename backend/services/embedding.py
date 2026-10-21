@@ -91,5 +91,7 @@ def emb_to_list(emb: np.ndarray) -> list:
 
 
 def row_to_emb(vec) -> np.ndarray:
-    """Convert pgvector column value to numpy array."""
+    """Convert pgvector column value (list, array or pgvector.Vector) to numpy array."""
+    if hasattr(vec, "to_numpy"):
+        vec = vec.to_numpy()
     return np.array(vec, dtype=np.float32)

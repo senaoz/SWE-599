@@ -8,13 +8,13 @@ import numpy as np
 
 from backend.config import (
     MATCH_THRESHOLD,
+    MATCH_AGGREGATION,
     OLLAMA_URL,
     RETRIEVE_MODEL,
     RAG_RETRIEVE_TOP_K,
-    RAG_LLM_TOP_K,
     RAG_CONTEXT_PAPERS,
-    LLM_GENERATE_MODEL,
 )
+from backend.services.ranking import match_papers
 
 log = logging.getLogger(__name__)
 
@@ -36,12 +36,8 @@ async def run_matching_job() -> None:
 
 async def _run_matching_job_impl() -> None:
     from backend.database import SessionLocal
-    from backend.models import (
-        UserFollow, FetchCursor, FetchedPaper,
-        ResearcherPaper, PaperResearcherMatch,
-    )
+    from backend.models import UserFollow, FetchCursor, FetchedPaper
     from backend.services.openalex import fetch_new_papers
-    from backend.services.embedding import encode_checked, batch_score, emb_to_list, row_to_emb
     from sqlalchemy import select, func, text as sa_text
 
     log.info("=" * 60)
@@ -156,161 +152,15 @@ async def _run_matching_job_impl() -> None:
         log.info("No new papers to process — job done.")
         return
 
-    log.info("─" * 60)
-    log.info("STAGE 1 — Encoding %d new paper(s) with %s …", len(all_new_papers), RETRIEVE_MODEL)
-
-    paper_texts = [
-        f"{p.get('title') or ''} {p.get('abstract') or ''} {p.get('concepts_text') or ''}".strip()
-        for p in all_new_papers
-    ]
-
-    try:
-        import asyncio
-        new_paper_embs = await asyncio.to_thread(
-            encode_checked, paper_texts, RETRIEVE_MODEL, OLLAMA_URL
-        )
-        log.info("STAGE 1 — Encoded %d papers → shape %s", len(paper_texts), new_paper_embs.shape)
-    except Exception as e:
-        log.error("STAGE 1 — Encoding failed (%s) — aborting job. Is Ollama running at %s?", e, OLLAMA_URL)
+    embs = await _embed_and_store(all_new_papers, "MATCHING")
+    if embs is None:
         return
-
-    # Save embeddings back to fetched_papers
-    from sqlalchemy import text as sa_text
-    async with SessionLocal() as db:
-        for paper, emb in zip(all_new_papers, new_paper_embs):
-            vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
-            await db.execute(
-                sa_text(
-                    f"UPDATE fetched_papers SET embedding = '{vec_str}' "
-                    f"WHERE openalex_id = :oid"
-                ),
-                {"oid": paper["openalex_id"]},
-            )
-        await db.commit()
-    log.info("STAGE 1 — Stored %d paper embeddings to DB", len(all_new_papers))
-
-    # Load all BOUN paper embeddings
-    async with SessionLocal() as db:
-        rows = await db.execute(
-            select(
-                ResearcherPaper.researcher_id,
-                ResearcherPaper.paper_openalex_id,
-                ResearcherPaper.title,
-                ResearcherPaper.abstract,
-                ResearcherPaper.embedding,
-            ).where(ResearcherPaper.embedding.isnot(None))
-        )
-        boun_papers = list(rows)
-
-    if not boun_papers:
-        log.warning("No BOUN paper embeddings found — seeder may still be running. Aborting.")
+    total_matches = await _match_and_store(all_new_papers, embs, "MATCHING")
+    if total_matches is None:
         return
-
-    log.info("STAGE 1 — Loaded %d BOUN paper embeddings", len(boun_papers))
-    boun_embs = np.vstack([row_to_emb(row.embedding) for row in boun_papers])
-
-    # Cosine similarity matrix: (N_new, N_boun)
-    scores_matrix = batch_score(new_paper_embs, boun_embs)
-    log.info("STAGE 1 — Similarity matrix computed: %s", scores_matrix.shape)
-
-    # --- STAGE 2: GENERATE + STORE ---
-    log.info("─" * 60)
-    log.info("STAGE 2 — Reranking with %s (top-%d candidates per paper) …", LLM_GENERATE_MODEL, RAG_LLM_TOP_K)
-
-    total_matches = 0
-    total_llm_calls = 0
-    total_llm_skipped = 0
-
-    async with SessionLocal() as db:
-        for i, new_paper in enumerate(all_new_papers):
-            paper_title = (new_paper.get("title") or "")[:60]
-            paper_scores = scores_matrix[i]
-
-            # Group hits by researcher above threshold
-            researcher_hits: dict[str, list[tuple[float, object]]] = {}
-            for j, boun_row in enumerate(boun_papers):
-                score = float(paper_scores[j])
-                if score < MATCH_THRESHOLD:
-                    continue
-                researcher_hits.setdefault(boun_row.researcher_id, []).append((score, boun_row))
-
-            if not researcher_hits:
-                log.debug("[%d/%d] '%s' — no Stage 1 hits above %.2f", i + 1, len(all_new_papers), paper_title, MATCH_THRESHOLD)
-                continue
-
-            # Sort each researcher by their best hit score
-            researcher_ranked = {
-                r_id: (sorted(hits, key=lambda x: x[0], reverse=True))
-                for r_id, hits in researcher_hits.items()
-            }
-            researcher_best = {r_id: hits[0][0] for r_id, hits in researcher_ranked.items()}
-
-            top_researchers = sorted(researcher_best.items(), key=lambda x: x[1], reverse=True)[:RAG_RETRIEVE_TOP_K]
-
-            log.info(
-                "[%d/%d] '%s…' — Stage 1: %d researcher(s) above %.2f, top-%d for LLM",
-                i + 1, len(all_new_papers), paper_title, len(researcher_hits),
-                MATCH_THRESHOLD, min(RAG_LLM_TOP_K, len(top_researchers)),
-            )
-
-            final_scores: dict[str, tuple[float, list, float | None]] = {}
-
-            for r_id, emb_score in top_researchers:
-                hits = researcher_ranked[r_id]
-                llm_score: float | None = None
-
-                if len(final_scores) < RAG_LLM_TOP_K:
-                    import asyncio
-                    llm_score = await asyncio.to_thread(
-                        _llm_generate, new_paper, hits[:RAG_CONTEXT_PAPERS]
-                    )
-                    total_llm_calls += 1
-
-                    if llm_score == 0.0:
-                        log.debug("  [LLM] IRRELEVANT — %s (emb=%.3f)", r_id, emb_score)
-                        total_llm_skipped += 1
-                        continue
-
-                    if llm_score is not None:
-                        final_score = llm_score
-                        log.debug("  [LLM] RELEVANT %.3f — %s (emb=%.3f)", llm_score, r_id, emb_score)
-                    else:
-                        final_score = emb_score
-                        log.debug("  [LLM] unavailable — using emb score %.3f for %s", emb_score, r_id)
-                else:
-                    final_score = emb_score
-
-                if final_score >= MATCH_THRESHOLD:
-                    final_scores[r_id] = (final_score, hits, llm_score)
-
-            if not final_scores:
-                log.info("  → 0 final matches after Stage 2")
-                continue
-
-            log.info("  → %d final match(es) stored", len(final_scores))
-
-            for r_id, (final_score, hits, llm_score) in final_scores.items():
-                matched_ids_json = json.dumps([
-                    {"id": row.paper_openalex_id, "score": round(float(score), 4)}
-                    for score, row in hits[:RAG_CONTEXT_PAPERS]
-                ])
-                db.add(PaperResearcherMatch(
-                    paper_openalex_id=new_paper["openalex_id"],
-                    researcher_id=r_id,
-                    score=round(final_score, 4),
-                    model="qwen+llama",
-                    matched_paper_ids=matched_ids_json,
-                    llm_score=round(llm_score, 4) if llm_score is not None else None,
-                ))
-                total_matches += 1
-
-        await db.commit()
 
     log.info("=" * 60)
-    log.info(
-        "MATCHING JOB DONE — %d match(es) stored | %d LLM call(s) | %d filtered by LLM",
-        total_matches, total_llm_calls, total_llm_skipped,
-    )
+    log.info("MATCHING JOB DONE — %d match(es) stored", total_matches)
     log.info("=" * 60)
 
     import asyncio
@@ -318,25 +168,23 @@ async def _run_matching_job_impl() -> None:
     asyncio.create_task(export_fetched_paper_embeddings())
 
 
-async def run_stage2_for_unmatched() -> None:
-    """Run Stage 1+2 for fetched papers that have embeddings but no researcher matches."""
+async def run_rematch_unmatched() -> None:
+    """Match fetched papers that have no researcher matches, embedding them first if needed."""
     global _rematch_job_running
     if _rematch_job_running:
         log.warning("A rematch job is already running — skipping rematch trigger.")
         return
     _rematch_job_running = True
     try:
-        await _run_stage2_for_unmatched_impl()
+        await _run_rematch_unmatched_impl()
     finally:
         _rematch_job_running = False
 
 
-async def _run_stage2_for_unmatched_impl() -> None:
-    import asyncio
+async def _run_rematch_unmatched_impl() -> None:
     from backend.database import SessionLocal
-    from backend.models import FetchedPaper, ResearcherPaper, PaperResearcherMatch, Researcher
-    from backend.services.embedding import encode_checked, batch_score, emb_to_list, row_to_emb
-    from sqlalchemy import select, text as sa_text
+    from backend.services.embedding import row_to_emb
+    from sqlalchemy import text as sa_text
 
     log.info("=" * 60)
     log.info("REMATCH JOB — finding unmatched papers …")
@@ -358,191 +206,106 @@ async def _run_stage2_for_unmatched_impl() -> None:
 
     log.info("REMATCH JOB — %d unmatched paper(s) found.", len(rows))
 
-    # Split into papers with and without embeddings
-    to_encode = [r for r in rows if r.embedding is None]
+    def as_paper(r) -> dict:
+        return {"openalex_id": r.openalex_id, "title": r.title, "abstract": r.abstract, "concepts_text": r.concepts_text}
+
+    to_encode = [as_paper(r) for r in rows if r.embedding is None]
     already_embedded = [r for r in rows if r.embedding is not None]
 
-    all_papers = []
-    all_embs_list = []
-
-    # Re-encode papers without embeddings
+    papers: list[dict] = []
+    embs_list: list[np.ndarray] = []
     if to_encode:
-        log.info("REMATCH JOB — encoding %d paper(s) without embeddings …", len(to_encode))
-        texts = [f"{r.title or ''} {r.abstract or ''} {r.concepts_text or ''}".strip() for r in to_encode]
-        try:
-            embs = await asyncio.to_thread(encode_checked, texts, RETRIEVE_MODEL, OLLAMA_URL)
-        except Exception as e:
-            log.error("REMATCH JOB — encoding failed: %s", e)
+        embs = await _embed_and_store(to_encode, "REMATCH")
+        if embs is None:
             return
-        async with SessionLocal() as db:
-            for r, emb in zip(to_encode, embs):
-                vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
-                await db.execute(
-                    sa_text(f"UPDATE fetched_papers SET embedding = '{vec_str}' WHERE openalex_id = :oid"),
-                    {"oid": r.openalex_id},
-                )
-            await db.commit()
-        for r, emb in zip(to_encode, embs):
-            all_papers.append({"openalex_id": r.openalex_id, "title": r.title, "abstract": r.abstract})
-            all_embs_list.append(emb)
-
+        papers += to_encode
+        embs_list += list(embs)
     for r in already_embedded:
-        all_papers.append({"openalex_id": r.openalex_id, "title": r.title, "abstract": r.abstract})
-        all_embs_list.append(row_to_emb(r.embedding))
+        papers.append(as_paper(r))
+        embs_list.append(row_to_emb(r.embedding))
 
-    fetched_embs = np.vstack(all_embs_list)
+    total_matches = await _match_and_store(papers, np.vstack(embs_list), "REMATCH")
+    if total_matches is not None:
+        log.info("REMATCH JOB DONE — %d match(es) stored", total_matches)
 
-    # Load BOUN paper embeddings
+
+def _paper_text(p: dict) -> str:
+    return f"{p.get('title') or ''} {p.get('abstract') or ''} {p.get('concepts_text') or ''}".strip()
+
+
+async def _embed_and_store(papers: list[dict], job: str) -> np.ndarray | None:
+    """Embed papers and write the vectors to fetched_papers. Returns None if encoding fails."""
+    import asyncio
+    from backend.database import SessionLocal
+    from backend.services.embedding import encode_checked
+    from sqlalchemy import text as sa_text
+
+    log.info("%s — encoding %d paper(s) with %s …", job, len(papers), RETRIEVE_MODEL)
+    try:
+        embs = await asyncio.to_thread(encode_checked, [_paper_text(p) for p in papers], RETRIEVE_MODEL, OLLAMA_URL)
+    except Exception as e:
+        log.error("%s — encoding failed (%s) — aborting. Is Ollama running at %s?", job, e, OLLAMA_URL)
+        return None
+
+    async with SessionLocal() as db:
+        for paper, emb in zip(papers, embs):
+            vec_str = "[" + ",".join(f"{float(x):.8g}" for x in emb) + "]"
+            await db.execute(
+                sa_text(f"UPDATE fetched_papers SET embedding = '{vec_str}' WHERE openalex_id = :oid"),
+                {"oid": paper["openalex_id"]},
+            )
+        await db.commit()
+    log.info("%s — stored %d paper embeddings", job, len(papers))
+    return embs
+
+
+async def _match_and_store(papers: list[dict], paper_embs: np.ndarray, job: str) -> int | None:
+    """Rank BOUN researchers for each paper by cosine and store the top matches.
+
+    Returns the number of matches stored, or None if no BOUN embeddings are loaded yet.
+    """
+    from backend.database import SessionLocal
+    from backend.models import ResearcherPaper, PaperResearcherMatch
+    from backend.services.embedding import OLLAMA_MODEL_MAP, row_to_emb
+    from sqlalchemy import select
+
     async with SessionLocal() as db:
         boun_rows = list(await db.execute(
-            select(ResearcherPaper.researcher_id, ResearcherPaper.paper_openalex_id,
-                   ResearcherPaper.title, ResearcherPaper.abstract, ResearcherPaper.embedding)
+            select(ResearcherPaper.researcher_id, ResearcherPaper.paper_openalex_id, ResearcherPaper.embedding)
             .where(ResearcherPaper.embedding.isnot(None))
         ))
-
     if not boun_rows:
-        log.warning("REMATCH JOB — no BOUN embeddings, aborting.")
-        return
+        log.warning("%s — no BOUN paper embeddings found (seeder may still be running) — aborting.", job)
+        return None
 
     boun_embs = np.vstack([row_to_emb(r.embedding) for r in boun_rows])
-    scores_matrix = batch_score(fetched_embs, boun_embs)
-    log.info("REMATCH JOB — similarity matrix %s computed.", scores_matrix.shape)
+    researcher_ids = [r.researcher_id for r in boun_rows]
+    results = match_papers(paper_embs, boun_embs, researcher_ids, MATCH_THRESHOLD, RAG_RETRIEVE_TOP_K, MATCH_AGGREGATION)
+    model_label = OLLAMA_MODEL_MAP[RETRIEVE_MODEL]
 
-    total_matches = 0
-    total_llm_calls = 0
-    total_llm_skipped = 0
-    COMMIT_EVERY = 20
-
-    total_papers = len(all_papers)
-    total_no_hits = 0
+    total = 0
+    no_hits = 0
     async with SessionLocal() as db:
-        for i, paper in enumerate(all_papers):
-            paper_title = (paper.get("title") or "")[:60]
-
-            paper_scores = scores_matrix[i]
-            researcher_hits: dict[str, list[tuple[float, object]]] = {}
-            for j, boun_row in enumerate(boun_rows):
-                score = float(paper_scores[j])
-                if score < MATCH_THRESHOLD:
-                    continue
-                researcher_hits.setdefault(boun_row.researcher_id, []).append((score, boun_row))
-
-            if not researcher_hits:
-                total_no_hits += 1
-                log.debug("REMATCH [%d/%d] SKIP (no hits) — '%s'", i + 1, total_papers, paper_title)
+        for paper, ranked in zip(papers, results):
+            if not ranked:
+                no_hits += 1
                 continue
-
-            researcher_ranked = {
-                r_id: sorted(hits, key=lambda x: x[0], reverse=True)
-                for r_id, hits in researcher_hits.items()
-            }
-            researcher_best = {r_id: hits[0][0] for r_id, hits in researcher_ranked.items()}
-            top_researchers = sorted(researcher_best.items(), key=lambda x: x[1], reverse=True)[:RAG_RETRIEVE_TOP_K]
-
-            log.info(
-                "REMATCH [%d/%d] — '%s' — %d researcher(s) above threshold, top-%d for LLM",
-                i + 1, total_papers, paper_title, len(researcher_hits), len(top_researchers),
-            )
-
-            final_scores: dict[str, tuple[float, list, float | None]] = {}
-            for r_id, emb_score in top_researchers:
-                hits = researcher_ranked[r_id]
-                llm_score: float | None = None
-                if len(final_scores) < RAG_LLM_TOP_K:
-                    log.debug("REMATCH [%d/%d] — LLM call → researcher %s (emb=%.3f)", i + 1, total_papers, r_id, emb_score)
-                    llm_score = await asyncio.to_thread(_llm_generate, paper, hits[:RAG_CONTEXT_PAPERS])
-                    total_llm_calls += 1
-                    if llm_score == 0.0:
-                        total_llm_skipped += 1
-                        log.debug("REMATCH [%d/%d] — LLM → IRRELEVANT for researcher %s", i + 1, total_papers, r_id)
-                        continue
-                    log.debug("REMATCH [%d/%d] — LLM → score=%.3f for researcher %s", i + 1, total_papers, llm_score, r_id)
-                    final_score = llm_score if llm_score is not None else emb_score
-                else:
-                    final_score = emb_score
-
-                if final_score >= MATCH_THRESHOLD:
-                    final_scores[r_id] = (final_score, hits, llm_score)
-
-            import json
-            paper_new_matches = 0
-            for r_id, (final_score, hits, llm_score) in final_scores.items():
-                matched_ids_json = json.dumps([
-                    {"id": row.paper_openalex_id, "score": round(float(score), 4)}
-                    for score, row in hits[:RAG_CONTEXT_PAPERS]
-                ])
+            for r_id, score, hits in ranked:
                 db.add(PaperResearcherMatch(
                     paper_openalex_id=paper["openalex_id"],
                     researcher_id=r_id,
-                    score=round(final_score, 4),
-                    model="qwen+llama",
-                    matched_paper_ids=matched_ids_json,
-                    llm_score=round(llm_score, 4) if llm_score is not None else None,
+                    score=round(score, 4),
+                    model=model_label,
+                    matched_paper_ids=json.dumps([
+                        {"id": boun_rows[j].paper_openalex_id, "score": round(s, 4)}
+                        for s, j in hits[:RAG_CONTEXT_PAPERS]
+                    ]),
                 ))
-                total_matches += 1
-                paper_new_matches += 1
-
-            log.info(
-                "REMATCH [%d/%d] — '%s' → %d new match(es) | total=%d | llm_calls=%d skipped=%d no_hits=%d",
-                i + 1, total_papers, paper_title, paper_new_matches,
-                total_matches, total_llm_calls, total_llm_skipped, total_no_hits,
-            )
-
-            if total_matches % COMMIT_EVERY == 0 and total_matches > 0:
-                await db.commit()
-                log.info("REMATCH — committed %d match(es) so far.", total_matches)
-
+                total += 1
         await db.commit()
 
     log.info(
-        "REMATCH JOB DONE — %d match(es) stored | %d LLM call(s) | %d LLM-skipped | %d no-hit papers",
-        total_matches, total_llm_calls, total_llm_skipped, total_no_hits,
+        "%s — %d paper(s) against %d BOUN rows: %d match(es), %d paper(s) with no researcher above %.2f",
+        job, len(papers), len(boun_rows), total, no_hits, MATCH_THRESHOLD,
     )
-
-
-def _llm_generate(new_paper: dict, context_papers: list[tuple[float, object]]) -> float | None:
-    """
-    Ask Ollama Llama whether the researcher is relevant to a new paper.
-    Returns score 0.0-1.0, or None if Ollama is unavailable.
-    Returns 0.0 if LLM says IRRELEVANT.
-    """
-    import requests
-
-    papers_text = "\n".join(
-        f"- {row.title or 'Untitled'}: {(row.abstract or '')[:200]}"
-        for _, row in context_papers
-    )
-
-    prompt = (
-        "Decide if a researcher should receive a recommendation for this new paper.\n\n"
-        f"NEW PAPER:\n"
-        f"Title: {new_paper.get('title', '')}\n"
-        f"Abstract: {(new_paper.get('abstract') or '')[:400]}\n\n"
-        f"RESEARCHER'S RELATED PAPERS:\n{papers_text}\n\n"
-        "Answer with ONLY: RELEVANT <score> or IRRELEVANT <score> (score: 0.0-1.0)\n"
-        "Example: RELEVANT 0.85"
-    )
-
-    try:
-        resp = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={"model": LLM_GENERATE_MODEL, "prompt": prompt, "stream": False},
-            timeout=120,
-        )
-        resp.raise_for_status()
-        text = resp.json().get("response", "").strip().upper()
-
-        parts = text.split()
-        verdict = parts[0] if parts else ""
-        score = 0.5
-        if len(parts) > 1:
-            try:
-                score = max(0.0, min(1.0, float(parts[1])))
-            except ValueError:
-                pass
-
-        return score if verdict == "RELEVANT" else 0.0
-
-    except Exception as e:
-        log.warning("LLM generate step failed: %s — falling back to Stage 1 score.", e)
-        return None
+    return total

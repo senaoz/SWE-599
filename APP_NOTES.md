@@ -41,10 +41,11 @@ Each entry gives the date it was noted, what to do, and why.
   - nDCG@10: +0.021 (not significant after Holm).
   - Within-list AUC: 0.82, against 0.76 for the embedding.
   - Cost on an M1 Max: 0.46–0.86 s per pair (memory-dependent), against about 0.2–0.35 s for Llama 3.2 3B. Worth testing as the app's stage 2 in Phase 6B.
+- **2026-10-21 — Stage 2 removed.** On the human-labelled gold standard no LLM method beats Qwen3-Embedding (notebook 17), and Qwen3-Reranker-4B fused with it gives no gain either (0.233 vs 0.222, notebook 18). The app now stores cosine scores only, labelled with the embedding model (`docs/MATCHING_DESIGN.md`, PR 2). A reranker comes back only after it shows a gain on the app's own checks and on feedback.
 
 ## Ideas
 
-- Test Qwen3-Reranker-4B, fused with the embedding score, as the app's stage 2 (Phase 6B). It is the only second stage the benchmark found helpful; pointwise Llama and bge-reranker-base were not.
+- Test Qwen3-Reranker-4B, fused with the embedding score, as the app's stage 2 (Phase 6B). It is the only second stage the citation benchmark found helpful; pointwise Llama and bge-reranker-base were not. *(2026-10-21: no gain on the gold standard, notebook 18; not planned.)*
 - The co-citation graph-expansion work (Phase 5) added no significant recall on top of a strong embedding first stage, so it is not a priority for the app's candidate generation.
 
 ## BOUN seed data (2026-10-15)
