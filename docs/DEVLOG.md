@@ -816,3 +816,29 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Method.** Linear fusion of within-participant z-scores (`bc.fuse_linear`, α = reranker weight), α on 0..1 step 0.1 chosen leave-one-participant-out (`bc.lopo_select`), as in notebook 14. One paired Wilcoxon test against Qwen3 alone.
 - **Results** [905d7ce]. Fusion 0.233 [0.187, 0.289] vs Qwen3-Embedding 0.222 [0.177, 0.274]. Per participant, 0 better, 18 worse, 40 tied (p = 1.96e-04). Fixed α = 0.8 (notebook 12's value) gives 0.249. In-sample, the best α (0.2) only ties Qwen3 alone (0.2223 for both).
 - **Caveat.** The significant "worse" comes mostly from LOPO on a flat optimum: every participant given α = 0.2 is one it hurts in-sample. Read it as "no gain", not as harm.
+
+### 2026-10-21 — Llama 3.1 8B: setup and dev pilot (scale check for the position-bias claim)
+
+- **Why.** Every LLM result so far comes from Llama 3.2 3B (Q4). Reviewers will ask whether order-copying is just a small-model effect. Llama 3.1 8B Instruct keeps the family and quantization, so only size changes (user decision, 2026-10-21).
+- **Model.** `bartowski/Meta-Llama-3.1-8B-Instruct-GGUF`, Q4_K_M, 4,920,739,232 bytes, sha256 `7b064f58…3033557c` (matches the Hugging Face LFS hash). `hf download` stalled at 0 bytes (Xet); a resumable `curl` of the resolve URL worked. Served by a separate `llama-server` on port 1338 (ctx 16384, as the 3B); `~/models/llama-server.ini` is unchanged.
+- **Code.** `RunConfig.llm` and `jan.JAN_MODEL_MAP["llama8b"]` choose the model for every LLM method; non-default models write their own runs (`llama8b__shuffled__s0.jsonl`, `qwen→llama8b_k10_…`), so 3B files are untouched. Gold standard: `GS_LLM=llama8b` caches to `data/v2/goldstandard_llm/llama8b/`. Fixed `check_jan`, which required the 3B whenever the method was named `llama`. Tests: 44 pass (3 new in `tests/test_pipeline_v2.py`).
+- **Dev pilot** (listwise, shuffled, seed 0, 50 dev queries, `tac_600_1500`; dev only, nothing tuned):
+
+  | dev, seed 0 | R-prec `random` | R-prec `concept` | MRR `random` / `concept` | partial |
+  |---|---|---|---|---|
+  | Qwen3-Embedding-8B | 88.7 | 81.3 | 1.000 / 1.000 | — |
+  | BM25 | 73.4 | 63.8 | 0.947 / 0.922 | — |
+  | Llama 3.1 8B listwise | 67.5 | 61.3 | 0.955 / 0.944 | 7 / 8 of 50 |
+  | Llama 3.2 3B listwise | 46.9 | 43.6 | 0.722 / 0.670 | 24 / 20 of 50 |
+
+  8B is far better than 3B, but stays below BM25 and about 20 points below the embedding.
+- **Order-copying** (Spearman ρ between output position and shown position, model's own parsed output with ≥ 5 items, the 2026-10-12 definition; it reproduces the 3B test numbers exactly: 1,177 outputs, median 0.98, 50.6% copies):
+
+  | shuffled, seed 0, dev | outputs | median ρ | copies (ρ > 0.8) | reverses (ρ < −0.8) | order-independent (\|ρ\| ≤ 0.3) |
+  |---|---|---|---|---|---|
+  | Llama 3.2 3B | 96 | 0.92 | 51.0% | 7.3% | 28.1% |
+  | Llama 3.1 8B | 100 | −0.19 | 1.0% | 16.0% | 45.0% |
+
+  On dev, 8B almost never copies the shown order, but reverses it more often than 3B. Dev and one seed only; the outcome-level test is the best-first / worst-first runs on test.
+- **Partial outputs** (15 of 100): 14 are complete JSON arrays that skip 1–16 candidates; only 1 is cut off at the token budget. So "8B omits candidates", not "8B truncates".
+- **Speed.** 18.2 / 18.8 s per query (3B: 7.0 / 9.2 s). Prompt processing ran at about 210 tokens/s, generation at about 18 tokens/s, with 17.9 GB of swap in use by other apps; earlier swap pressure halved reranker speed (lessons.md), so a clean machine may be faster.
