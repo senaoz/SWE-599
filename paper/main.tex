@@ -1,0 +1,99 @@
+% Two-column ACM layout (sigconf); `nonacm` drops the ACM rights block for the arXiv preprint.
+% Each section holds its one-sentence claim; the % notes list the evidence each section will draw on.
+% Outline and decisions: research/audit/PAPER_NOTES.md.
+\documentclass[sigconf,nonacm]{acmart}
+
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{Does LLM Reranking Help Scientific Paper Recommendation?}
+\subtitle{Evidence from Citation and Human Expertise Labels}
+
+\author{Sena Öz}
+\affiliation{%
+  \institution{Boğaziçi University}
+  \city{Istanbul}
+  \country{Türkiye}}
+
+\begin{abstract}
+We find that small LLM rerankers are sensitive to candidate order in a model-dependent direction, and that under controlled order no LLM reranker, second stage or citation-graph signal we tested beats a dense embedding model on both citation-derived and human expertise labels.
+\end{abstract}
+
+\keywords{scientific paper recommendation, LLM reranking, position bias, evaluation}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+% System (Fig. 1), research question, v1 result and its retraction, four contributions.
+A recommender for Boğaziçi University researchers led us to ask whether reranking embedding-retrieved papers with a small local LLM improves recommendations; our first evaluation said yes, and this paper shows why that answer was wrong.
+
+\section{Related Work}
+\label{sec:related}
+% To find and verify before citing (PAPER_NOTES.md): listwise LLM reranking (RankGPT), position bias and
+% permutation sensitivity, "lost in the middle", SPECTER2 / SciRepEval, citation recommendation benchmarks,
+% reviewer assignment and expert finding, co-citation and bibliographic coupling.
+Listwise LLM reranking has been reported to rival trained rankers, but LLMs are sensitive to where items appear in their input, and scientific-document embeddings are already strong baselines.
+
+\section{Evaluation Setup}
+\label{sec:setup}
+% 3.1 task and 13 methods; 3.2 citation labels (v2 pools: random / concept; full corpus); 3.3 human labels;
+% 3.4 statistics (bootstrap CIs, Holm-corrected Wilcoxon; pre-registered vs post-hoc analyses). Table 1: datasets.
+We compare 13 methods on citation labels, the references of 118 query papers ranked within pools of at most 42 candidates and within an 11,967-paper corpus, and a subset of them on an independent label source, the self-reported reviewing expertise of 58 researchers~\citep{stelmakh2025gold}.
+
+\section{RQ1: Candidate Order Changes the Answer}
+\label{sec:rq1}
+% Fig. 2 (main figure): 3B and 8B x {positives first, shuffled, positives last} x {citation, human labels}.
+% Numbers below: citation, random negatives, test, seed 0. PROVISIONAL: 8B on concept (positives last) and on human labels pending; 8B is one seed.
+% Mechanism: 3B copies the shown order (median rho 0.98, 50.6%); 8B rarely copies but reverses more often (dev).
+Reversing a candidate list that starts with the cited papers, with nothing else changed, lowers the 3B model's R-precision from 72.3 to 30.0 but raises the 8B model's from 73.9 to 89.4, so order sensitivity persists at the larger size but changes direction.
+
+\section{RQ2: Which Method Wins Under Controlled Order?}
+\label{sec:rq2}
+% Table 2: one column per label source (R-precision; weighted Kendall-tau loss). Pending: 8B seeds 1-4, 8B on human labels.
+% Embeddings were never tested against each other on human labels; published SPECTER2-max is 0.2215 vs Qwen3 0.2223.
+% Human labels: MiniLM 0.242 vs Qwen3 0.222. Gold standard ran a subset; LLMs saw profile titles, embeddings title+abstract.
+Under shuffled order, Qwen3-Embedding-8B has the best point estimate of the methods we ran on both label sources, 38--43 R-precision points ahead of the 3B listwise reranker and about 20 ahead of the 8B one, while a 22M-parameter MiniLM stays within 4.3 points of it.
+
+\section{RQ3: Does a Second Stage Help?}
+\label{sec:rq3}
+% Table 3: v2 cascade, full-corpus pointwise reranking, Qwen3-Reranker-4B fusion on both label sources.
+% Cascade numbers are 3B on fixed pools. Fusion: nDCG@10 not significant (Holm 0.22); notebook 18 is post-hoc.
+A second stage does not help: listwise reranking of the embedding's top 10 lowers R-precision by 10--13 points, and the one gain we found, fusing a trained reranker with the embedding score (+3.2 R-precision on citations), does not transfer to human labels.
+
+\section{RQ4: Do Citation-Graph Signals Add Information?}
+\label{sec:rq4}
+% Table 4: co-citation expansion (full corpus, canary +5.8, kNN control +0.3); bibliographic coupling (human labels):
+% alone 0.299; + SPECTER2 0.197 (Holm 8.3e-3); + Qwen3 n.s. Coupling as silver label: top decile 88% rated >= 4, 30% silent.
+Citation-graph signals add little on top of a strong dense model: co-citation expansion adds 0.8 recall@100 points (not significant) in the full corpus, and bibliographic coupling improves SPECTER2 but not Qwen3-Embedding on human labels.
+
+\section{Discussion}
+\label{sec:discussion}
+% Label-dependent vs label-independent findings; coupling as a precise but sparse signal; implications for the system.
+LLM rerankers should be evaluated under several candidate orders, citation-derived labels should be checked against human judgments, and for our deployed system these results motivate a redesign that removes the LLM stage.
+
+\section{Limitations}
+\label{sec:limitations}
+Our human labels are few (58 researchers, almost all in computer science), the rerankers we test are two general Llama models, one trained reranker and one cross-encoder, and pretraining contamination is untested.
+
+\begin{acks}
+This work began as a course project (SWE 599) at Boğaziçi University. I thank H. Birkan Yılmaz for supervising that project.
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\appendix
+
+\section{Audit of the First Benchmark}
+\label{app:audit}
+% research/audit/AUDIT.md, F1-F9.
+Auditing the first version of our benchmark revealed nine problems, including a positives-first candidate order and, as the code shows, positive candidates that carried other papers' text, which we list as a checklist for LLM ranking evaluations.
+
+\section{Data Quality and Robustness}
+\label{app:robustness}
+% research/audit/DATA_QUALITY.md, seed spread, LLM failure rates, coupling coverage sensitivity.
+Dropping queries with flawed abstracts moves no method by more than 1.1 points, shuffle seeds move the LLM results by a standard deviation of at most 2 points, a sliding-window reranker that rarely truncates its output still trails the embeddings, and the coupling results hold at higher reference coverage.
+
+\end{document}
