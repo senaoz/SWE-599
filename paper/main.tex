@@ -6,6 +6,7 @@
 \usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
+\graphicspath{{../research/v2/figures/}}
 
 \begin{document}
 
@@ -151,6 +152,17 @@ On human labels, the 3B model shows the same primacy effect: its loss is 0.253 w
 % Embeddings were never tested against each other on human labels; published SPECTER2-max is 0.2215 vs Qwen3 0.2223.
 % Human labels: MiniLM 0.242 vs Qwen3 0.222. Gold standard ran a subset; LLMs saw profile titles, embeddings title+abstract.
 Under shuffled order, Qwen3-Embedding-8B has the best point estimate of the methods we ran on both label sources, 38--43 R-precision points ahead of the 3B listwise reranker and about 20 ahead of the 8B one, while a 22M-parameter MiniLM stays within 4.3 points of it.
+Figure~\ref{fig:agreement} places the seven methods run on both label sources side by side.
+The two sources order them similarly (Kendall $\tau = 0.71$; three of 21 pairs swap): the embeddings lead on both, and listwise Llama trails on both, close to a constant ranking on human labels.
+The swaps involve the lexical methods and pointwise Llama, which is fourth on citation labels and sixth on human labels.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig3_label_agreement}
+  \caption{Citation labels (R-precision, \emph{random} negatives, test split) against human labels (weighted Kendall-$\tau$ loss, lower is better), with 95\% bootstrap intervals, for the seven methods run on both. Up and to the right is better on both axes.}
+  \label{fig:agreement}
+\end{figure}
+% PENDING: add Llama 3.1 8B listwise when tier 2 is done (scripts/paper_figures.py).
 
 \section{RQ3: Does a Second Stage Help?}
 \label{sec:rq3}
