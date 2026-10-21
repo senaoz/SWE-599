@@ -862,3 +862,17 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
   On dev, 8B almost never copies the shown order, but reverses it more often than 3B. Dev and one seed only; the outcome-level test is the best-first / worst-first runs on test.
 - **Partial outputs** (15 of 100): 14 are complete JSON arrays that skip 1–16 candidates; only 1 is cut off at the token budget. So "8B omits candidates", not "8B truncates".
 - **Speed.** 18.2 / 18.8 s per query (3B: 7.0 / 9.2 s). Prompt processing ran at about 210 tokens/s, generation at about 18 tokens/s, with 17.9 GB of swap in use by other apps; earlier swap pressure halved reranker speed (lessons.md), so a clean machine may be faster.
+
+### 2026-10-21 — Llama 3.1 8B: position-bias trio on the citation test split (tier 1)
+
+- **Run.** Listwise 8B, test split (118 queries), both benchmarks, seed 0, orders shuffled / original (cited first) / reversed (cited last): 708 calls, 10:38–15:12, about 20 s per query. No HTTP errors; partial outputs 8–21 per condition, parse failures 2. Run files: `research/v2/runs/*/tac_600_1500/llama8b__*__s0.jsonl`.
+- **R-precision (random / concept):**
+
+  | | Cited first | Shuffled | Cited last |
+  |---|---|---|---|
+  | Llama 3.2 3B | 72.3 / 74.1 | 46.3 / 43.1 | 30.0 / 19.9 |
+  | Llama 3.1 8B | 73.9 / 69.0 | 67.1 / 60.6 | 89.4 / 85.9 |
+  | Qwen3-Embedding-8B | 87.0 / 80.1 (order-independent) | | |
+
+- **Findings.** The 8B model favours late candidates: first vs last −15.5 / −16.9 R-precision (paired Wilcoxon p = 4.8e-06 / 5.1e-05; 3B: +42.3 / +54.2). With the cited papers last it scores above Qwen3-Embedding on both benchmarks. Shuffled, it trails Qwen3 by 19.8 / 19.5 (p ≈ 1e-12) and beats 3B by 20.8 / 17.5. Order-copying on shuffled test outputs (seed 0, ≥ 5 items): 3B 52.6% copies, 5.1% reverses; 8B 0.9% copies, 10.3% reverses, 51.5% order-independent.
+- **Session end.** The 8B server, started as a session background task, stopped when the session ended at about 15:15, 20 calls into tier 2. The runner was stopped before any failed call was cached (all 20 records ok); server and tier 2 were restarted with `nohup` and resumed from the cache.
