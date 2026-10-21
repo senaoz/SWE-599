@@ -106,15 +106,43 @@ Bibliometrics often treats coupling as a relatedness ground truth. Notebook 16 (
 - **Why the test is fair:** the human ratings are independent of citations; on citation-labelled benchmarks a citation-derived signal is partly circular (Phase 5 needed leakage rules).
 - **Caveats.** a1 pools participants whose score scales differ; the notebook is post-hoc; CS/ML only.
 
-## Planned paper outline
+## Planned paper outline (revised 2026-10-21)
 
-1. **Introduction.** Deployed two-stage recommender; does LLM reranking help?
-2. **Related work.** Listwise / LLM reranking, LLM position bias, scientific document embeddings, citation recommendation benchmarks, reviewer assignment and expert finding.
-3. **Citation benchmark (v2).** Construction, leakage rules, negatives, metrics. The audit of v1 is a short subsection or an appendix.
-4. **Results.** Method comparison, the position-bias experiment, the two-stage cascade, small vs large embedding models.
-5. **Human-labelled expertise evaluation** (Stelmakh et al.). Do the method rankings agree with the citation benchmark?
-6. **Full-corpus setting** (Phase 5). Keep it or cut it depending on length.
-7. **Limitations and discussion.** Includes: coupling as a label — precise when present, silent too often (see the discussion point above).
+The gold-standard runs (notebooks 14–18) change the paper's spine. Before, the human-labelled data was a robustness section after the results. Now every main claim is tested on **two independent label sources**: citations (v2 pools, Phase 5 corpus) and human expertise ratings (Stelmakh et al.). Each result section reports both side by side. Phase 5 co-citation and gold-standard bibliographic coupling merge into one question about citation-graph signals.
+
+**Working title:** "Does LLM reranking help scientific paper recommendation? Evidence from citation and human expertise labels".
+
+**One-sentence claim:** On citation labels and on human expertise labels, a dense embedding model is not beaten by any small-LLM reranker, trained reranker fusion or citation-graph signal we tested; the earlier evidence for LLM reranking was position bias, which replicates on both label sources.
+
+**Research questions**
+- RQ1. Why did listwise LLM reranking look best in v1? (position bias; label-independent)
+- RQ2. Under clean evaluation, does any LLM reranking variant beat dense retrieval? Does the answer depend on the label source?
+- RQ3. Does a reranking stage help on top of a strong first stage (cascade, full corpus, fusion)?
+- RQ4. Do citation-graph signals (co-citation expansion, bibliographic coupling) add to a strong dense model?
+
+**Sections**
+1. **Introduction.** The deployed two-stage recommender; the question; v1's result and its retraction in one paragraph; contributions: (i) a leak-free citation benchmark, (ii) position bias as the explanation, replicated on human labels, (iii) a two-label comparison of 13 methods, (iv) negative results for reranking and graph signals on top of dense retrieval.
+2. **Related work.** LLM / listwise reranking; position bias and permutation sensitivity; scientific document embeddings; citation recommendation; reviewer assignment and expert finding; co-citation and bibliographic coupling.
+3. **Evaluation setup.**
+   - 3.1 Task and methods: 13 methods, shared input text, local models.
+   - 3.2 Citation labels: v2 pools (`random`, `concept`), leakage rules, R-precision; the full-corpus variant (11,967 papers, recall@100, nDCG@10).
+   - 3.3 Human expertise labels: Stelmakh et al., per-researcher ranking, weighted Kendall-tau loss, max over the profile; reproduces the published baselines (Table 3 check).
+   - 3.4 Statistics: participant/query bootstrap, Holm-corrected Wilcoxon; which analyses were pre-registered (notebook 14) or design-locked (17) and which are post-hoc (16, 18).
+4. **RQ1: Position bias** (headline, first results section because it does not depend on labels). Citation: MRR 0.95 / 0.66 / 0.33 for best-first / shuffled / worst-first, input-output Spearman median 0.98. Human: loss 0.253 / 0.467 / 0.685, best- vs worst-first Holm p = 1.4e-05. One figure, two panels.
+5. **RQ2: Method comparison across label sources.** One table, a column per label source. Agreements: Qwen3-Embedding best on both; listwise Llama last; small embeddings close to large (MiniLM −3.7 R-prec; 0.242 vs 0.222 loss). Disagreements to report: pointwise Llama beats lexical baselines on citations but not on human labels (0.337 vs BM25 0.275); BM25/TF-IDF order flips.
+6. **RQ3: A second stage on top of dense retrieval.** v2 cascade (−13.0 / −10.4 R-prec); full corpus: pointwise Llama halves nDCG@10; Qwen3-Reranker-4B fused +3.2 R-prec (Holm 0.040) on citations, but no gain on human labels (0.233 vs 0.222, notebook 18). Conclusion: the only reranking gain does not transfer across label sources.
+7. **RQ4: Citation-graph signals.** Co-citation expansion in the full corpus (+0.8 recall@100, n.s.; canary +5.8) and bibliographic coupling on human labels (alone 0.299: real signal, below embeddings; fusion with Qwen3 n.s., with SPECTER2 significant). Same conclusion from two settings: no significant gain over a strong dense model.
+8. **Discussion.**
+   - Citation vs human labels: which conclusions are label-dependent.
+   - Coupling as a label: precise when present (top decile 88% rated ≥ 4), silent too often (30% of items) → a silver positive set, not a full-ranking label.
+   - Implications for the deployed system: stage 2 dropped (`docs/MATCHING_DESIGN.md`), the embedding model choice, the cost of an LLM stage.
+9. **Limitations.** Citation as a proxy; human data CS/ML only, 58 researchers, within-researcher direction (the app ranks researchers per paper); one small general LLM (see the 8B decision); contamination untested; concept negatives share only broad fields.
+- **Appendix A. Audit of v1** (F1–F9) as a checklist for LLM-ranking evaluations. Fallback framing if the venue prefers a reproducibility paper.
+- **Appendix B.** Data quality, seeds, failure rates, coverage sensitivity of coupling.
+
+**Out of the paper:** the app's own paper → researcher evaluation (design open), MTPLX stage 2, BOUN data. BOUN-side coupling (notebook 15) appears at most as one sentence in the discussion.
+
+**Open before writing results:** the larger-LLM decision (Llama 3.1 8B). It now matters more: RQ1 replicates across two label sources but still with one model.
 
 ## References to cite
 
@@ -156,3 +184,4 @@ The published baseline losses in `GOLDSTANDARD_DATA.md` were checked against Tab
 - **2026-10-19.** Notebook 16 corrected the coupling-as-label point: strong coupling is a high-precision positive (top decile 88% rated ≥ 4); the predicted ranking reversal did not happen (Qwen3 best under coupling labels too).
 - **2026-10-20.** LLM and lexical methods on the gold standard (notebook 17): no LLM method beats Qwen3-Embedding; listwise position bias replicates on human labels.
 - **2026-10-20.** Post-hoc reranker + Qwen3 fusion (notebook 18): no gain over Qwen3-Embedding on human labels (0.233 vs 0.222); the citation-benchmark fusion gain does not transfer.
+- **2026-10-21.** Outline revised around two label sources (citation and human expertise); Phase 5 co-citation and coupling merged into one section (RQ4); v1 audit moved to an appendix.
