@@ -24,8 +24,6 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       BOUN_CSV_PATH: research/data/cleaned/boun.csv
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY}
-      OLLAMA_CLOUD_MODEL: ${OLLAMA_CLOUD_MODEL:-qwen3:embedding}
       OLLAMA_URL: http://ollama:11434
       OPENALEX_EMAIL: ${OPENALEX_EMAIL:-}
     volumes:

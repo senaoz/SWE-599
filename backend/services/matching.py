@@ -41,7 +41,7 @@ async def _run_matching_job_impl() -> None:
         ResearcherPaper, PaperResearcherMatch,
     )
     from backend.services.openalex import fetch_new_papers
-    from backend.services.embedding import encode_with_fallback, batch_score, emb_to_list, row_to_emb
+    from backend.services.embedding import encode_checked, batch_score, emb_to_list, row_to_emb
     from sqlalchemy import select, func, text as sa_text
 
     log.info("=" * 60)
@@ -167,7 +167,7 @@ async def _run_matching_job_impl() -> None:
     try:
         import asyncio
         new_paper_embs = await asyncio.to_thread(
-            encode_with_fallback, paper_texts, RETRIEVE_MODEL, OLLAMA_URL
+            encode_checked, paper_texts, RETRIEVE_MODEL, OLLAMA_URL
         )
         log.info("STAGE 1 — Encoded %d papers → shape %s", len(paper_texts), new_paper_embs.shape)
     except Exception as e:
@@ -335,7 +335,7 @@ async def _run_stage2_for_unmatched_impl() -> None:
     import asyncio
     from backend.database import SessionLocal
     from backend.models import FetchedPaper, ResearcherPaper, PaperResearcherMatch, Researcher
-    from backend.services.embedding import encode_with_fallback, batch_score, emb_to_list, row_to_emb
+    from backend.services.embedding import encode_checked, batch_score, emb_to_list, row_to_emb
     from sqlalchemy import select, text as sa_text
 
     log.info("=" * 60)
@@ -370,7 +370,7 @@ async def _run_stage2_for_unmatched_impl() -> None:
         log.info("REMATCH JOB — encoding %d paper(s) without embeddings …", len(to_encode))
         texts = [f"{r.title or ''} {r.abstract or ''} {r.concepts_text or ''}".strip() for r in to_encode]
         try:
-            embs = await asyncio.to_thread(encode_with_fallback, texts, RETRIEVE_MODEL, OLLAMA_URL)
+            embs = await asyncio.to_thread(encode_checked, texts, RETRIEVE_MODEL, OLLAMA_URL)
         except Exception as e:
             log.error("REMATCH JOB — encoding failed: %s", e)
             return

@@ -9,6 +9,7 @@ Each entry gives the date it was noted, what to do, and why.
 - **2026-10-11 — Move off Ollama and drop the cloud fallback.** The research side serves models through a local OpenAI-compatible API (`/v1/chat/completions`, `/v1/embeddings`): Jan at first, and since 2026-10-12 a standalone `llama-server` from llama.cpp (see `research/README.md`). The backend still calls Ollama (`backend/services/embedding.py`) and falls back to Ollama Cloud (`OLLAMA_CLOUD_API_KEY`, `OLLAMA_CLOUD_MODEL` in `backend/config.py`).
   - `llama-server` can also run server-side next to the Docker stack, with the same GGUF files and API as the research setup.
   - Decide this before removing the cloud fallback, so production keeps a working embedder.
+  - *2026-10-21: the Ollama Cloud fallback was removed; the app embeds with local Ollama only. Moving off Ollama is still open.*
 - **2026-10-11 — Keep `src.similarity` names stable.** The backend imports `MODEL_MAP`, `OLLAMA_MODEL_MAP` and `MAX_TEXT_CHARS` from `research/src/similarity.py`. The research refactor keeps these names, but the coupling is fragile.
   - Give the backend its own model config, or a small shared module.
 - **2026-10-11 — Qwen3-Embedding pooling and dimension.** The backend expects 4096-dim vectors, i.e. the 8B model.
