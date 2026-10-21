@@ -54,10 +54,24 @@ Design committed in code before any LLM loss was computed (not a strict pre-regi
 | Listwise, worst-first | 0.685 [0.604, 0.765] | not tested |
 | Constant | 0.500 | |
 
-- **The label-dependent claim holds on human labels.** No LLM method beats the embedding; all are significantly worse, including Qwen3-Reranker-4B, which did help on the citation benchmark when fused (notebook 12; not fused here: the reranker was scored alone).
+- **The label-dependent claim holds on human labels.** No LLM method beats the embedding; all are significantly worse, including Qwen3-Reranker-4B, which did help on the citation benchmark when fused (notebook 12). Scored alone here; for the fused version, see notebook 18 below.
 - **Position bias replicates.** Best-first vs worst-first: −0.333 mean per-participant loss, 43 vs 14 participants, Holm p = 1.4e-05; best- and worst-first vs shuffled both Holm p = 1.8e-04. Shuffled, Llama is barely above the constant, and 35% of its outputs repeat the shown order exactly (Kendall τ with the shown order 0.32 on average). Lists are short (3–10), so exact copies are likelier by chance than on the citation benchmark.
 - **Failure rate.** Listwise 3 of 870 partial, none failed; pointwise and reranker all ok.
 - **Limits.** As for notebook 14; plus the prompts differ from the citation-benchmark ones (expertise, not citation), and the reranker instruction was written for this task without tuning.
+
+### Post-hoc: reranker fused with the embedding (2026-10-20, notebook 18)
+
+Post-hoc, added after notebook 17. Fusion form and α search copied from notebook 14's pre-registration: α · z(Qwen3-Reranker-4B) + (1 − α) · z(Qwen3-Embedding-8B), with z-scores taken within each participant and α on 0, 0.1, …, 1 chosen leave-one-participant-out. One paired Wilcoxon test against Qwen3 alone, so no Holm correction.
+
+| Method | Loss | vs Qwen3-Embedding, p |
+|---|---|---|
+| Qwen3-Embedding-8B, max | 0.222 [0.177, 0.274] | — |
+| Reranker + Qwen3, α chosen LOPO | 0.233 [0.187, 0.289] | 1.96e-04 (worse; 0 better, 18 worse, 40 tied) |
+| Reranker + Qwen3, α = 0.8 (notebook 12's value; descriptive) | 0.249 [0.193, 0.317] | not tested |
+| Qwen3-Reranker-4B alone | 0.268 [0.210, 0.333] | 9.4e-03 Holm (notebook 17) |
+
+- **Fusion adds nothing on human labels.** In-sample, the best α (0.2) only ties the embedding alone (0.2223 for both), and the loss rises steadily up to the reranker alone at α = 1. On the citation benchmark, fusion was the reranker's only gain (R-precision +3.2, Holm 0.040).
+- **Read the significant "worse" as "no gain", not as harm.** It comes mostly from LOPO on a flat optimum: the held-out choice flips between α = 0 and 0.2, and every participant given 0.2 is one it hurts in-sample. In the paper, report it as "fusion does not beat the embedding" and give the mechanism in a footnote.
 
 ### Bibliographic coupling on the gold standard (2026-10-15, notebook 14)
 
@@ -141,3 +155,4 @@ The published baseline losses in `GOLDSTANDARD_DATA.md` were checked against Tab
 - **2026-10-19.** Discussion point added: bibliographic coupling is a signal, not a label (agrees with humans less than the embeddings it would judge; partial, biased coverage).
 - **2026-10-19.** Notebook 16 corrected the coupling-as-label point: strong coupling is a high-precision positive (top decile 88% rated ≥ 4); the predicted ranking reversal did not happen (Qwen3 best under coupling labels too).
 - **2026-10-20.** LLM and lexical methods on the gold standard (notebook 17): no LLM method beats Qwen3-Embedding; listwise position bias replicates on human labels.
+- **2026-10-20.** Post-hoc reranker + Qwen3 fusion (notebook 18): no gain over Qwen3-Embedding on human labels (0.233 vs 0.222); the citation-benchmark fusion gain does not transfer.
