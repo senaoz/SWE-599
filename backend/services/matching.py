@@ -15,6 +15,7 @@ from backend.config import (
     RAG_CONTEXT_PAPERS,
     LLM_GENERATE_MODEL,
 )
+from backend.services.ranking import rank_researchers
 
 log = logging.getLogger(__name__)
 
@@ -208,6 +209,7 @@ async def _run_matching_job_impl() -> None:
 
     log.info("STAGE 1 — Loaded %d BOUN paper embeddings", len(boun_papers))
     boun_embs = np.vstack([row_to_emb(row.embedding) for row in boun_papers])
+    boun_researcher_ids = [row.researcher_id for row in boun_papers]
 
     # Cosine similarity matrix: (N_new, N_boun)
     scores_matrix = batch_score(new_paper_embs, boun_embs)
@@ -226,37 +228,22 @@ async def _run_matching_job_impl() -> None:
             paper_title = (new_paper.get("title") or "")[:60]
             paper_scores = scores_matrix[i]
 
-            # Group hits by researcher above threshold
-            researcher_hits: dict[str, list[tuple[float, object]]] = {}
-            for j, boun_row in enumerate(boun_papers):
-                score = float(paper_scores[j])
-                if score < MATCH_THRESHOLD:
-                    continue
-                researcher_hits.setdefault(boun_row.researcher_id, []).append((score, boun_row))
+            top_researchers = rank_researchers(paper_scores, boun_researcher_ids, MATCH_THRESHOLD, RAG_RETRIEVE_TOP_K)
 
-            if not researcher_hits:
+            if not top_researchers:
                 log.debug("[%d/%d] '%s' — no Stage 1 hits above %.2f", i + 1, len(all_new_papers), paper_title, MATCH_THRESHOLD)
                 continue
 
-            # Sort each researcher by their best hit score
-            researcher_ranked = {
-                r_id: (sorted(hits, key=lambda x: x[0], reverse=True))
-                for r_id, hits in researcher_hits.items()
-            }
-            researcher_best = {r_id: hits[0][0] for r_id, hits in researcher_ranked.items()}
-
-            top_researchers = sorted(researcher_best.items(), key=lambda x: x[1], reverse=True)[:RAG_RETRIEVE_TOP_K]
-
             log.info(
-                "[%d/%d] '%s…' — Stage 1: %d researcher(s) above %.2f, top-%d for LLM",
-                i + 1, len(all_new_papers), paper_title, len(researcher_hits),
+                "[%d/%d] '%s…' — Stage 1: top-%d researcher(s) above %.2f, %d for LLM",
+                i + 1, len(all_new_papers), paper_title, len(top_researchers),
                 MATCH_THRESHOLD, min(RAG_LLM_TOP_K, len(top_researchers)),
             )
 
             final_scores: dict[str, tuple[float, list, float | None]] = {}
 
-            for r_id, emb_score in top_researchers:
-                hits = researcher_ranked[r_id]
+            for r_id, emb_score, row_hits in top_researchers:
+                hits = [(score, boun_papers[j]) for score, j in row_hits]
                 llm_score: float | None = None
 
                 if len(final_scores) < RAG_LLM_TOP_K:
@@ -405,6 +392,7 @@ async def _run_stage2_for_unmatched_impl() -> None:
         return
 
     boun_embs = np.vstack([row_to_emb(r.embedding) for r in boun_rows])
+    boun_researcher_ids = [r.researcher_id for r in boun_rows]
     scores_matrix = batch_score(fetched_embs, boun_embs)
     log.info("REMATCH JOB — similarity matrix %s computed.", scores_matrix.shape)
 
@@ -419,34 +407,21 @@ async def _run_stage2_for_unmatched_impl() -> None:
         for i, paper in enumerate(all_papers):
             paper_title = (paper.get("title") or "")[:60]
 
-            paper_scores = scores_matrix[i]
-            researcher_hits: dict[str, list[tuple[float, object]]] = {}
-            for j, boun_row in enumerate(boun_rows):
-                score = float(paper_scores[j])
-                if score < MATCH_THRESHOLD:
-                    continue
-                researcher_hits.setdefault(boun_row.researcher_id, []).append((score, boun_row))
+            top_researchers = rank_researchers(scores_matrix[i], boun_researcher_ids, MATCH_THRESHOLD, RAG_RETRIEVE_TOP_K)
 
-            if not researcher_hits:
+            if not top_researchers:
                 total_no_hits += 1
                 log.debug("REMATCH [%d/%d] SKIP (no hits) — '%s'", i + 1, total_papers, paper_title)
                 continue
 
-            researcher_ranked = {
-                r_id: sorted(hits, key=lambda x: x[0], reverse=True)
-                for r_id, hits in researcher_hits.items()
-            }
-            researcher_best = {r_id: hits[0][0] for r_id, hits in researcher_ranked.items()}
-            top_researchers = sorted(researcher_best.items(), key=lambda x: x[1], reverse=True)[:RAG_RETRIEVE_TOP_K]
-
             log.info(
-                "REMATCH [%d/%d] — '%s' — %d researcher(s) above threshold, top-%d for LLM",
-                i + 1, total_papers, paper_title, len(researcher_hits), len(top_researchers),
+                "REMATCH [%d/%d] — '%s' — top-%d researcher(s) above threshold for LLM",
+                i + 1, total_papers, paper_title, len(top_researchers),
             )
 
             final_scores: dict[str, tuple[float, list, float | None]] = {}
-            for r_id, emb_score in top_researchers:
-                hits = researcher_ranked[r_id]
+            for r_id, emb_score, row_hits in top_researchers:
+                hits = [(score, boun_rows[j]) for score, j in row_hits]
                 llm_score: float | None = None
                 if len(final_scores) < RAG_LLM_TOP_K:
                     log.debug("REMATCH [%d/%d] — LLM call → researcher %s (emb=%.3f)", i + 1, total_papers, r_id, emb_score)
