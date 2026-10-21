@@ -38,9 +38,62 @@ Listwise LLM reranking has been reported to rival trained rankers, but LLMs are 
 
 \section{Evaluation Setup}
 \label{sec:setup}
-% 3.1 task and 13 methods; 3.2 citation labels (v2 pools: random / concept; full corpus); 3.3 human labels;
-% 3.4 statistics (bootstrap CIs, Holm-corrected Wilcoxon; pre-registered vs post-hoc analyses). Table 1: datasets.
 We compare 13 methods on citation labels, the references of 118 query papers ranked within pools of at most 42 candidates and within an 11,967-paper corpus, and a subset of them on an independent label source, the self-reported reviewing expertise of 58 researchers~\citep{stelmakh2025gold}.
+Table~\ref{tab:datasets} summarizes the three settings.
+
+\begin{table}[t]
+  \caption{Evaluation settings. Binary labels mark cited papers; $\tau$ loss is the weighted Kendall-$\tau$ loss of \citet{stelmakh2025gold}. Citation settings report the test split; tuning used a separate dev split.}
+  \label{tab:datasets}
+  \small
+  \begin{tabular}{@{}lllll@{}}
+    \toprule
+    Setting & Units & Candidates & Label & Metric \\
+    \midrule
+    Citation pools & 118 queries & 9--42 & binary & R-precision \\
+    Full corpus & 118 queries & 11,967 & binary & recall@100 \\
+    Human labels & 58 researchers & 3--10 & 1--5 & $\tau$ loss \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Task and Methods}
+\label{sec:methods}
+Given a query, each method ranks its candidates so that relevant papers come first.
+We compare two lexical methods, BM25~\citep{robertson2009bm25} and TF-IDF; four dense encoders scored by cosine similarity, MiniLM (all-MiniLM-L6-v2)~\citep{wang2020minilm,reimers2019sbert}, SPECTER2 with [CLS] pooling~\citep{singh2023scirepeval,cohan2020specter}, EmbeddingGemma~\citep{vera2025embeddinggemma} and Qwen3-Embedding-8B~\citep{zhang2025qwen3embedding}; the cross-encoder bge-reranker-base~\citep{xiao2024cpack}; Llama~3.2 3B Instruct~\citep{grattafiori2024llama3} used listwise over the full list, listwise with a sliding window of 10 candidates and step 5~\citep{sun2023rankgpt}, and pointwise; and three combinations, a two-stage cascade in which Llama reranks Qwen3-Embedding's top 10 and two score fusions (Llama + MiniLM, Qwen3 + MiniLM).
+To test scale, we repeat the listwise experiments with Llama~3.1 8B Instruct, and in the full-corpus and human-label settings we add Qwen3-Reranker-4B~\citep{zhang2025qwen3embedding}, a model trained for reranking.
+
+All models run locally: the Llama models and Qwen3-Embedding as 4-bit (Q4\_K\_M) GGUF files in llama.cpp, the others in sentence-transformers or transformers.
+Every method receives the same text, the title, abstract and OpenAlex concepts of each paper, truncated to 600 characters per candidate and 1,500 for the query (chosen on the dev split).
+LLMs decode greedily.
+The listwise prompt numbers the candidates and asks for a JSON array of their numbers; candidates the model leaves out are appended in random order, and an unparsable answer falls back to a random order, never to the input order.
+The pointwise prompt asks for a 0--10 score, which we read as the expected value over the first generated token's probabilities.
+
+\subsection{Citation Labels}
+\label{sec:citation-labels}
+The queries are 174 papers from OpenAlex published after 2020 by seven institutions (MIT, Stanford, Harvard, UC Berkeley, the University of Michigan, Google and Google DeepMind), each citing 6--14 works; 168 have the required metadata, and a seeded split assigns 50 to dev and 118 to test.
+A query's positives are the references it cites that have a title and an abstract (3--14 per query).
+Its $2n$ negatives, for $n$ positives, are drawn from the other queries' references published before the query and sharing no author with it, either uniformly (\emph{random}) or among papers that share one of the query's top-5 OpenAlex concepts (\emph{concept}).
+The concept condition is harder but matches on field rather than topic: 97.7\% of its negatives share a concept with the query, more than the positives do (73.5\%), but 68.7\% share only a top-level field such as ``Medicine''.
+Candidates are shuffled per query and seed, and the order shown to each method is stored.
+Because MRR saturates near 1 for strong methods, R-precision is the primary metric; a random ranking scores 33.3\%.
+
+The full-corpus setting ranks each query against 11,967 works: every eligible positive plus every work cited by at least five earlier papers that an OpenAlex title search returned for any query.
+These citing papers also form the co-citation graph used in Section~\ref{sec:rq4}, built under five leakage rules, each covered by a unit test: a query never contributes its own references, query duplicates and earlier versions are removed, only citing papers dated before the query count (with year-only dates moved to year end), and no other query paper acts as a citing paper.
+
+\subsection{Human Expertise Labels}
+\label{sec:human-labels}
+In the gold-standard dataset of \citet{stelmakh2025gold}, 58 researchers rated their expertise in reviewing 477 papers they had read, on a 1--5 scale, 3--10 papers each.
+Each researcher is represented by up to 20 of their own papers, in ten random profile samples.
+Lexical and dense methods score a rated paper by its maximum similarity to the profile papers, as our deployed system does; Qwen3-Reranker-4B uses each profile paper as a query and also takes the maximum; the LLMs see the profile titles and the candidate, with prompts that keep the citation-benchmark structure but ask about reviewing expertise.
+We report the authors' weighted Kendall-$\tau$ loss, for which lower is better and a constant ranking scores 0.5, averaged over profile samples; our evaluation reproduces their published baselines to two decimals.
+This setting ranks papers for one researcher, the reverse of our system's direction, and covers a subset of the methods: the three encoders other than EmbeddingGemma, both lexical methods, listwise and pointwise Llama, and Qwen3-Reranker-4B.
+
+\subsection{Statistics}
+\label{sec:stats}
+We report 95\% bootstrap confidence intervals over queries or researchers and compare methods with paired two-sided Wilcoxon signed-rank tests, Holm-corrected~\citep{holm1979simple} within each pre-specified family.
+On citation labels, order-sensitive LLM methods are averaged over five shuffle seeds.
+The bibliographic-coupling analysis on human labels was pre-registered, the LLM design on human labels was fixed in code before any LLM loss was computed, and the fusion analyses on human labels are post-hoc; we mark them as such.
+% PENDING: Llama 3.1 8B currently has one shuffle seed on citation labels (seeds 1-4 = tier 3).
 
 \section{RQ1: Candidate Order Changes the Answer}
 \label{sec:rq1}
