@@ -112,7 +112,7 @@ The gold-standard runs (notebooks 14–18) change the paper's spine. Before, the
 
 **Working title:** "Does LLM reranking help scientific paper recommendation? Evidence from citation and human expertise labels".
 
-**One-sentence claim:** On citation labels and on human expertise labels, a dense embedding model is not beaten by any small-LLM reranker, trained reranker fusion or citation-graph signal we tested; the earlier evidence for LLM reranking was position bias, which replicates on both label sources.
+**One-sentence claim (corrected 2026-10-21):** No LLM reranker, second stage or citation-graph signal we tested beats a dense embedding model on *both* label sources (reranker fusion does on citations, +3.2; coupling + SPECTER2 does on human labels); the earlier evidence for LLM reranking was position bias, which replicates on both label sources for the 3B model.
 
 **Research questions**
 - RQ1. Why did listwise LLM reranking look best in v1? (position bias; label-independent)
@@ -121,7 +121,7 @@ The gold-standard runs (notebooks 14–18) change the paper's spine. Before, the
 - RQ4. Do citation-graph signals (co-citation expansion, bibliographic coupling) add to a strong dense model?
 
 **Sections**
-1. **Introduction.** The deployed two-stage recommender; the question; v1's result and its retraction in one paragraph; contributions: (i) a leak-free citation benchmark, (ii) position bias as the explanation, replicated on human labels, (iii) a two-label comparison of 13 methods, (iv) negative results for reranking and graph signals on top of dense retrieval.
+1. **Introduction.** The deployed two-stage recommender; the question; v1's result and its retraction in one paragraph; contributions: (i) a leak-free citation benchmark, (ii) position bias as the explanation, replicated on human labels, (iii) a comparison of 13 methods on citation labels and a subset on human labels, (iv) negative results for reranking and graph signals on top of dense retrieval.
 2. **Related work.** LLM / listwise reranking; position bias and permutation sensitivity; scientific document embeddings; citation recommendation; reviewer assignment and expert finding; co-citation and bibliographic coupling.
 3. **Evaluation setup.**
    - 3.1 Task and methods: 13 methods, shared input text, local models.
@@ -135,7 +135,7 @@ The gold-standard runs (notebooks 14–18) change the paper's spine. Before, the
 8. **Discussion.**
    - Citation vs human labels: which conclusions are label-dependent.
    - Coupling as a label: precise when present (top decile 88% rated ≥ 4), silent too often (30% of items) → a silver positive set, not a full-ranking label.
-   - Implications for the deployed system: stage 2 dropped (`docs/MATCHING_DESIGN.md`), the embedding model choice, the cost of an LLM stage.
+   - Implications for the deployed system: a redesign that removes stage 2 (`docs/MATCHING_DESIGN.md`; not deployed yet, the app still calls Llama), the embedding model choice, the cost of an LLM stage.
 9. **Limitations.** Citation as a proxy; human data CS/ML only, 58 researchers, within-researcher direction (the app ranks researchers per paper); one small general LLM (see the 8B decision); contamination untested; concept negatives share only broad fields.
 - **Appendix A. Audit of v1** (F1–F9) as a checklist for LLM-ranking evaluations. Fallback framing if the venue prefers a reproducibility paper.
 - **Appendix B.** Data quality, seeds, failure rates, coverage sensitivity of coupling.
@@ -144,6 +144,16 @@ The gold-standard runs (notebooks 14–18) change the paper's spine. Before, the
 
 **Open before writing results:** the larger-LLM decision (Llama 3.1 8B). It now matters more: RQ1 replicates across two label sources but still with one model.
 
+## Authorship and acknowledgments (2026-10-21)
+
+- **Purpose.** The paper supports the author's PhD applications; target a public arXiv preprint around 2026-11-20, before December deadlines.
+- **Solo author:** Sena Öz, Boğaziçi University. H. Birkan Yılmaz is not involved in the paper and is not a co-author.
+- **Acknowledgments (draft):**
+
+  > This work began as a course project (SWE 599) at Boğaziçi University. I thank H. Birkan Yılmaz for supervising that project.
+
+- **arXiv endorsement.** A first-time submitter in cs.IR / cs.CL may need an endorser; check early whether the university e-mail gives automatic endorsement.
+
 ## References to cite
 
 Cite the dataset as:
@@ -151,10 +161,11 @@ Cite the dataset as:
 ```bibtex
 @article{stelmakh2025gold,
   title   = {A Gold Standard Dataset for the Reviewer Assignment Problem},
-  author  = {Stelmakh, Ivan and Wieting, John and Xi, Sarina and Neubig, Graham and Shah, Nihar B.},
+  author  = {Stelmakh, Ivan and Wieting, John Frederick and Xi, Yang and Neubig, Graham and Shah, Nihar B.},
   journal = {Transactions on Machine Learning Research},
+  issn    = {2835-8856},
   year    = {2025},
-  url     = {https://arxiv.org/abs/2303.16750},
+  url     = {https://openreview.net/forum?id=XofMHO5yVY},
   note    = {Data: https://github.com/niharshah/goldstandard-reviewer-paper-match (labels CC BY 4.0)}
 }
 ```
@@ -185,3 +196,5 @@ The published baseline losses in `GOLDSTANDARD_DATA.md` were checked against Tab
 - **2026-10-20.** LLM and lexical methods on the gold standard (notebook 17): no LLM method beats Qwen3-Embedding; listwise position bias replicates on human labels.
 - **2026-10-20.** Post-hoc reranker + Qwen3 fusion (notebook 18): no gain over Qwen3-Embedding on human labels (0.233 vs 0.222); the citation-benchmark fusion gain does not transfer.
 - **2026-10-21.** Outline revised around two label sources (citation and human expertise); Phase 5 co-citation and coupling merged into one section (RQ4); v1 audit moved to an appendix.
+- **2026-10-21.** Paper is for PhD applications: solo author, H. Birkan Yılmaz thanked in the acknowledgments (user decision), arXiv target ~2026-11-20.
+- **2026-10-21.** Claim audit of `paper/main.tex` against all project .md files: abstract and Discussion were wrong (reranker fusion beats Qwen3 on citations; stage 2 is not removed from the app yet) and are fixed, with the one-sentence claim above; references verified into `paper/refs_candidates.bib` (Stelmakh entry settled on the TMLR BibTeX: third author "Yang Xi").
