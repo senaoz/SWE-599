@@ -66,10 +66,7 @@ services:
   ollama-init:
     image: ollama/ollama
     entrypoint: >
-      sh -c "
-        ollama pull qwen3-embedding &&
-        ollama pull llama3.2:3b
-      "
+      sh -c "ollama pull qwen3-embedding"
     environment:
       OLLAMA_HOST: http://ollama:11434
     depends_on:

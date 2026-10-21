@@ -55,7 +55,7 @@ async def rematch_unmatched(
     _: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Re-run Stage 2 matching for fetched papers that have no researcher matches."""
-    from backend.services.matching import run_stage2_for_unmatched
-    background_tasks.add_task(run_stage2_for_unmatched)
+    """Re-run matching for fetched papers that have no researcher matches."""
+    from backend.services.matching import run_rematch_unmatched
+    background_tasks.add_task(run_rematch_unmatched)
     return {"detail": "Rematch job started for unmatched papers"}

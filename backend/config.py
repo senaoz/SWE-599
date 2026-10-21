@@ -24,9 +24,8 @@ OPENALEX_EMAIL: str | None = os.getenv("OPENALEX_EMAIL")
 BOUN_OPENALEX_ID: str = "https://openalex.org/I4405392"
 BOUN_CSV_PATH: str = os.getenv("BOUN_CSV_PATH", "research/data/cleaned/boun.csv")
 
-# RAG pipeline
-RETRIEVE_MODEL: str = "qwen"                                           # Stage 1: qwen3-embedding via Ollama
-RAG_RETRIEVE_TOP_K: int = int(os.getenv("RAG_RETRIEVE_TOP_K", "10"))  # Stage 1 → top-K researchers
-RAG_LLM_TOP_K: int = int(os.getenv("RAG_LLM_TOP_K", "10"))           # Stage 2 → LLM rerank top-K
-RAG_CONTEXT_PAPERS: int = int(os.getenv("RAG_CONTEXT_PAPERS", "5"))   # BOUN papers in LLM prompt
-LLM_GENERATE_MODEL: str = os.getenv("LLM_GENERATE_MODEL", "llama3.2:3b")  # Stage 2 Ollama model
+# Matching
+RETRIEVE_MODEL: str = "qwen"                                           # qwen3-embedding via Ollama
+MATCH_AGGREGATION: str = os.getenv("MATCH_AGGREGATION", "max")         # max | mean_top3 (services/ranking.py)
+RAG_RETRIEVE_TOP_K: int = int(os.getenv("RAG_RETRIEVE_TOP_K", "10"))  # researchers stored per paper
+RAG_CONTEXT_PAPERS: int = int(os.getenv("RAG_CONTEXT_PAPERS", "5"))   # matched BOUN papers stored per researcher
