@@ -25,8 +25,8 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://swe599:swe599@db:5432/swe599
-      BOUN_CSV_PATH: research/data/cleaned/boun.csv
-      OLLAMA_URL: http://host.docker.internal:11434
+      # llama-server on the host, as in research/README.md (router mode, port 1337)
+      EMBED_URL: http://host.docker.internal:1337/v1
     volumes:
       - ./research/data:/app/research/data
     depends_on:
