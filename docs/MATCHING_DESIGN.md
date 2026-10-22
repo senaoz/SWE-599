@@ -6,7 +6,7 @@
 
 ## 1. Summary
 
-**What the research says for the app** (paper draft, `paper/main.tex` on `paper-draft`; `research/audit/PAPER_NOTES.md`). Under shuffled candidate order, no LLM reranker, second stage or citation-graph signal beats Qwen3-Embedding-8B on both label sources (citation labels and the expertise ratings of 58 researchers). The only second-stage gain (Qwen3-Reranker-4B fused with the embedding) appears on citation labels only and is not claimed. A 22M-parameter MiniLM stays within about four R-precision points (gold standard: 0.242 vs 0.222 loss, overlapping CIs). So the target is a single embedding stage, and this document only plans that stage.
+**What the research says for the app** (paper draft, `paper/main.tex`). Under shuffled candidate order, no LLM reranker, second stage or citation-graph signal beats Qwen3-Embedding-8B on both label sources (citation labels and the expertise ratings of 58 researchers). The only second-stage gain (Qwen3-Reranker-4B fused with the embedding) appears on citation labels only and is not claimed. A 22M-parameter MiniLM stays within about four R-precision points (gold standard: 0.242 vs 0.222 loss, overlapping CIs). So the target is a single embedding stage, and this document only plans that stage.
 
 The draft target flow holds up against the research and the code, with five corrections:
 

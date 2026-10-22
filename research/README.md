@@ -44,7 +44,7 @@ research/.venv/bin/python research/audit/data_quality.py   # regenerates audit/D
 | `audit/TODO.md`, `audit/IMPROVEMENT_IDEAS.md` | Research plan and ideas, with status notes |
 | `audit/PHASE5_DESIGN.md` | Phase 5 design and decisions |
 | `audit/BOUN_DATA.md`, `audit/GOLDSTANDARD_DATA.md` | Data cards for the cleaned Boğaziçi works and the Stelmakh et al. gold standard |
-| `audit/BIBCOUPLING_PROMPT.md`, `audit/PAPER_NOTES.md` | Coupling experiment brief; notes for the paper |
+| `audit/BIBCOUPLING_PROMPT.md` | Coupling experiment brief |
 
 ## Stage 3 — v2
 

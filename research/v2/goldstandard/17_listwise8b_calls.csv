@@ -1,0 +1,4 @@
+order,calls,ok,partial,failed,copied_exactly,mean_tau_with_shown_order,prompt_tokens_max
+shuffled,290,1,0,0,0.0206897,-0.200646,1654
+best_first,290,1,0,0,0.0689655,0.0040613,1654
+worst_first,290,1,0,0,0,-0.39856,1654

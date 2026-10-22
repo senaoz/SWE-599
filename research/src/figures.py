@@ -25,7 +25,7 @@ BENCH_COLOR = {"random": SLOTS[0], "concept": SLOTS[1]}
 LABELS = {
     "bm25": "BM25", "tfidf": "TF-IDF", "minilm": "MiniLM", "specter2": "SPECTER2",
     "qwen": "Qwen3-Embedding-8B", "embeddinggemma": "EmbeddingGemma", "qwen+minilm": "Qwen3 + MiniLM",
-    "bge-reranker": "bge-reranker-base", "llama": "Llama 3.2 3B (listwise)",
+    "bge-reranker": "bge-reranker-base", "llama": "Llama 3.2 3B (listwise)", "llama8b": "Llama 3.1 8B (listwise)",
     "llama-pointwise": "Llama 3.2 3B (pointwise)", "llama-window": "Llama 3.2 3B (sliding window)", "llama+minilm": "Llama + MiniLM",
 }
 

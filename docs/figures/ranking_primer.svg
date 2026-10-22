@@ -62,7 +62,7 @@
   <text class="muted s" x="270" y="210">candidate</text>
   <text class="ink t" x="58" y="240">Order cannot leak in. Best LLM variant in v2.</text>
   <text class="muted t" x="58" y="260">Used: Llama 3.2 3B pointwise (notebook 11);</text>
-  <text class="muted t" x="58" y="276">the deployed app's stage 2 works the same way;</text>
+  <text class="muted t" x="58" y="276">the app's former stage 2 worked the same way;</text>
   <text class="muted t" x="58" y="292">Qwen3-Reranker-4B is a trained pointwise reranker.</text>
 
   <rect class="box" x="420" y="114" width="360" height="190" rx="10"/>
@@ -86,9 +86,9 @@
   <rect class="chipO" x="818" y="194" width="130" height="10" rx="3"/>
   <rect class="chipO" x="818" y="208" width="110" height="10" rx="3"/>
   <text class="ink mono" x="990" y="203">[3, 1, 7, …]</text>
-  <text class="ink t" x="818" y="240">Llama 3.2 3B copies the input order:</text>
-  <text class="ink t" x="818" y="258">positives first → MRR 0.95; last → 0.33.</text>
-  <text class="muted t" x="818" y="276">v1's "win" came from this; in v2 it ranks</text>
+  <text class="ink t" x="818" y="240">Order-sensitive: 3B favours the start, 8B the end.</text>
+  <text class="ink t" x="818" y="258">R-precision, cited first vs last: 3B 72 / 30; 8B 74 / 89.</text>
+  <text class="muted t" x="818" y="276">v1's "win" came from this; shuffled, the 3B ranks</text>
   <text class="muted t" x="818" y="292">last of 13 methods (R-precision 43.9%).</text>
 
   <!-- Section 2: metrics -->

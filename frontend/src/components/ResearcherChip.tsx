@@ -1,86 +1,59 @@
 import { useState } from "react";
-import { BadgeWithDot } from "@/components/base/badges/badges";
+import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
+import FeedbackButtons from "./FeedbackButtons";
 import ResearcherModal from "./ResearcherModal";
+import ScoreBar from "./ScoreBar";
+
+interface MatchedWork {
+  title: string | null;
+  score: number;
+}
 
 interface ResearcherChipProps {
-  id: string;
   name: string;
   score: number;
+  matchedPapers?: MatchedWork[];
   feedback?: boolean | null;
   onFeedback?: (isRelevant: boolean) => void;
 }
 
-export default function ResearcherChip({
-  id: _id,
-  name,
-  score,
-  feedback,
-  onFeedback,
-}: ResearcherChipProps) {
-  const pct = Math.round(score * 100);
-  const color = pct >= 70 ? "success" : pct >= 50 ? "warning" : "gray";
+/** One matched researcher under a paper: name and score, their matched works on hover, feedback. */
+export default function ResearcherChip({ name, score, matchedPapers = [], feedback, onFeedback }: ResearcherChipProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const works = matchedPapers.filter((w) => w.title).slice(0, 3);
 
   return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setModalOpen(true);
-        }}
-        className="focus:outline-none"
+    <span
+      className="inline-flex items-center gap-1 rounded-lg bg-primary py-0.5 pr-0.5 pl-2 ring-1 ring-secondary"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Tooltip
+        title={works.length ? "Matched through" : name}
+        description={
+          works.length ? (
+            <span className="flex flex-col gap-1">
+              {works.map((w, i) => (
+                <span key={i}>
+                  {Math.round(w.score * 100)}% · {w.title}
+                </span>
+              ))}
+            </span>
+          ) : undefined
+        }
+        placement="top"
       >
-        <BadgeWithDot color={color} size="sm">
-          {name} · {pct}%
-        </BadgeWithDot>
-      </button>
+        <TooltipTrigger
+          onPress={() => setModalOpen(true)}
+          className="flex cursor-pointer items-center gap-2 rounded-md text-sm font-medium text-secondary hover:text-brand-secondary"
+        >
+          <span className="max-w-[12rem] truncate">{name}</span>
+          <ScoreBar score={score} />
+        </TooltipTrigger>
+      </Tooltip>
 
-      {onFeedback && (
-        <div className="flex gap-0.5">
-          <button
-            title="Relevant"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFeedback(true);
-            }}
-            className={`rounded p-0.5 transition-colors cursor-pointer ${feedback === true ? "text-green-600" : "text-quaternary hover:text-green-600"}`}
-          >
-            <svg
-              className="size-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
-              <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-            </svg>
-          </button>
-          <button
-            title="Not relevant"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFeedback(false);
-            }}
-            className={`rounded p-0.5 transition-colors cursor-pointer ${feedback === false ? "text-red-600" : "text-quaternary hover:text-red-600"}`}
-          >
-            <svg
-              className="size-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z" />
-              <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
-            </svg>
-          </button>
-        </div>
-      )}
+      {onFeedback && <FeedbackButtons value={feedback ?? null} onChange={onFeedback} />}
 
-      {modalOpen && (
-        <ResearcherModal name={name} onClose={() => setModalOpen(false)} />
-      )}
-    </div>
+      {modalOpen && <ResearcherModal name={name} onClose={() => setModalOpen(false)} />}
+    </span>
   );
 }

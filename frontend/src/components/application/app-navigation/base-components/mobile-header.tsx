@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { X as CloseIcon, Menu02, BookOpen01 } from "@untitledui/icons";
+import { X as CloseIcon, Menu02 } from "@untitledui/icons";
 import {
   Button as AriaButton,
   Dialog as AriaDialog,
@@ -8,12 +8,13 @@ import {
   ModalOverlay as AriaModalOverlay,
 } from "react-aria-components";
 import { cx } from "@/utils/cx";
+import Brand from "@/components/Brand";
 
 export const MobileNavigationHeader = ({ children }: PropsWithChildren) => {
   return (
     <AriaDialogTrigger>
       <header className="flex h-14 items-center justify-between border-b border-secondary bg-primary p-3 pl-4 lg:hidden">
-        <BookOpen01 className="size-6" />
+        <Brand />
         <AriaButton
           aria-label="Expand navigation menu"
           className="group flex items-center justify-center rounded-lg bg-primary p-2 text-fg-secondary outline-focus-ring hover:bg-primary_hover hover:text-fg-secondary_hover focus-visible:outline-2 focus-visible:outline-offset-2"

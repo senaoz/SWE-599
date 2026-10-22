@@ -50,6 +50,7 @@ class RunConfig:
     stage2_order: str = "shuffled"  # shuffled | stage1
     limit: int | None = None
     workers: int = 1              # concurrent requests for LLM methods (llama-server slots)
+    llm: str = "llama"            # key into jan.JAN_MODEL_MAP for every LLM method
 
     @property
     def tag(self) -> str:
@@ -120,7 +121,10 @@ def select_sets(ds: dict, split: str, limit: int | None = None) -> list[dict]:
 
 
 def method_name(method: str, cfg: RunConfig) -> str:
-    return f"{method}_k{cfg.stage1_k}_{cfg.stage2_order}" if method == "qwen→llama" else method
+    name = f"{method}_k{cfg.stage1_k}_{cfg.stage2_order}" if method == "qwen→llama" else method
+    if cfg.llm != "llama" and (method in LLM_METHODS or method == "llama+minilm"):
+        name = name.replace("llama", cfg.llm, 1)   # e.g. llama8b-window: separate run files
+    return name
 
 
 def run_path(cfg: RunConfig, method: str, order: str, seed: int) -> Path:
@@ -139,6 +143,7 @@ class Scorer:
 
     def __init__(self, method: str, texts: Texts, sets: list[dict], cfg: RunConfig):
         self.method, self.texts, self.cfg = method, texts, cfg
+        self.llm_model = jan.JAN_MODEL_MAP[cfg.llm]
         self.caches: dict[str, EmbeddingCache] = {}
         embed_needs = {"qwen+minilm": ("qwen", "minilm"), "qwen→llama": ("qwen",),
                        "llama+minilm": ("minilm",)}.get(method, (method,) if method in EMBED_METHODS else ())
@@ -169,7 +174,7 @@ class Scorer:
         elif m == "bge-reranker":
             scores = self.cross.scores(q, cands)
         elif m == "llama-pointwise":
-            outs = [pointwise_score(q, c, seed=seed) for c in cands]
+            outs = [pointwise_score(q, c, model=self.llm_model, seed=seed) for c in cands]
             scores = np.array([o["score"] if o["score"] is not None else -1.0 for o in outs])
             statuses = [o["status"] for o in outs]
             rec = {"status": "ok" if all(s == "ok" for s in statuses) else "partial",
@@ -177,7 +182,7 @@ class Scorer:
                    "scoring": sorted({o.get("scoring", "none") for o in outs}),
                    "raw": [o["raw"] for o in outs]}
         elif m == "llama":
-            res = listwise_rank(q, cands, rng, seed=seed)
+            res = listwise_rank(q, cands, rng, model=self.llm_model, seed=seed)
             n = len(cands)
             scores = np.zeros(n)
             for rank, idx in enumerate(res["order"]):
@@ -185,7 +190,7 @@ class Scorer:
             rec = {k: res[k] for k in ("status", "n_ranked", "raw", "prompt_tokens")}
             return {**rec, "ranking": [shown[i] for i in res["order"]], "scores": scores.tolist()}
         elif m == "llama-window":
-            res = sliding_window_rank(q, cands, rng, seed=seed)
+            res = sliding_window_rank(q, cands, rng, model=self.llm_model, seed=seed)
             n = len(cands)
             scores = np.zeros(n)
             for rank, idx in enumerate(res["order"]):
@@ -218,16 +223,16 @@ class Scorer:
         # Stage-2 input order: shuffled by default so the LLM cannot exploit stage-1 order.
         if self.cfg.stage2_order == "shuffled":
             top = [top[i] for i in rng.permutation(len(top))]
-        res = listwise_rank(q, [cands[i] for i in top], rng, seed=seed)
+        res = listwise_rank(q, [cands[i] for i in top], rng, model=self.llm_model, seed=seed)
         final = [top[i] for i in res["order"]] + s1_order[k:]
         return {"ranking": [shown[i] for i in final], "stage1_ranking": [shown[i] for i in s1_order],
                 **{key: res[key] for key in ("status", "n_ranked", "raw", "prompt_tokens")}}
 
 
-def check_jan(methods) -> list[str]:
+def check_jan(methods, llm: str = "llama") -> list[str]:
     """Fail fast if a method needs a Jan model that is not served."""
-    needed = {jan.JAN_MODEL_MAP["llama"]} if any(m in LLM_METHODS for m in methods) else set()
-    needed |= {jan.JAN_MODEL_MAP[m] for m in methods if m in jan.JAN_MODEL_MAP}
+    needed = {jan.JAN_MODEL_MAP[llm]} if any(m in LLM_METHODS for m in methods) else set()
+    needed |= {jan.JAN_MODEL_MAP[m] for m in methods if m in jan.JAN_MODEL_MAP and m not in LLM_METHODS}
     if {"qwen+minilm", "qwen→llama"} & set(methods):
         needed.add(jan.JAN_MODEL_MAP["qwen"])
     if not needed:
@@ -244,7 +249,7 @@ def run_methods(methods: list[str], cfg: RunConfig) -> pd.DataFrame:
     ds = load_eval_sets(cfg.bench)
     sets = select_sets(ds, cfg.split, cfg.limit)
     texts = Texts(ds["papers"], cfg)
-    check_jan(methods)
+    check_jan(methods, cfg.llm)
 
     for method in methods:
         scorer = Scorer(method, texts, sets, cfg)
@@ -329,7 +334,8 @@ def probe(cfg: RunConfig, method: str = "llama", n: int = 5) -> pd.DataFrame:
     ds = load_eval_sets(cfg.bench)
     sets = select_sets(ds, "all")
     texts = Texts(ds["papers"], cfg)
-    check_jan([method])
+    check_jan([method], cfg.llm)
+    model = jan.JAN_MODEL_MAP[cfg.llm]
     sample = sorted(sets, key=lambda s: -len(s["positives"]))[:n]
     rng = np.random.default_rng(0)
     rows = []
@@ -338,11 +344,11 @@ def probe(cfg: RunConfig, method: str = "llama", n: int = 5) -> pd.DataFrame:
         q, cands = texts.query(es["pi_id"]), [texts.cand(c) for c in shown]
         t0 = time.time()
         if method == "llama":
-            res = listwise_rank(q, cands, rng)
+            res = listwise_rank(q, cands, rng, model=model)
             rows.append({"n_cand": len(cands), "status": res["status"], "n_ranked": res["n_ranked"],
                          "prompt_tokens": res["prompt_tokens"], "seconds": time.time() - t0})
         else:
-            outs = [pointwise_score(q, c) for c in cands[:10]]
+            outs = [pointwise_score(q, c, model=model) for c in cands[:10]]
             rows.append({"n_cand": 10, "status": ",".join(sorted({o["status"] for o in outs})),
                          "scoring": ",".join(sorted({str(o.get("scoring")) for o in outs})),
                          "seconds": time.time() - t0})

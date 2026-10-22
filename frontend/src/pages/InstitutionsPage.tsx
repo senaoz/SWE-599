@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import client from "../api/client";
 import InstitutionSearch from "../components/InstitutionSearch";
+import PageHeader from "../components/PageHeader";
 
 interface Institution {
   institution_openalex_id: string;
@@ -42,7 +43,10 @@ export default function InstitutionsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-8 text-xl font-semibold text-primary">Institutions</h1>
+      <PageHeader
+        title="Institutions"
+        description="Follow institutions to see their new papers on your dashboard."
+      />
 
       <InstitutionSearch
         onFollow={follow}
