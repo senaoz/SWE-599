@@ -6,7 +6,10 @@ import {
   Dialog,
 } from "@/components/application/modals/modal";
 import { Badge } from "@/components/base/badges/badges";
+import { LinkExternal01, XClose } from "@untitledui/icons";
+import FeedbackButtons from "./FeedbackButtons";
 import PublicationDate from "./PublicationDate";
+import ScoreBar from "./ScoreBar";
 import client from "../api/client";
 import ResearcherModal from "./ResearcherModal";
 
@@ -38,6 +41,7 @@ interface Props {
 export default function PaperModal({ paperId, title, onClose }: Props) {
   const [data, setData] = useState<PaperDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showFullAbstract, setShowFullAbstract] = useState(false);
   const [feedback, setFeedback] = useState<Record<string, boolean | null>>({});
   const [researcherModal, setResearcherModal] = useState<{
     name: string;
@@ -92,17 +96,16 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
     }
   };
 
+  const abstract = data?.abstract ?? null;
+  const longAbstract = !!abstract && abstract.length > 600;
+
   return (
     <>
-      <ModalOverlay
-        isOpen
-        isDismissable
-        onOpenChange={(open) => !open && onClose()}
-      >
+      <ModalOverlay isOpen isDismissable onOpenChange={(open) => !open && onClose()}>
         <Modal className="max-w-2xl">
           <Dialog aria-label={data?.title ?? title ?? "Paper details"}>
             {() => (
-              <div className="w-full max-w-2xl rounded-2xl bg-primary ring-1 ring-primary shadow-xl overflow-hidden">
+              <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-primary shadow-xl ring-1 ring-primary">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4 border-b border-secondary px-6 py-4">
                   <div className="flex flex-wrap items-center gap-2">
@@ -117,136 +120,94 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
                     type="button"
                     aria-label="Close"
                     onClick={onClose}
-                    className="shrink-0 text-quaternary hover:text-primary transition-colors text-lg leading-none cursor-pointer"
+                    className="shrink-0 cursor-pointer rounded-md p-1 text-fg-quaternary transition-colors hover:text-fg-secondary"
                   >
-                    ✕
+                    <XClose className="size-5" />
                   </button>
                 </div>
 
                 {/* Body */}
-                <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-5">
-                  <div>
+                <div className="max-h-[75vh] space-y-6 overflow-y-auto px-6 py-5">
+                  <div className="space-y-3">
+                    <h2 className="text-lg font-semibold leading-snug text-primary">
+                      {data?.title ?? title ?? "(No title)"}
+                    </h2>
                     <a
                       href={paperId}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-lg font-semibold text-primary hover:text-brand-secondary transition-colors leading-snug"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-secondary hover:underline"
                     >
-                      {data?.title ?? title ?? "(No title)"}
+                      Open in OpenAlex <LinkExternal01 className="size-3.5" />
                     </a>
-                    {data?.abstract && (
-                      <p className="mt-2 text-sm text-tertiary leading-relaxed">
-                        {data.abstract}
-                      </p>
+                    {abstract && (
+                      <div>
+                        <p className={`text-sm leading-relaxed text-tertiary ${longAbstract && !showFullAbstract ? "line-clamp-6" : ""}`}>
+                          {abstract}
+                        </p>
+                        {longAbstract && (
+                          <button
+                            type="button"
+                            onClick={() => setShowFullAbstract((v) => !v)}
+                            className="mt-1 text-sm font-medium text-brand-secondary hover:underline"
+                          >
+                            {showFullAbstract ? "Show less" : "Show more"}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 
-                  {loading && (
-                    <p className="text-sm text-tertiary">Loading matches…</p>
-                  )}
+                  {loading && <p className="text-sm text-tertiary">Loading matches…</p>}
 
                   {!loading && data && (
-                    <div>
-                      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-quaternary">
-                        BOUN Researcher Matches ({data.all_researchers.length})
-                      </h3>
+                    <section>
+                      <div className="mb-3 flex items-baseline justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-primary">Boğaziçi researchers on this topic</h3>
+                        <span className="text-xs text-tertiary">{data.all_researchers.length} matched</span>
+                      </div>
 
                       {data.all_researchers.length === 0 ? (
-                        <p className="text-sm text-tertiary">
-                          No matches found yet.
-                        </p>
+                        <p className="text-sm text-tertiary">No researcher matched yet.</p>
                       ) : (
-                        <ul className="space-y-3">
-                          {data.all_researchers.map((r) => {
-                            const pct = Math.round(r.score * 100);
-                            const color =
-                              pct >= 70
-                                ? "success"
-                                : pct >= 50
-                                  ? "warning"
-                                  : "gray";
-                            const fb = feedback[r.researcher_id] ?? null;
-                            return (
-                              <li
-                                key={r.researcher_id}
-                                className="rounded-xl ring-1 ring-secondary p-3 space-y-2"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <button
-                                    onClick={() =>
-                                      setResearcherModal({
-                                        name: r.display_name,
-                                      })
-                                    }
-                                    className="text-sm font-medium text-primary hover:text-brand-secondary transition-colors text-left"
-                                  >
-                                    {r.display_name}
-                                  </button>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <Badge type="color" color={color} size="sm">
-                                      {pct}%
-                                    </Badge>
-                                    <div className="flex gap-0.5">
-                                      <button
-                                        title="Relevant"
-                                        onClick={() =>
-                                          handleFeedback(r.researcher_id, true)
-                                        }
-                                        className={`rounded p-1 transition-colors ${fb === true ? "text-success-600" : "text-quaternary hover:text-success-600"}`}
-                                      >
-                                        <svg
-                                          className="size-3.5"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="2"
-                                        >
-                                          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
-                                          <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-                                        </svg>
-                                      </button>
-                                      <button
-                                        title="Not relevant"
-                                        onClick={() =>
-                                          handleFeedback(r.researcher_id, false)
-                                        }
-                                        className={`rounded p-1 transition-colors ${fb === false ? "text-error-600" : "text-quaternary hover:text-error-600"}`}
-                                      >
-                                        <svg
-                                          className="size-3.5"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="2"
-                                        >
-                                          <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z" />
-                                          <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                                {r.matched_papers.length > 0 && (
-                                  <ul className="space-y-1 pl-2 border-l-2 border-secondary">
-                                    {r.matched_papers.map((mp, i) => (
-                                      <li
-                                        key={i}
-                                        className="text-xs text-tertiary flex items-start gap-2"
-                                      >
-                                        <span className="shrink-0 text-quaternary">
-                                          {Math.round(mp.score * 100)}%
-                                        </span>
-                                        <span>{mp.title}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
+                        <ol className="space-y-2">
+                          {data.all_researchers.map((r, i) => (
+                            <li key={r.researcher_id} className="rounded-xl p-3 ring-1 ring-secondary">
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span className="w-5 text-xs font-medium tabular-nums text-quaternary">{i + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setResearcherModal({ name: r.display_name })}
+                                  className="text-left text-sm font-semibold text-primary transition-colors hover:text-brand-secondary"
+                                >
+                                  {r.display_name}
+                                </button>
+                                <span className="ml-auto flex items-center gap-2">
+                                  <ScoreBar score={r.score} />
+                                  <FeedbackButtons
+                                    value={feedback[r.researcher_id] ?? null}
+                                    onChange={(v) => handleFeedback(r.researcher_id, v)}
+                                    size="md"
+                                  />
+                                </span>
+                              </div>
+                              {r.matched_papers.length > 0 && (
+                                <ul className="mt-2 space-y-1 border-l-2 border-secondary pl-3 ml-8">
+                                  {r.matched_papers.map((mp, j) => (
+                                    <li key={j} className="flex items-start gap-2 text-xs text-tertiary">
+                                      <span className="w-8 shrink-0 tabular-nums text-quaternary">
+                                        {Math.round(mp.score * 100)}%
+                                      </span>
+                                      <span>{mp.title}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </li>
+                          ))}
+                        </ol>
                       )}
-                    </div>
+                    </section>
                   )}
                 </div>
               </div>
@@ -256,10 +217,7 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
       </ModalOverlay>
 
       {researcherModal && (
-        <ResearcherModal
-          name={researcherModal.name}
-          onClose={() => setResearcherModal(null)}
-        />
+        <ResearcherModal name={researcherModal.name} onClose={() => setResearcherModal(null)} />
       )}
     </>
   );
