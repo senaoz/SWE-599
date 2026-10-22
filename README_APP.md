@@ -78,9 +78,9 @@ Frontend runs at **http://localhost:5173**
    ```bash
    docker compose exec backend python -m backend.make_admin you@example.com
    ```
-2. Go to **Institutions** → follow one or more institutions (a fixed list: MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google, Google DeepMind)
+2. Go to **Institutions** → follow one or more institutions (MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google and Google DeepMind are suggested; **Add an institution** searches all of OpenAlex by name or id)
 3. Go to **Admin** → click **Run matching job now** (the scheduled job first runs 6 hours after start-up; **Rematch unmatched** reruns matching for papers with no match)
-4. Go to **For me** → find your Boğaziçi profile and click **This is me**. The page then lists new papers close to your own works, with the work each one was matched through. Claiming is not verified: any account can claim any profile.
+4. Go to **For me** → add your favourite Boğaziçi researchers by name (yourself included). The page then lists new papers close to their works, with the work each one was matched through.
 5. Go to **Explore** → all new papers from the institutions you follow, with the Boğaziçi researchers grouped by the work they were matched through. Filter by field, date and match level.
 6. Answer "Works on this topic?" (Yes / Partly / No, with an optional reason) under a paper. Answers are stored with the embedding version, score and rank that were shown; **Admin** summarizes them by rank. They are not yet used for matching.
 

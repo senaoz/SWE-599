@@ -8,7 +8,7 @@ Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software E
 
 Researchers miss relevant work from institutions they don't routinely follow. This project has two parts:
 
-- **An app** that fetches new papers from followed institutions (MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google, Google DeepMind) via [OpenAlex](https://openalex.org) and lists, under each paper, the Boğaziçi researchers who work on its topic. It ranks researchers with embeddings. Until October 2026 it also reranked them with a small local LLM (stage 2); the research below is why that stage was removed.
+- **An app** that fetches new papers from followed institutions (any institution in [OpenAlex](https://openalex.org), with MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google and Google DeepMind suggested) and lists, under each paper, the Boğaziçi researchers who work on its topic. It ranks researchers with embeddings. Until October 2026 it also reranked them with a small local LLM (stage 2); the research below is why that stage was removed.
 - **A research question** behind that stage:
 
 > **Does reranking embedding-retrieved candidates with a small local LLM improve recommendation quality, and under what conditions?**
@@ -270,7 +270,7 @@ The LLM prompts (notebook `17`) ask how qualified the researcher is to review th
 So that nobody repeats them without a reason:
 
 - **A larger LLM as the app's stage 2** (Qwen3.8-27B via MTPLX, branch `app-mtplx-stage2`). The old prompt dropped nearly every researcher; a score-only prompt parsed well but gave coarse, low scores at 3.6–31 s per call against 0.35 s for Llama. Moot since stage 2 was removed ([DEVLOG](docs/DEVLOG.md), 2026-10-14).
-- **Citation labels for the app's task** (Phase 6B as first planned: "the researcher later cited it"). Citers often cite methods and background, not their topic, so the app's task was restated as topical expertise and this design is paused.
+- **Citation labels for the app's task** (Phase 6B as first planned: "the researcher later cited it"). Citers often cite methods and background, not their topic, so the app's task was restated as topical expertise and this design was not pursued.
 - **Co-citation graph expansion** (Phase 5) and **bibliographic coupling** (gold standard): real signals, no significant gain on top of Qwen3-Embedding.
 - **A human study of our own.** Dropped; the public Stelmakh et al. ratings and the app's feedback ("Works on this topic?") are the human signals.
 
@@ -285,19 +285,21 @@ So that nobody repeats them without a reason:
 - **Not a paired re-run of v1.** v1's candidate pools cannot be regenerated, so v1 and v2 numbers are compared claim by claim, not query by query ([BEFORE_AFTER.md](research/audit/BEFORE_AFTER.md)).
 - **No labelled benchmark for the app's direction** (researchers ranked for one paper). Model and scoring decisions rest on the citation benchmarks and the gold standard, which agree.
 
-## Status (October 2026)
+## Status (October 2026): finished
 
 | Part | State |
 |---|---|
-| Research | Done through notebook 18 (`research/v2/`). Paper draft in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline. |
-| App | **Rebuilt (October 2026):** stage 2 removed; one embedding stage (Qwen3-Embedding-8B on `llama-server`) over a per-work index of the cleaned Boğaziçi data, versioned matches and feedback, and a researcher-centred UI (For me / Explore). Design and decisions D1–D10: [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md). Next: a calibrated cut-off, ingest fixes, feedback export. |
+| Research | **Done** (notebooks `01`–`18`, `research/v2/`). Paper in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline. |
+| App | **Rebuilt (October 2026):** stage 2 removed; one embedding stage (Qwen3-Embedding-8B on `llama-server`) over a per-work index of the cleaned Boğaziçi data, versioned matches and feedback, and a researcher-centred UI (For me / Explore). Later: favourite researchers drive For me, and users can follow any OpenAlex institution. Design and decisions D1–D10: [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md). |
 | Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **Obsolete:** the app no longer has a stage 2. Kept for reference, not to be merged. |
 
-## Next steps
+## Future work
 
-1. **Finish the app's matching** ([docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md)): the rebuild is merged; a calibrated cut-off (the 0.3 floor removed no paper on the first run) and the ingest fixes remain.
+The project is finished; these are open directions, not planned work.
+
+1. **A calibrated cut-off.** The app's 0.3 score floor removed no paper on the first run; a cut-off fitted to labels would hide weak matches ([docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md)).
 2. **Use the app's feedback.** The app stores each "Works on this topic?" answer with the embedding version, score and rank shown; relating it to offline scores needs a feedback export.
-3. **The paper.** Benchmark paper with position bias as the headline; draft in [`paper/`](paper/). The full research plan with status notes is in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
+3. **Larger LLM rerankers.** Only Llama 3.2 3B and Qwen3-Reranker-4B were benchmarked. The research plan and remaining ideas are in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
 
 ---
 
@@ -305,13 +307,13 @@ So that nobody repeats them without a reason:
 
 Scholar Radar, a containerized recommender. Every 6 hours (`JOB_INTERVAL_HOURS`, or on demand from the admin panel) it:
 
-1. **Fetches** new papers from the followed institutions (a fixed list of seven) through the OpenAlex API, starting from each institution's cursor (following an institution starts it 14 days back), at most 200 per institution per run.
+1. **Fetches** new papers from the followed institutions (seven suggested, or any institution found by name or id in OpenAlex) through the OpenAlex API, starting from each institution's cursor (following an institution starts it 14 days back), at most 200 per institution per run.
 2. **Embeds** each paper's title and abstract with Qwen3-Embedding-8B (Q4_K_M on llama.cpp's `llama-server`, 4096-d, the research setup), stored in PostgreSQL with pgvector and an embedding version.
 3. **Searches** the 50 nearest Boğaziçi works (7,822 cleaned works, 3,648 researchers) by exact cosine in PostgreSQL, leaving out the paper itself (same OpenAlex id, merged duplicate or DOI).
 4. **Ranks** researchers by their best-matching work (max) and stores the top 10 with score, rank, version and the matched works; a paper whose best score is below 0.3 gets no researchers.
-5. **Serves** a React 19 + TypeScript interface: **For me** (a user claims their Boğaziçi profile and sees papers close to their own works), **Explore** (all papers from followed institutions, researchers grouped by the work they matched through, match levels Strong / Likely / Weak), "Works on this topic?" feedback (yes / partly / no, stored with the score and rank shown, not yet used for matching) and an admin panel for admin users.
+5. **Serves** a React 19 + TypeScript interface: **For me** (papers where a user's favourite Boğaziçi researchers are among the shown matches), **Explore** (all papers from followed institutions, researchers grouped by the work they matched through, match levels Strong / Likely / Weak), "Works on this topic?" feedback (yes / partly / no, stored with the score and rank shown, not yet used for matching) and an admin panel for admin users.
 
-*There is no LLM stage: on every benchmark above, Llama 3.2 3B reranking lowers or does not improve Qwen3-Embedding's ranking, so the Llama 3.2 3B reranker was removed in October 2026. Known issues and the remaining work are in [APP_NOTES.md](APP_NOTES.md) and [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md).*
+*There is no LLM stage: on every benchmark above, Llama 3.2 3B reranking lowers or does not improve Qwen3-Embedding's ranking, so the Llama 3.2 3B reranker was removed in October 2026. Known issues are in [APP_NOTES.md](APP_NOTES.md) and [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md).*
 
 Stack: FastAPI · SQLAlchemy (async) · PostgreSQL 16 + pgvector · llama.cpp `llama-server` · React 19 · Vite · Tailwind · Docker Compose. Setup instructions: [`README_APP.md`](README_APP.md).
 
@@ -373,7 +375,7 @@ SWE599_Progress_2026S_OZ_Sena.pdf, SWE599_Final_2026S_OZ_Sena.pdf   course repor
 | [TODO.md](research/audit/TODO.md), [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md) | Research plan and ideas, with status notes |
 | [research/README.md](research/README.md) | How to set up models and run the notebooks |
 | [DEVLOG.md](docs/DEVLOG.md) | Every step, dated, with commits |
-| [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md), [APP_NOTES.md](APP_NOTES.md) | The app's planned changes and known issues |
+| [MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md), [APP_NOTES.md](APP_NOTES.md) | The app's design decisions and known issues |
 
 ## License
 
