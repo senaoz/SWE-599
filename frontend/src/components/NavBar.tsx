@@ -1,33 +1,27 @@
-import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut01, Moon01, CloudSun01 } from "@untitledui/icons";
 import { HeaderNavigationBase } from "@/components/application/app-navigation/header-navigation";
 import { Button } from "@/components/base/buttons/button";
 import { useDarkMode } from "../hooks/useDarkMode";
-import client from "../api/client";
+import { useMe } from "../hooks/useMe";
 
 interface NavBarProps {
   onLogout: () => void;
 }
 
 const navItems = [
-  { label: "Dashboard", href: "/" },
-  { label: "Institutions", href: "/institutions" },
+  { label: "For me", href: "/" },
+  { label: "Explore", href: "/explore" },
   { label: "Researchers", href: "/researchers" },
+  { label: "Institutions", href: "/institutions" },
 ];
 
 export default function NavBar({ onLogout }: NavBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { dark, toggle } = useDarkMode();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    client
-      .get<{ is_admin: boolean }>("/auth/me")
-      .then(r => setIsAdmin(r.data.is_admin))
-      .catch(err => console.error("Could not load the current user", err));
-  }, []);
+  const { me } = useMe();
+  const isAdmin = !!me?.is_admin;
 
   const handleLogout = () => {
     onLogout();

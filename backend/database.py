@@ -58,3 +58,20 @@ async def init_db() -> None:
         wrong = {table: type_ for table, type_ in rows if type_ != f"vector({EMBEDDING_DIM})"}
         if wrong:
             raise SchemaError(f"Embedding columns are not vector({EMBEDDING_DIM}): {wrong}")
+
+        # create_all never alters an existing table, so a database from an older version of the
+        # schema would fail later on a missing column.
+        rows = await conn.execute(text(
+            "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'"
+        ))
+        present = {(t, c) for t, c in rows}
+        missing = sorted(
+            f"{table.name}.{column.name}"
+            for table in Base.metadata.sorted_tables for column in table.columns
+            if (table.name, column.name) not in present
+        )
+        if missing:
+            raise SchemaError(
+                f"The database schema is older than the code (missing {', '.join(missing)}). "
+                "Reset it (e.g. `docker compose down -v`) and start again."
+            )

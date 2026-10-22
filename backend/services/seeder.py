@@ -62,6 +62,7 @@ def load_tables(data_dir: str) -> tuple[list[dict], list[dict], list[dict]]:
             "n_authors": len(json.loads(w.author_ids or "[]")),
             "large_collaboration": str(w.large_collaboration) == "True",
             "language_flag": w.language_flag or None,
+            "primary_topic": w.primary_topic or None,
         }
         for w in works.itertuples()
     ]

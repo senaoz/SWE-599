@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BookOpen01, ChevronDown, ChevronLeft, ChevronRight, FilterLines, SearchLg, XClose } from "@untitledui/icons";
 import client from "../api/client";
 import PaperCard from "../components/PaperCard";
+import type { PapersResponse } from "../api/types";
+import { control, DATE_PRESETS, effectiveToDate, presetFromDate, SelectField, type DatePreset } from "../components/filters";
 import PageHeader from "../components/PageHeader";
 import PaperModal from "../components/PaperModal";
 import ResearcherModal from "../components/ResearcherModal";
@@ -11,26 +13,6 @@ import { Button } from "@/components/base/buttons/button";
 import { Toggle } from "@/components/base/toggle/toggle";
 import { cx } from "@/utils/cx";
 
-interface Researcher {
-  researcher_id: string;
-  display_name: string;
-  score: number;
-  matched_papers?: { title: string | null; score: number }[];
-}
-interface Paper {
-  openalex_id: string;
-  title: string | null;
-  abstract: string | null;
-  publication_date: string | null;
-  source_institution_name: string | null;
-  top_researchers: Researcher[];
-}
-interface PapersResponse {
-  papers: Paper[];
-  total: number;
-  page: number;
-  pages: number;
-}
 interface Institution {
   institution_openalex_id: string;
   institution_name: string;
@@ -45,6 +27,8 @@ interface Filters {
   to_date: string;
   hide_unmatched: boolean;
   show_future: boolean;
+  field: string;
+  date_preset: DatePreset;
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -56,53 +40,21 @@ const DEFAULT_FILTERS: Filters = {
   to_date: "",
   hide_unmatched: false,
   show_future: false,
+  field: "",
+  date_preset: "any",
 };
 
-// Match-score options; the bands follow ScoreBar.
+// Match levels; the bands follow MatchLevel.
 const SCORE_OPTIONS = [
   { value: "0.3", label: "All matches" },
-  { value: "0.55", label: "Good or better (55%+)" },
-  { value: "0.7", label: "Strong only (70%+)" },
+  { value: "0.55", label: "Likely or strong" },
+  { value: "0.7", label: "Strong only" },
 ];
 
-const control =
-  "h-9 rounded-lg bg-primary px-3 text-sm text-primary shadow-xs ring-1 ring-primary ring-inset placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-brand";
 
-/** A native select (keyboard and mobile pickers for free) with our own arrow, spaced from the edge. */
-function SelectField({
-  label,
-  value,
-  onChange,
-  className,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <span className={cx("relative inline-flex", className)}>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={cx(control, "w-full cursor-pointer appearance-none truncate pr-10")}
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-fg-quaternary" />
-    </span>
-  );
-}
 
-function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
-export default function DashboardPage() {
+export default function ExplorePage() {
   const [searchParams] = useSearchParams();
   const [data, setData] = useState<PapersResponse | null>(null);
   const [page, setPage] = useState(1);
@@ -110,6 +62,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [fields, setFields] = useState<{ field: string; count: number }[]>([]);
   const [urlPaper, setUrlPaper] = useState(() => searchParams.get("paper"));
   const [urlResearcher, setUrlResearcher] = useState(() =>
     searchParams.get("researcher"),
@@ -122,7 +75,11 @@ export default function DashboardPage() {
     client
       .get<Institution[]>("/institutions")
       .then((r) => setInstitutions(r.data))
-      .catch(() => {});
+      .catch((err) => console.error("Could not load institutions", err));
+    client
+      .get<{ field: string; count: number }[]>("/papers/fields")
+      .then((r) => setFields(r.data))
+      .catch((err) => console.error("Could not load fields", err));
   }, []);
 
   useEffect(() => {
@@ -135,11 +92,11 @@ export default function DashboardPage() {
     if (filters.concept) params.concept = filters.concept;
     if (filters.institution_id) params.institution_id = filters.institution_id;
     if (filters.min_score) params.min_score = filters.min_score;
-    if (filters.from_date) params.from_date = filters.from_date;
-    // Future-dated papers (often a journal's issue date) are hidden unless asked for.
-    const today = todayIso();
-    const toDate = filters.show_future ? filters.to_date : filters.to_date && filters.to_date < today ? filters.to_date : today;
+    const fromDate = filters.from_date || presetFromDate(filters.date_preset);
+    if (fromDate) params.from_date = fromDate;
+    const toDate = effectiveToDate(filters.to_date, filters.show_future);
     if (toDate) params.to_date = toDate;
+    if (filters.field) params.field = filters.field;
     if (filters.hide_unmatched) params.include_unmatched = false;
 
     client
@@ -231,7 +188,7 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <PageHeader
-        title="Latest papers"
+        title="Explore"
         description="New papers from the institutions you follow, with the Boğaziçi researchers who work on each topic."
         actions={
           <>
@@ -287,7 +244,34 @@ export default function DashboardPage() {
           </SelectField>
 
           <SelectField
-            label="Match score"
+            label="Field"
+            value={filters.field}
+            onChange={(v) => setFilter("field", v)}
+            className="w-full sm:w-auto sm:max-w-xs"
+          >
+            <option value="">All fields</option>
+            {fields.map((f) => (
+              <option key={f.field} value={f.field}>
+                {f.field} ({f.count})
+              </option>
+            ))}
+          </SelectField>
+
+          <SelectField
+            label="Published"
+            value={filters.date_preset}
+            onChange={(v) => setFilter("date_preset", v)}
+            className="w-full sm:w-auto"
+          >
+            {DATE_PRESETS.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </SelectField>
+
+          <SelectField
+            label="Match level"
             value={filters.min_score}
             onChange={(v) => setFilter("min_score", v)}
             className="w-full sm:w-auto"
@@ -367,7 +351,7 @@ export default function DashboardPage() {
             No papers match the current filters.
           </p>
         ) : (
-          data?.papers.map((p) => <PaperCard key={p.openalex_id} {...p} />)
+          data?.papers.map((p) => <PaperCard key={p.openalex_id} paper={p} mode="explore" />)
         )}
       </div>
 

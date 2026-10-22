@@ -41,6 +41,34 @@ async def search_institutions(query: str, limit: int = 8) -> list[dict[str, Any]
     return results[:limit]
 
 
+def paper_from_work(work: dict[str, Any], institution_name: str | None) -> dict[str, Any]:
+    """The fields the app keeps from one OpenAlex work."""
+    abstract = None
+    inv_index = work.get("abstract_inverted_index")
+    if inv_index:
+        raw = reconstruct_abstract(inv_index)
+        if raw:
+            abstract = clean_abstract(raw)
+
+    concepts = work.get("concepts") or []
+    concepts_text = " ".join(c.get("display_name", "") for c in concepts if c.get("display_name"))
+
+    pub_date_str = work.get("publication_date")
+    topic = work.get("primary_topic") or {}
+    return {
+        "openalex_id": work["id"],
+        "doi": work.get("doi"),
+        "title": work.get("title"),
+        "abstract": abstract,
+        "concepts_text": concepts_text,
+        "publication_date": date_type.fromisoformat(pub_date_str) if pub_date_str else None,
+        "type": work.get("type"),
+        "field": (topic.get("field") or {}).get("display_name"),
+        "oa_url": (work.get("open_access") or {}).get("oa_url"),
+        "source_institution_name": institution_name,
+    }
+
+
 def fetch_new_papers(
     institution_id: str,
     from_date: str,
@@ -68,30 +96,7 @@ def fetch_new_papers(
         if done:
             break
         for work in page:
-            abstract = None
-            inv_index = work.get("abstract_inverted_index")
-            if inv_index:
-                raw = reconstruct_abstract(inv_index)
-                if raw:
-                    abstract = clean_abstract(raw)
-
-            concepts = work.get("concepts") or []
-            concepts_text = " ".join(
-                c.get("display_name", "") for c in concepts if c.get("display_name")
-            )
-
-            pub_date_str = work.get("publication_date")
-            pub_date = date_type.fromisoformat(pub_date_str) if pub_date_str else None
-
-            papers.append({
-                "openalex_id": work["id"],
-                "doi": work.get("doi"),
-                "title": work.get("title"),
-                "abstract": abstract,
-                "concepts_text": concepts_text,
-                "publication_date": pub_date,
-                "source_institution_name": institution_name,
-            })
+            papers.append(paper_from_work(work, institution_name))
 
             if len(papers) >= max_papers:
                 done = True
