@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SearchLg, User01, ChevronLeft, ChevronRight } from "@untitledui/icons";
+import { SearchLg, ChevronLeft, ChevronRight } from "@untitledui/icons";
+
+function initials(name: string): string {
+  const parts = name.replace(/[^\p{L}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
 import client from "../api/client";
 import { Input } from "@/components/base/input/input";
+import { Avatar } from "@/components/base/avatar/avatar";
+import { Button } from "@/components/base/buttons/button";
 import ResearcherModal from "../components/ResearcherModal";
+import PageHeader from "../components/PageHeader";
 
 interface Researcher {
   id: string;
@@ -59,15 +67,11 @@ export default function ResearchersPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-2">
-        <User01 className="size-5 text-tertiary" />
-        <h1 className="text-xl font-semibold text-primary">Researchers</h1>
-        {data && (
-          <span className="ml-auto text-sm text-tertiary">
-            {data.total} researchers
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title="Researchers"
+        description="Boğaziçi University researchers with works since 2020."
+        actions={data && <span className="text-sm text-tertiary">{data.total} researchers</span>}
+      />
 
       <div className="mb-4">
         <Input
@@ -106,44 +110,50 @@ export default function ResearchersPage() {
             const entries = Object.entries(grouped);
             return (
               <>
-                <ul className="divide-y divide-secondary overflow-hidden rounded-xl ring-1 ring-primary shadow-sm">
+                <ul className="divide-y divide-secondary overflow-hidden rounded-xl bg-primary shadow-sm ring-1 ring-primary">
                   {entries.map(([name, info]) => (
-                    <li
-                      key={name}
-                      className="flex items-center justify-between bg-primary px-4 py-3"
-                    >
+                    <li key={name}>
                       <button
+                        type="button"
                         onClick={() => setSelectedName(name)}
-                        className="text-sm font-medium text-primary hover:text-brand-secondary transition-colors text-left"
+                        className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary_hover"
                       >
-                        {name}
+                        <Avatar size="sm" initials={initials(name)} />
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary group-hover:text-brand-secondary">
+                          {name}
+                        </span>
+                        <span className="text-xs tabular-nums text-tertiary">
+                          {info.paper_count} {info.paper_count === 1 ? "work" : "works"}
+                        </span>
+                        <ChevronRight className="size-4 text-fg-quaternary" />
                       </button>
-                      <span className="text-xs text-tertiary">
-                        {info.paper_count} papers
-                      </span>
                     </li>
                   ))}
                 </ul>
 
                 {data.pages > 1 && (
-                  <div className="mt-4 flex items-center justify-between text-sm text-tertiary">
-                    <button
+                  <div className="mt-6 flex items-center justify-center gap-3">
+                    <Button
+                      color="secondary"
+                      size="sm"
+                      iconLeading={ChevronLeft}
+                      isDisabled={page <= 1}
                       onClick={() => goTo(page - 1)}
-                      disabled={page <= 1}
-                      className="flex items-center gap-1 rounded-lg px-3 py-1.5 ring-1 ring-secondary disabled:opacity-40 hover:bg-secondary transition-colors"
                     >
-                      <ChevronLeft className="size-4" /> Prev
-                    </button>
-                    <span>
-                      Page {data.page} / {data.pages}
+                      Prev
+                    </Button>
+                    <span className="text-sm text-tertiary">
+                      Page {data.page} of {data.pages}
                     </span>
-                    <button
+                    <Button
+                      color="secondary"
+                      size="sm"
+                      iconTrailing={ChevronRight}
+                      isDisabled={page >= data.pages}
                       onClick={() => goTo(page + 1)}
-                      disabled={page >= data.pages}
-                      className="flex items-center gap-1 rounded-lg px-3 py-1.5 ring-1 ring-secondary disabled:opacity-40 hover:bg-secondary transition-colors"
                     >
-                      Next <ChevronRight className="size-4" />
-                    </button>
+                      Next
+                    </Button>
                   </div>
                 )}
               </>

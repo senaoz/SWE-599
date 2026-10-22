@@ -11,9 +11,11 @@ import ResearcherDetailPage from "./pages/ResearcherDetailPage";
 
 function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
   return (
-    <>
-      <NavBar onLogout={onLogout} />
-      <main className="bg-secondary" style={{ minHeight: "calc(100vh - 52px)" }}>
+    <div className="flex min-h-screen flex-col bg-secondary">
+      <div className="sticky top-0 z-40">
+        <NavBar onLogout={onLogout} />
+      </div>
+      <main className="flex-1">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/institutions" element={<InstitutionsPage />} />
@@ -23,7 +25,7 @@ function ProtectedLayout({ onLogout }: { onLogout: () => void }) {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
-    </>
+    </div>
   );
 }
 
