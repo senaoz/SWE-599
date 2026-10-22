@@ -12,7 +12,7 @@ Automated paper recommendation system for Boğaziçi University (BOUN) researche
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
 - `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) (build b11146) serving Qwen3-Embedding-8B Q4_K_M with `--pooling last` on `127.0.0.1:1337`: the research setup in [`research/README.md`](research/README.md). The backend container reaches it at `host.docker.internal:1337`.
-- The cleaned BOUN data in `research/data/boun/` (Git LFS: run `git lfs pull`). Optional but much faster: the research embedding cache `research/data/v2/embeddings_boun/qwen.npz` and the Crossref/S2 abstract cache `research/data/v2/boun/` (both gitignored). With them, the 7,822 BOUN works load from the cache in about two minutes; without them, every work is embedded live and works whose abstract came from Crossref/S2 get title-only vectors.
+- The cleaned BOUN data in `research/data/boun/` (Git LFS: run `git lfs pull`). Optional but much faster: the research embedding cache `research/data/v2/embeddings_boun/qwen.npz` and the Crossref/S2 abstract cache `research/data/v2/boun/` (both gitignored). With them, the 7,822 BOUN works load from the cache in about two minutes; without them, every work is embedded live (about 6 h at the speed measured locally, 2.8 s per text with another 8B model loaded; not measured on a server) and works whose abstract came from Crossref/S2 get title-only vectors.
 
 ### 1. Environment Setup
 

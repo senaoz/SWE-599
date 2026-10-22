@@ -217,7 +217,7 @@ The planned cleanup PR is no longer needed: the rebuild removed the old tables a
 
 D1–D10 are decided (section 8). Still open:
 
-- **O1. Hosting the encoder in production.** Production runs Ollama in Docker on the VPS. D2 needs a `llama-server` service there with the Q4_K_M GGUF (4.4 GB on disk) and enough RAM; the VPS size is not recorded in the repo. If it cannot host 8B, the fallback is MiniLM (D1), which changes `embedding_version` and needs a full re-embed. Decide before PR 4 reaches production.
+- **O1. Hosting the encoder in production.** Production runs Ollama in Docker on the VPS. D2 needs a `llama-server` service there with the Q4_K_M GGUF (4.4 GB on disk) and enough RAM; the VPS size is not recorded in the repo. If it cannot host 8B, the fallback is MiniLM (D1), which changes `embedding_version` and needs a full re-embed. Seeding there without the gitignored research cache means embedding all 7,822 works live: about 6 h at the local speed of the first run (2.8 s per text with another 8B model loaded); copying the cache to the server avoids it. Decide before deploying the rebuild.
 - **O2.** Whether OpenAlex's `from_created_date` filter is available on the current plan (PR 6).
 - **O3.** Whether to measure Qwen3-Embedding's query instruction prefix (section 4, Model choice). Not planned; it would force a full re-embed.
 - **O4.** A full re-embed of the BOUN index needs the gitignored Crossref/S2 abstract cache, which exists only on the author's machine (D5). Keep a backup of it, or accept title-only vectors for those 591 works after a re-embed elsewhere.
