@@ -62,7 +62,9 @@ def fetch_new_papers(
 
     papers = []
     done = False
-    for page in Works().filter(**filters).paginate(per_page=25):
+    # Page paging: OpenAlex now requires an API key for cursor paging; pages reach 10,000 results,
+    # far above the per-run cap.
+    for page in Works().filter(**filters).paginate(method="page", per_page=25):
         if done:
             break
         for work in page:
