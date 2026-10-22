@@ -22,7 +22,7 @@
   \country{Türkiye}}
 
 \begin{abstract}
-Small LLMs that run locally are an attractive second stage for scientific paper recommenders. We built such a recommender for researchers at Boğaziçi University and asked whether reranking embedding-retrieved papers with Llama improves it. Our first evaluation said it did; an audit of that evaluation found nine problems, chief among them that the cited papers were always shown to the LLM first. On a rebuilt, leak-free citation benchmark (118 queries, 13 methods) and on expertise ratings from 58 researchers, we find that listwise LLM rerankers are sensitive to candidate order in a model-dependent direction: Llama 3.2 3B favours the first candidates and Llama 3.1 8B the last, so a single fixed order can make either look better than dense retrieval. Under shuffled order, no LLM reranker, second stage or citation-graph signal we tested beats Qwen3-Embedding-8B on both label sources, and a 22M-parameter encoder comes within about four R-precision points of it. We recommend evaluating LLM rerankers under several candidate orders and checking citation-derived labels against human judgments.
+Small LLMs that run locally are an attractive second stage for scientific paper recommenders. We built such a recommender for researchers at Boğaziçi University and asked whether reranking embedding-retrieved papers with Llama improves it. Our first evaluation said it did; an audit of that evaluation found nine problems, chief among them that the cited papers were always shown to the LLM first. On a rebuilt, leak-free citation benchmark (118 queries, 13 methods and a larger Llama) and on expertise ratings from 58 researchers, we find that listwise LLM rerankers are sensitive to candidate order in a model-dependent direction: Llama 3.2 3B favours the first candidates and Llama 3.1 8B the last, so a single fixed order inflates the 3B model's score and can lift the 8B model above dense retrieval. Under shuffled order, no LLM reranker, second stage or citation-graph signal we tested beats Qwen3-Embedding-8B on both label sources, and a 22M-parameter encoder comes within about four R-precision points of it. We recommend evaluating LLM rerankers under several candidate orders and checking citation-derived labels against human judgments.
 \end{abstract}
 
 \keywords{scientific paper recommendation, LLM reranking, position bias, evaluation}
@@ -31,8 +31,6 @@ Small LLMs that run locally are an attractive second stage for scientific paper 
 
 \section{Introduction}
 \label{sec:intro}
-A recommender for Boğaziçi University researchers led us to ask whether reranking embedding-retrieved papers with a small local LLM improves recommendations; our first evaluation said yes, and this paper shows why that answer was wrong.
-
 Researchers miss relevant work from institutions they do not follow.
 Our system monitors new papers from a set of institutions and, for each one, lists the Boğaziçi researchers who work on its topic (Figure~\ref{fig:design}a).
 It retrieves candidates with an embedding model and was designed to rerank them with a small LLM that runs on local hardware, an attractive choice for a university system that would rather not depend on a paid, hosted model.
@@ -40,7 +38,7 @@ Whether that second stage earns its cost is the question of this paper.
 
 Our first evaluation answered it in the LLM's favour: on a citation benchmark, listwise Llama 3.2 3B reached MRR 0.84 against 0.51 for Qwen3-Embedding-8B.
 Auditing our own code, we found nine problems with that evaluation (Appendix~\ref{app:audit}).
-The most consequential was that the cited papers were always shown to the LLM first, and we show below that candidate order alone reproduces the result.
+The most consequential for the LLM was that the cited papers were always shown first; we show below that candidate order alone reproduces its score, while its lead over the embeddings also depended on an indexing error that gave positive candidates other papers' text and so degraded every other method.
 We therefore rebuilt the evaluation and tested every conclusion on a second, independent label source: the self-reported reviewing expertise of 58 researchers~\citep{stelmakh2025gold}.
 
 Our contributions are:
@@ -62,8 +60,6 @@ Code, data and per-query results are available at \url{https://github.com/senaoz
 
 \section{Related Work}
 \label{sec:related}
-Listwise LLM reranking has been reported to rival trained rankers, but LLMs are sensitive to where items appear in their input, and scientific-document embeddings are already strong baselines.
-
 \paragraph{LLMs as rerankers.}
 LLMs have been used to rerank retrieved candidates pointwise, by scoring each candidate on its own~\citep{sachan2022upr}; pairwise, by comparing two at a time~\citep{qin2024prp}; setwise~\citep{zhuang2024setwise}; and listwise, by returning an order for a whole list~\citep{sun2023rankgpt,ma2023lrl}, which has been distilled into open models~\citep{pradeep2023rankvicuna,pradeep2023rankzephyr}.
 Listwise prompting with a sliding window over long lists~\citep{sun2023rankgpt} is the setting closest to our cascade.
@@ -73,7 +69,7 @@ Most of this work uses large hosted or fine-tuned models; we ask what a small lo
 \paragraph{Position bias.}
 LLM outputs depend on the position of information in the prompt: models use information at the start and end of a long context better than in the middle~\citep{liu2024lost}, few-shot predictions drift toward recent examples~\citep{zhao2021calibrate}, LLM judges prefer answers by their position~\citep{zheng2023judging,wang2024fair}, and multiple-choice answers depend on option order~\citep{pezeshkpour2024order,zheng2024selectors}.
 For ranking, \citet{tang2024found} reduce the effect by aggregating rankings over shuffled inputs, and \citet{hou2024llmrank} report that the order of candidates affects LLM recommenders.
-We add two observations: the direction of the bias changed between two sizes of the same model family, and a single fixed order in the evaluation can make a reranker look better than dense retrieval.
+We add two observations: the direction of the bias changed between two Llama models of different size and release (3.2~3B and 3.1~8B), and a single fixed order in the evaluation can make a reranker look better than dense retrieval.
 
 \paragraph{Scientific documents.}
 Some encoders learn document embeddings from citations, as SPECTER~\citep{cohan2020specter} and SPECTER2~\citep{singh2023scirepeval} do; others are general sentence encoders~\citep{reimers2019sbert,wang2020minilm} or large embedding models~\citep{zhang2025qwen3embedding,vera2025embeddinggemma}, compared on benchmarks such as MTEB~\citep{muennighoff2023mteb} and SciRepEval.
@@ -116,14 +112,14 @@ We compare two lexical methods, BM25~\citep{robertson2009bm25} and TF-IDF; four 
 To test scale, we repeat the listwise experiments with Llama~3.1 8B Instruct, and in the full-corpus and human-label settings we add Qwen3-Reranker-4B~\citep{zhang2025qwen3embedding}, a model trained for reranking.
 
 All models run locally: the Llama models and Qwen3-Embedding as 4-bit (Q4\_K\_M) GGUF files in llama.cpp, the others in sentence-transformers or transformers.
-Every method receives the same text, the title, abstract and OpenAlex concepts of each paper, truncated to 600 characters per candidate and 1,500 for the query (chosen on the dev split).
+On citation labels every method receives the same text, the title, abstract and OpenAlex concepts of each paper, truncated to 600 characters per candidate and 1,500 for the query (chosen on the dev split).
 LLMs decode greedily.
 The listwise prompt numbers the candidates and asks for a JSON array of their numbers; candidates the model leaves out are appended in random order, and an unparsable answer falls back to a random order, never to the input order.
 The pointwise prompt asks for a 0--10 score, which we read as the expected value over the first generated token's probabilities.
 
 \subsection{Citation Labels}
 \label{sec:citation-labels}
-The queries are 174 papers from OpenAlex published after 2020 by seven institutions (MIT, Stanford, Harvard, UC Berkeley, the University of Michigan, Google and Google DeepMind), each citing 6--14 works; 168 have the required metadata, and a seeded split assigns 50 to dev and 118 to test.
+The queries are 174 papers from OpenAlex published in 2020 or later by seven institutions (MIT, Stanford, Harvard, UC Berkeley, the University of Michigan, Google and Google DeepMind), each citing 6--14 works; 168 have the required metadata, and a seeded split assigns 50 to dev and 118 to test.
 A query's positives are the references it cites that have a title and an abstract (3--14 per query).
 Its $2n$ negatives, for $n$ positives, are drawn from the other queries' references published before the query and sharing no author with it, either uniformly (\emph{random}) or among papers that share one of the query's top-5 OpenAlex concepts (\emph{concept}).
 The concept condition is harder but matches on field rather than topic: 97.7\% of its negatives share a concept with the query, more than the positives do (73.5\%), but 68.7\% share only a top-level field such as ``Medicine''.
@@ -131,11 +127,11 @@ Candidates are shuffled per query and seed, and the order shown to each method i
 Because MRR saturates near 1 for strong methods, R-precision is the primary metric; a random ranking scores 33.3\%.
 
 The full-corpus setting ranks each query against 11,967 works: every eligible positive plus every work cited by at least five earlier papers that an OpenAlex title search returned for any query.
-These citing papers also form the co-citation graph used in Section~\ref{sec:rq4}, built under five leakage rules, each covered by a unit test: a query never contributes its own references, query duplicates and earlier versions are removed, only citing papers dated before the query count (with year-only dates moved to year end), and no other query paper acts as a citing paper.
+These citing papers also form the co-citation graph used in Section~\ref{sec:rq4}, built under five leakage rules, each covered by a unit test: (R1) a query's own reference list is never used; (R2) neither the query nor its duplicates act as citing papers; (R3) citing papers that duplicate any query, including earlier versions, are dropped; (R4) only citing papers dated before the query count, with year-only dates moved to the end of the year; and (R5) no query record acts as a citing paper.
 
 \subsection{Human Expertise Labels}
 \label{sec:human-labels}
-In the gold-standard dataset of \citet{stelmakh2025gold}, 58 researchers rated their expertise in reviewing 477 papers they had read, on a 1--5 scale, 3--10 papers each.
+In the gold-standard dataset of \citet{stelmakh2025gold}, 58 researchers gave 477 ratings, on a 1--5 scale, of their expertise in reviewing 463 papers they had read, 3--10 papers each.
 Each researcher is represented by up to 20 of their own papers, in ten random profile samples.
 Lexical and dense methods score a rated paper by its maximum similarity to the profile papers, as our deployed system does; Qwen3-Reranker-4B uses each profile paper as a query and also takes the maximum; the LLMs see the profile titles and the candidate, with prompts that keep the citation-benchmark structure but ask about reviewing expertise.
 We report the authors' weighted Kendall-$\tau$ loss, for which lower is better and a constant ranking scores 0.5, averaged over profile samples; our evaluation reproduces their published baselines to two decimals.
@@ -150,8 +146,6 @@ The bibliographic-coupling analysis on human labels was pre-registered, the LLM 
 
 \section{RQ1: Candidate Order Changes the Answer}
 \label{sec:rq1}
-Reversing a candidate list that starts with the cited papers, with nothing else changed, lowers the 3B model's R-precision from 72.3 to 30.0 but raises the 8B model's from 73.9 to 89.4, so order sensitivity persists at the larger size but changes direction.
-
 We show each listwise model the same candidates in three orders: cited papers first, the order of our first evaluation; shuffled; and the reverse of the first order, so that the cited papers come last.
 Prompt, text and decoding are those of Section~\ref{sec:methods}; the comparison uses the 118 test queries of both benchmarks and one shuffle seed.
 Table~\ref{tab:order} gives the results.
@@ -173,14 +167,14 @@ Table~\ref{tab:order} gives the results.
 \end{table}
 
 The 3B model favours early candidates.
-Moving the cited papers from first to last costs it 42.3 R-precision points on \emph{random} and 54.2 on \emph{concept} negatives (paired Wilcoxon, $p \le 6 \cdot 10^{-12}$), and its MRR falls from 0.95 and 0.98 to 0.33 and 0.27, below the 0.56 of a random ranking on both benchmarks; R-precision falls below chance only on \emph{concept}.
-With the cited papers first, its MRR exceeds the 0.84 that our first evaluation reported, so candidate order alone can account for that result.
+Moving the cited papers from first to last costs it 42.3 R-precision points on \emph{random} and 54.2 on \emph{concept} negatives (paired Wilcoxon, $p \le 6 \cdot 10^{-12}$), and its MRR falls from 0.95 and 0.98 to 0.33 and 0.27, below the 0.56 of a random ranking on both benchmarks; R-precision falls to or below chance on both, significantly only on \emph{concept}.
+With the cited papers first, its MRR exceeds the 0.84 that our first evaluation reported, so candidate order alone accounts for the LLM's score there; even in that order it stays below Qwen3-Embedding ($p \le 0.031$), and its apparent lead in the first evaluation also needed the indexing error F6 (Appendix~\ref{app:audit}).
 
 The 8B model favours late candidates.
-Its R-precision rises by 15.5 and 16.9 points when the cited papers move to the end ($p < 10^{-4}$), and in that order it scores above Qwen3-Embedding on both benchmarks.
+Its R-precision rises by 15.5 and 16.9 points when the cited papers move to the end ($p < 10^{-4}$), and in that order it scores above Qwen3-Embedding on both benchmarks, significantly on \emph{concept} ($p = 0.004$) but not on \emph{random} ($p = 0.10$).
 The two models fail in different ways.
 In shuffled lists, 52.6\% of the 3B model's rankings follow the order they were shown in (Spearman $\rho > 0.8$ between output and input position, over rankings with at least five candidates), against 0.9\% of the 8B model's; the 8B model reverses the shown order more often (10.3\% vs.\ 5.1\%), and half of its rankings (51.5\%) are close to order-independent ($|\rho| \le 0.3$).
-Order sensitivity therefore does not disappear with scale: a single fixed order can make the 8B model look better than dense retrieval, as it made the 3B model look better in our first evaluation.
+Order sensitivity therefore does not disappear with scale: a fixed order inflates the 3B model's score, and with the cited papers last it lifts the 8B model above dense retrieval.
 
 Both effects replicate on human labels (Figure~\ref{fig:order}, right).
 The 3B model's loss is 0.253 with the highest-rated papers first, 0.467 shuffled and 0.685 with them last (best- vs.\ worst-first, Holm $p = 1.4 \cdot 10^{-5}$).
@@ -215,17 +209,15 @@ The swaps involve the lexical methods and pointwise Llama, which is fourth on ci
 
 \section{RQ3: Does a Second Stage Help?}
 \label{sec:rq3}
-A second stage does not help: listwise reranking of the embedding's top 10 lowers R-precision by 10--13 points, and the one gain we found, fusing a trained reranker with the embedding score (+3.2 R-precision on citations), does not transfer to human labels.
-
 Table~\ref{tab:rerank} collects every second stage we tried on top of Qwen3-Embedding.
 In the cascade on the fixed pools, the embedding's top 10 already holds 93\% and 89\% of the cited papers, so the first stage leaves little to recover; listwise Llama reranking of those ten nonetheless lowers R-precision from 87.0 to 74.0 and from 80.1 to 69.7 ($p \le 3 \cdot 10^{-10}$).
 In the full corpus, where the embedding's top 100 is reranked, pointwise Llama alone halves nDCG@10, and fusing its score with the embedding's (weight chosen on dev) changes nothing.
-Qwen3-Reranker-4B, a model trained for reranking, ranks the top 100 better than the embedding on its own (within-list AUC 0.824 vs.\ 0.761) but improves nDCG@10 only when fused, by 0.021 points, which does not survive Holm correction; R-precision rises from 25.1 to 28.3 (Holm $p = 0.040$).
+Qwen3-Reranker-4B, a model trained for reranking, ranks the top 100 better than the embedding on its own (within-list AUC 0.824 vs.\ 0.761) but improves nDCG@10 only when fused, by 0.021, which does not survive Holm correction; R-precision rises from 25.1 to 28.3 (Holm $p = 0.040$).
 On human labels the same reranker is worse than the embedding alone, and a post-hoc fusion with leave-one-researcher-out weights does not beat the embedding either.
 The only second-stage gain in this study therefore depends on the label source, and we do not claim it.
 
 \begin{table}[t]
-  \caption{Second stages on top of Qwen3-Embedding-8B, as the change from the embedding alone. Pools: R-precision (random / concept). Full corpus: nDCG@10 (embedding alone 0.340), reranking its top 100. Human labels: $\tau$ loss (embedding alone 0.222; lower is better). $p$: Holm-corrected Wilcoxon.}
+  \caption{Second stages and LLM scorers against Qwen3-Embedding-8B alone, as the change from the embedding. Pools ($\uparrow$): R-precision (random / concept), reranking its top 10. Full corpus ($\uparrow$): nDCG@10 (embedding 0.340), reranking its top 100. Human labels ($\downarrow$): $\tau$ loss (embedding 0.222); here the LLM and the reranker score papers alone, and only the fusion uses the embedding. $p$: Holm-corrected Wilcoxon unless marked.}
   \label{tab:rerank}
   \small
   \begin{tabular}{@{}lll@{}}
@@ -241,18 +233,17 @@ The only second-stage gain in this study therefore depends on the label source, 
     \midrule
     Human labels & Llama 3B pointwise & $+0.115$ ($p = 3.9 \cdot 10^{-4}$) \\
      & Qwen3-Reranker-4B & $+0.046$ ($p = 9.4 \cdot 10^{-3}$) \\
-     & \quad fused (post-hoc) & $+0.011$ (no gain) \\
+     & \quad fused (post-hoc) & $+0.011$ ($p = 2.0 \cdot 10^{-4}$)\textsuperscript{a} \\
     \bottomrule
   \end{tabular}
+  \par\smallskip\footnotesize\textsuperscript{a}A single uncorrected test. The weight is chosen leave-one-researcher-out on a flat optimum: in-sample, the best weight only ties the embedding (0.2223 both), so we read this as no gain rather than harm.
 \end{table}
 
 \section{RQ4: Do Citation-Graph Signals Add Information?}
 \label{sec:rq4}
-Citation-graph signals add little on top of a strong dense model: co-citation expansion adds 0.8 recall@100 points (not significant) in the full corpus, and bibliographic coupling improves SPECTER2 but not Qwen3-Embedding on human labels.
-
 \paragraph{Co-citation in the full corpus.}
 Qwen3-Embedding finds 64.0\% [58.7, 69.4] of the cited papers in its top 100, so 36\% never reach a second stage.
-We replace the bottom 10\% of that list with the papers most often co-cited with its top 5~\citep{small1973cocitation}, following graph-based adaptive retrieval~\citep{macavaney2022gar}, with seed and replacement sizes chosen on dev.
+We replace the bottom 10\% of that list with the papers most often co-cited with its top 5~\citep{small1973cocitation}, a seed-and-replace scheme in the style of corpus-graph expansion~\citep{macavaney2022gar,kulkarni2025grit}, with seed and replacement sizes chosen on dev.
 Under the five leakage rules (Section~\ref{sec:citation-labels}) only 54.7\% of test positives have any allowed citing paper; without the conservative date rule this would be 62.9\%, and without the date rule at all 68.1\%, so each rule removes real leaks, such as a 2012 record of a review that holds all ten references of a 2020 query.
 Table~\ref{tab:graph} shows the result.
 The expansion gains 0.8 points, not significantly, and little more than its controls: the same expansion over a degree-preserving random graph loses 0.5--0.9 points, and over a $k$-nearest-neighbour graph built from the embeddings themselves~\citep{kulkarni2023ladr} it gains 0.3; only 20 of the 548 positives in the expanded lists (3.6\%) came through the graph.
@@ -262,7 +253,7 @@ A canary that adds each query's own references to the graph gains 5.8 points, so
 Coupling scores a paper by the references it shares with a researcher's papers~\citep{kessler1963coupling}, a signal that exists as soon as a paper is published.
 In an analysis pre-registered before any score was computed, it carries real signal (loss 0.299, better than a constant ranking for 46 of 58 researchers, Holm $p = 4.2 \cdot 10^{-6}$) but trails every embedding, though not significantly.
 Fused with an embedding (weights chosen leave-one-researcher-out), it improves SPECTER2 significantly but not Qwen3-Embedding, the model the deployed system uses.
-On both label sources, the citation graph adds no significant gain to a strong dense model.
+On both label sources, the citation graph adds no significant gain to Qwen3-Embedding.
 
 \begin{table}[t]
   \caption{Citation-graph signals. Full corpus: change in recall@100 from Qwen3-Embedding alone (64.0), 95\% paired bootstrap interval; co-citation is not significant (Holm $p = 1.0$), the canary is ($p = 1.6 \cdot 10^{-4}$). Human labels: $\tau$ loss (lower is better). $p$: Holm-corrected Wilcoxon against the dense model alone.}
@@ -287,34 +278,30 @@ On both label sources, the citation graph adds no significant gain to a strong d
 
 \section{Discussion}
 \label{sec:discussion}
-LLM rerankers should be evaluated under several candidate orders, citation-derived labels should be checked against human judgments, and for our deployed system these results led us to remove the LLM stage.
-
 \paragraph{Evaluate rerankers under several orders.}
 A listwise reranker's score depends on the order it is shown, and the direction of that dependence differs between models.
-An evaluation that keeps one fixed order, such as cited papers first, can therefore report a win that does not exist: our first evaluation did so for the 3B model, and the same mistake with the cited papers last would have done so for the 8B model.
+An evaluation that keeps one fixed order can therefore misstate a reranker's quality: cited papers first inflated the 3B model in our first evaluation, and cited papers last would have put the 8B model above the embedding.
 Shuffling the candidates per query and seed, storing the order shown, and reporting the cited-first and cited-last conditions next to the shuffled one costs three runs and exposes the effect at once.
 Failure handling matters as well: a parse failure must fall back to a random order, never to the input order.
 Aggregating over permutations~\citep{tang2024found} reduces the bias, but multiplies the cost of a stage that, in our experiments, did not help.
 
 \paragraph{Citation labels and human labels mostly agree.}
 The two label sources order the eight methods they share similarly (Kendall $\tau = 0.79$), and every claim about position bias and about the embedding's lead holds on both.
-Two results do not transfer: pointwise Llama beats the lexical baselines on citation labels but not on human labels, and fusing a trained reranker with the embedding helps on citation labels only.
+Two results do not transfer: pointwise Llama scores above the lexical baselines on citation labels (in point estimate) but below them on human labels, and fusing a trained reranker with the embedding helps on citation labels only.
 Citation-graph signals behave in between.
 When bibliographic coupling is strong, it is precise: the top decile of non-zero coupling scores has a mean rating of 4.50 and 88\% of its papers are rated 4 or higher, and a researcher's top paper by coupling is rated as highly as the top paper by Qwen3-Embedding (4.39 vs.\ 4.37).
 But 30\% of rated papers share no reference with the researcher's profile at all, so coupling is better used as a high-precision positive label than as a full ranking.
 
 \paragraph{Implications for the deployed system.}
 For our recommender these results favour a single embedding stage.
-We removed the LLM stage from the system's matching code; it cost about 0.35~s per call with the 3B model and about 18~s per candidate list with the 8B model, while an exact embedding search over our 7,822 Boğaziçi works needs no model call beyond encoding the new paper.
+We removed the LLM stage from the system's matching code; it cost about 0.35~s per pointwise call with the 3B model, and 7--9~s per listwise candidate list with the 3B model and about 18~s with the 8B, while an exact embedding search over the system's Boğaziçi works needs no model call beyond encoding the new paper.
 Because a 22M-parameter MiniLM stays within about four R-precision points of the 8B embedding model, a small encoder remains a defensible choice where the larger one cannot be hosted.
 
 \section{Limitations}
 \label{sec:limitations}
-Our human labels are few (58 researchers, almost all in computer science), the rerankers we test are two general Llama models, one trained reranker and one cross-encoder, and pretraining contamination is untested.
-
-\emph{Labels.} Citations measure what a paper cites, not what a reader finds relevant; people also cite methods, tools and background. The human labels cover 58 researchers, mostly in machine learning, and rank papers for one researcher, the reverse of our system's direction; on them, the LLMs see a researcher's profile titles while the encoders see titles and abstracts. Our \emph{concept} negatives share a field with the query rather than its topic, so neither citation benchmark contains same-topic hard negatives.
-\emph{Models.} We test two general Llama models (3.2~3B and 3.1~8B, both 4-bit), one trained reranker and one cross-encoder; larger and hosted LLMs, and rerankers fine-tuned for listwise ranking, may behave differently. The order conditions use one shuffle seed, and the prompts on human labels were written for the task without tuning. The embedding models run without their recommended instruction prefixes.
-\emph{Contamination.} Only one test query appeared after the Llama models' training cutoff, Qwen3-Reranker-4B was released after every query, and the human labels have been public since 2023, so we cannot rule out that some models have seen the papers or their labels.
+\emph{Labels.} Citations measure what a paper cites, not what a reader finds relevant; people also cite methods, tools and background. The human labels cover 58 researchers, almost all in computer science, and rank papers for one researcher, the reverse of our system's direction; on them, the LLMs see a researcher's profile titles while the encoders see titles and abstracts. Our \emph{concept} negatives share a field with the query rather than its topic, so neither citation benchmark contains same-topic hard negatives.
+\emph{Models.} We test two general Llama models (3.2~3B and 3.1~8B, both 4-bit), which differ in release as well as size, one trained reranker and one cross-encoder; larger and hosted LLMs, and rerankers fine-tuned for listwise ranking, may behave differently. On citation labels the order conditions use one shuffle seed, and the prompts on human labels were written for the task without tuning. The embedding models run without their recommended instruction prefixes.
+\emph{Contamination.} Only one test query appeared after the Llama models' training cutoff, Qwen3-Reranker-4B was released after every query, and the human labels have been public since 2023, so we cannot rule out that some models have seen the papers or their labels~\citep{sainz2023contamination}.
 
 \begin{acks}
 This work began as a course project (SWE 599) at Boğaziçi University. I thank H. Birkan Yılmaz for supervising that project.
@@ -347,11 +334,9 @@ The benchmark in Section~\ref{sec:setup} was rebuilt so that each item is checke
 
 \section{Data Quality and Robustness}
 \label{app:robustness}
-Dropping queries with flawed abstracts moves no method by more than 1.1 points, shuffle seeds move the LLM results by a standard deviation of at most 2 points, a sliding-window reranker that rarely truncates its output still trails the embeddings, and the coupling results hold at higher reference coverage.
-
 \emph{Abstracts.} About 6\% of OpenAlex ``abstracts'' are not abstracts (author lists, citation strings or another paper's title); dropping the affected test queries moves no method by more than 1.1 points.
-\emph{Seeds.} Over five shuffle seeds, the standard deviation of each 3B method's R-precision is 0.8--2.0 points.
-\emph{Output failures.} Listwise 3B returns a partial ranking for 38\% of full lists of 21--42 candidates; its sliding-window variant, at most 10 candidates per call, fails on about 2\% of queries and still scores 55.6 / 52.2, far below the embeddings. The 8B model returns partial rankings for 7--18\% of queries per condition, mostly as complete answers that leave out some candidates rather than as truncated ones. On human labels, lists are shorter and almost every call succeeds.
+\emph{Seeds.} Over five shuffle seeds, the standard deviation of each 3B LLM method's R-precision is 0.8--2.0 points.
+\emph{Output failures.} Listwise 3B returns a partial ranking for 38\% of full-list calls (9--42 candidates); its sliding-window variant, at most 10 candidates per call, fails on about 2\% of queries and still scores 55.6 / 52.2, far below the embeddings. The 8B model returns partial rankings for 7--19\% of queries per condition, mostly as complete answers that leave out some candidates rather than as truncated ones. On human labels, lists are shorter and almost every call succeeds.
 \emph{Coverage.} Adding references found by title search raises profile coverage from 80.3\% to 85.2\% and changes no coupling conclusion.
 
 \end{document}
