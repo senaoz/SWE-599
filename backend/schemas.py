@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, date
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr
+
+Verdict = Literal["yes", "partly", "no"]
+VerdictReason = Literal["different_field", "too_general", "collaboration_only", "same_author"]
 
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
@@ -19,9 +24,24 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class ResearcherBrief(BaseModel):
+    id: str
+    openalex_id: str
+    display_name: str
+    paper_count: int
+
+    class Config:
+        from_attributes = True
+
+
 class MeResponse(BaseModel):
     email: str
     is_admin: bool
+    researcher: ResearcherBrief | None = None
+
+
+class ClaimRequest(BaseModel):
+    researcher_id: str
 
 
 # ── Institutions ──────────────────────────────────────────────────────────────
@@ -47,14 +67,20 @@ class FollowedInstitution(BaseModel):
 # ── Papers ────────────────────────────────────────────────────────────────────
 
 class MatchedBounPaper(BaseModel):
+    work_id: str
     title: str | None
     score: float
+    year: int | None = None
+    large_collaboration: bool = False
 
 class ResearcherMatch(BaseModel):
+    paper_openalex_id: str
     researcher_id: str
     display_name: str
     score: float
+    rank: int
     matched_papers: list[MatchedBounPaper] = []
+    my_verdict: Verdict | None = None
 
 class PaperOut(BaseModel):
     openalex_id: str
@@ -62,8 +88,17 @@ class PaperOut(BaseModel):
     abstract: str | None
     publication_date: date | None
     source_institution_name: str | None
+    doi: str | None = None
+    type: str | None = None
+    field: str | None = None
+    oa_url: str | None = None
     top_researchers: list[ResearcherMatch]
+    my_match: ResearcherMatch | None = None  # the user's own researcher, in For me
     is_seen: bool = False
+
+class FieldCount(BaseModel):
+    field: str
+    count: int
 
 class PapersResponse(BaseModel):
     papers: list[PaperOut]
@@ -98,6 +133,10 @@ class PaperDetailOut(BaseModel):
     abstract: str | None
     publication_date: date | None
     source_institution_name: str | None
+    doi: str | None = None
+    type: str | None = None
+    field: str | None = None
+    oa_url: str | None = None
     all_researchers: list[ResearcherMatch]
 
 
@@ -110,7 +149,22 @@ class MatchedPaperForResearcher(BaseModel):
     source_institution_name: str | None
     score: float
 
-class ResearcherDetailOut(BaseModel):
+class RecentWork(BaseModel):
+    work_id: str
+    title: str | None
+    year: int | None
+
+class Coauthor(BaseModel):
+    id: str
+    display_name: str
+    shared_works: int
+
+class ResearcherProfile(BaseModel):
+    topics: list[str] = []
+    recent_works: list[RecentWork] = []
+    coauthors: list[Coauthor] = []
+
+class ResearcherDetailOut(ResearcherProfile):
     id: str
     openalex_id: str
     display_name: str
@@ -124,7 +178,7 @@ class ResearcherDetailOut(BaseModel):
         from_attributes = True
 
 
-class ResearcherMergedOut(BaseModel):
+class ResearcherMergedOut(ResearcherProfile):
     display_name: str
     ids: list[str]
     openalex_urls: list[str]
@@ -138,7 +192,8 @@ class ResearcherMergedOut(BaseModel):
 class FeedbackRequest(BaseModel):
     paper_openalex_id: str
     researcher_id: str
-    is_relevant: bool
+    verdict: Verdict | None  # None withdraws the answer
+    reason: VerdictReason | None = None
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
@@ -149,3 +204,18 @@ class AdminStatus(BaseModel):
     researcher_count: int
     unmatched_count: int
     last_run_at: datetime | None
+    embedding_version: str
+
+
+class FeedbackByRank(BaseModel):
+    rank: int
+    yes: int = 0
+    partly: int = 0
+    no: int = 0
+
+
+class FeedbackSummary(BaseModel):
+    embedding_version: str
+    total: int
+    by_rank: list[FeedbackByRank]
+    reasons: dict[str, int]

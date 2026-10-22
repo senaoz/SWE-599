@@ -93,9 +93,10 @@ async def _run_matching_job_impl() -> None:
                 result = await db.execute(
                     sa_text(
                         "INSERT INTO fetched_papers "
-                        "(openalex_id, doi, title, abstract, concepts_text, publication_date, "
+                        "(openalex_id, doi, title, abstract, concepts_text, publication_date, type, field, oa_url, "
                         "source_institution_id, source_institution_name) "
-                        "VALUES (:oid, :doi, :title, :abstract, :concepts, :pub_date, :inst_id, :inst_name) "
+                        "VALUES (:oid, :doi, :title, :abstract, :concepts, :pub_date, :type, :field, :oa_url, "
+                        ":inst_id, :inst_name) "
                         "ON CONFLICT (openalex_id) DO NOTHING"
                     ),
                     {
@@ -105,6 +106,9 @@ async def _run_matching_job_impl() -> None:
                         "abstract": p.get("abstract"),
                         "concepts": p.get("concepts_text"),
                         "pub_date": p.get("publication_date"),
+                        "type": p.get("type"),
+                        "field": p.get("field"),
+                        "oa_url": p.get("oa_url"),
                         "inst_id": inst_id,
                         "inst_name": p.get("source_institution_name"),
                     },

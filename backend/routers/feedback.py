@@ -27,25 +27,31 @@ async def submit_feedback(
         )
     )
 
+    if body.verdict is None:
+        if existing:
+            await db.delete(existing)
+            await db.commit()
+        return {"status": "ok"}
+
     # Snapshot of the match the user saw, so feedback can be tied to a version, score and rank
     shown = await db.get(PaperResearcherMatch, (body.paper_openalex_id, body.researcher_id, EMBEDDING_VERSION))
-    snapshot = {
+    answer = {
+        "verdict": body.verdict,
+        "reason": body.reason if body.verdict != "yes" else None,
         "embedding_version": EMBEDDING_VERSION if shown else None,
         "score": shown.score if shown else None,
         "rank": shown.rank if shown else None,
     }
 
     if existing:
-        existing.is_relevant = body.is_relevant
-        for key, value in snapshot.items():
+        for key, value in answer.items():
             setattr(existing, key, value)
     else:
         db.add(PaperFeedback(
             user_id=current_user.id,
             paper_openalex_id=body.paper_openalex_id,
             researcher_id=body.researcher_id,
-            is_relevant=body.is_relevant,
-            **snapshot,
+            **answer,
         ))
 
     await db.commit()

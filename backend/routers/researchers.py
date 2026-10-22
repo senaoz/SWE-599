@@ -8,11 +8,48 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth import get_current_user
 from backend.database import get_db
-from backend.models import User, Researcher, PaperResearcherMatch, FetchedPaper
+from backend.models import User, Researcher, PaperResearcherMatch, FetchedPaper, BounWork, BounAuthorship
 from backend.config import EMBEDDING_VERSION
-from backend.schemas import ResearcherOut, ResearchersResponse, ResearcherDetailOut, ResearcherMergedOut, MatchedPaperForResearcher
+from backend.schemas import (
+    ResearcherOut, ResearchersResponse, ResearcherDetailOut, ResearcherMergedOut, MatchedPaperForResearcher,
+    ResearcherProfile, RecentWork, Coauthor,
+)
 
 router = APIRouter(prefix="/researchers", tags=["researchers"])
+
+
+async def researcher_profile(db: AsyncSession, researcher_ids: list[str]) -> ResearcherProfile:
+    """Topics, recent works and frequent Boğaziçi co-authors of one person (several ids if split)."""
+    works = select(BounAuthorship.work_id).where(BounAuthorship.researcher_id.in_(researcher_ids))
+
+    topics = [t for t, in await db.execute(
+        select(BounWork.primary_topic)
+        .where(BounWork.openalex_id.in_(works), BounWork.primary_topic.isnot(None))
+        .group_by(BounWork.primary_topic)
+        .order_by(func.count().desc(), BounWork.primary_topic)
+        .limit(5)
+    )]
+    recent = [
+        RecentWork(work_id=w.openalex_id, title=w.title, year=w.first_date.year if w.first_date else None)
+        for w in await db.scalars(
+            select(BounWork).where(BounWork.openalex_id.in_(works))
+            .order_by(BounWork.first_date.desc().nulls_last()).limit(5)
+        )
+    ]
+    # Co-authorship through collaborations says little, so 100+-author works are left out.
+    small_works = select(BounWork.openalex_id).where(BounWork.openalex_id.in_(works), BounWork.large_collaboration.is_(False))
+    coauthors = [
+        Coauthor(id=rid, display_name=name, shared_works=n)
+        for rid, name, n in await db.execute(
+            select(Researcher.id, Researcher.display_name, func.count())
+            .join(BounAuthorship, BounAuthorship.researcher_id == Researcher.id)
+            .where(BounAuthorship.work_id.in_(small_works), Researcher.id.notin_(researcher_ids))
+            .group_by(Researcher.id, Researcher.display_name)
+            .order_by(func.count().desc(), Researcher.display_name)
+            .limit(6)
+        )
+    ]
+    return ResearcherProfile(topics=topics, recent_works=recent, coauthors=coauthors)
 
 
 @router.get("", response_model=ResearchersResponse)
@@ -90,6 +127,7 @@ async def get_researcher_by_name(
     ) or 0
 
     return ResearcherMergedOut(
+        **(await researcher_profile(db, researcher_ids)).model_dump(),
         display_name=researchers[0].display_name,
         ids=[r.id for r in researchers],
         openalex_urls=[r.openalex_id for r in researchers],
@@ -138,6 +176,7 @@ async def get_researcher(
     ]
 
     return ResearcherDetailOut(
+        **(await researcher_profile(db, [researcher_id])).model_dump(),
         id=researcher.id,
         openalex_id=researcher.openalex_id,
         display_name=researcher.display_name,

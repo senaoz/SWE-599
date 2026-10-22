@@ -22,6 +22,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
+    # The Boğaziçi researcher profile this user claimed (unverified); drives the For me feed
+    researcher_id: Mapped[str | None] = mapped_column(String(50), ForeignKey("researchers.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     follows: Mapped[list[UserFollow]] = relationship("UserFollow", back_populates="user", cascade="all, delete-orphan")
@@ -62,6 +64,9 @@ class FetchedPaper(Base):
     title: Mapped[str | None] = mapped_column(Text)
     abstract: Mapped[str | None] = mapped_column(Text)
     concepts_text: Mapped[str | None] = mapped_column(Text)  # dashboard filter only; not embedded (D7)
+    type: Mapped[str | None] = mapped_column(String(50))     # OpenAlex work type (article, dataset, …)
+    field: Mapped[str | None] = mapped_column(String(100))   # OpenAlex field of the primary topic
+    oa_url: Mapped[str | None] = mapped_column(Text)
     publication_date: Mapped[date | None] = mapped_column(Date)
     source_institution_id: Mapped[str | None] = mapped_column(String(100))
     source_institution_name: Mapped[str | None] = mapped_column(String(255))
@@ -98,6 +103,7 @@ class BounWork(Base):
     n_authors: Mapped[int | None] = mapped_column(Integer)  # undercounts 100+-author works (only BOUN authors kept)
     large_collaboration: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())  # 100+ authors (D4)
     language_flag: Mapped[str | None] = mapped_column(String(20))
+    primary_topic: Mapped[str | None] = mapped_column(String(255))  # OpenAlex topic, for researcher profiles
     embedding: Mapped[list | None] = mapped_column(Vector(EMBEDDING_DIM))
     embedding_version: Mapped[str | None] = mapped_column(String(200))
 
@@ -159,7 +165,8 @@ class PaperFeedback(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     paper_openalex_id: Mapped[str] = mapped_column(String(100), ForeignKey("fetched_papers.openalex_id", ondelete="CASCADE"), nullable=False)
     researcher_id: Mapped[str] = mapped_column(String(50), ForeignKey("researchers.id", ondelete="CASCADE"), nullable=False)
-    is_relevant: Mapped[bool] = mapped_column(nullable=False)
+    verdict: Mapped[str] = mapped_column(String(10), nullable=False)  # yes | partly | no
+    reason: Mapped[str | None] = mapped_column(String(30))
     # What the user was shown when they rated it
     embedding_version: Mapped[str | None] = mapped_column(String(200))
     score: Mapped[float | None] = mapped_column(Float)

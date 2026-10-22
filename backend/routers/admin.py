@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.auth import require_admin
 from backend.database import get_db
 from sqlalchemy import text
-from backend.models import User, FetchedPaper, PaperResearcherMatch, Researcher, FetchCursor
+from backend.models import User, FetchedPaper, PaperResearcherMatch, Researcher, FetchCursor, PaperFeedback
 from backend.config import EMBEDDING_VERSION
-from backend.schemas import AdminStatus
+from backend.schemas import AdminStatus, FeedbackSummary, FeedbackByRank
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -41,6 +41,34 @@ async def get_status(
         researcher_count=researcher_count,
         unmatched_count=unmatched_count,
         last_run_at=last_cursor,
+        embedding_version=EMBEDDING_VERSION,
+    )
+
+
+@router.get("/feedback", response_model=FeedbackSummary)
+async def feedback_summary(
+    _: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Verdicts on matches shown at the current embedding version, by the rank they were shown at."""
+    rows = list(await db.execute(
+        select(PaperFeedback.rank, PaperFeedback.verdict, PaperFeedback.reason, func.count())
+        .where(PaperFeedback.embedding_version == EMBEDDING_VERSION)
+        .group_by(PaperFeedback.rank, PaperFeedback.verdict, PaperFeedback.reason)
+    ))
+    by_rank: dict[int, FeedbackByRank] = {}
+    reasons: dict[str, int] = {}
+    for rank, verdict, reason, n in rows:
+        if rank is not None:
+            entry = by_rank.setdefault(rank, FeedbackByRank(rank=rank))
+            setattr(entry, verdict, getattr(entry, verdict) + n)
+        if reason:
+            reasons[reason] = reasons.get(reason, 0) + n
+    return FeedbackSummary(
+        embedding_version=EMBEDDING_VERSION,
+        total=sum(n for *_, n in rows),
+        by_rank=[by_rank[k] for k in sorted(by_rank)],
+        reasons=reasons,
     )
 
 
