@@ -1,34 +1,35 @@
 # Matching design: from the current job to the target flow
 
-**Status: draft for review (2026-10-15); decisions D1–D10 made 2026-10-21 (section 8).** Schema changes, seeding, long embedding runs and backfills still need explicit approval when their PR comes up.
+**Status (updated 2026-10-21).** Drafted 2026-10-15; decisions D1–D10 made 2026-10-21 (section 8); PRs 1 and 2 merged (senaoz/SWE-599#6, #7), plus vector binding through pgvector's type (#8). Next is PR 3. Schema changes, seeding, long embedding runs and backfills still need explicit approval when their PR comes up.
 
 **Task (restated 2026-10-15, `docs/DEVLOG.md`).** For each new paper from a followed institution, list the Boğaziçi (BOUN) researchers who work on its topic. Relevance is topical expertise: not "would cite it", not "wrote it".
 
 ## 1. Summary
 
+**What the research says for the app** (paper draft, `paper/main.tex` on `paper-draft`; `research/audit/PAPER_NOTES.md`). Under shuffled candidate order, no LLM reranker, second stage or citation-graph signal beats Qwen3-Embedding-8B on both label sources (citation labels and the expertise ratings of 58 researchers). The only second-stage gain (Qwen3-Reranker-4B fused with the embedding) appears on citation labels only and is not claimed. A 22M-parameter MiniLM stays within about four R-precision points (gold standard: 0.242 vs 0.222 loss, overlapping CIs). So the target is a single embedding stage, and this document only plans that stage.
+
 The draft target flow holds up against the research and the code, with five corrections:
 
-1. **pgvector cannot index 4,096-dim vectors.** HNSW and IVFFlat take `vector` up to 2,000 dimensions and `halfvec` up to 4,000 (pgvector README, checked 2026-10-15); a column can store up to 16,000. At 7,822 BOUN works an exact scan is cheap, so "search in the database" works today without an index. An ANN index would need fewer dimensions: a smaller model, or Qwen3-Embedding's Matryoshka output (the model card supports user-defined output dimensions from 32 to 4,096) at ≤ 2,000. The model and dimension decision therefore comes **before** the schema PR, because it fixes the column type.
+1. **pgvector cannot index 4,096-dim vectors.** HNSW and IVFFlat take `vector` up to 2,000 dimensions and `halfvec` up to 4,000 (pgvector README, checked 2026-10-15); a column can store up to 16,000. At 7,822 BOUN works an exact scan is cheap, so "search in the database" works today without an index. An ANN index would need fewer dimensions: a smaller model, or Qwen3-Embedding's Matryoshka output (the model card supports user-defined output dimensions from 32 to 4,096) at ≤ 2,000. *Resolved by D1: 4,096 dimensions, exact search.*
 2. **The BOUN index must be per work, not per (researcher, work).** Today a work with *n* BOUN authors is stored and embedded *n* times.
 3. **Matches and feedback need a model version**, or thumbs-up/down cannot be tied to the scores the user saw.
 4. **The read path is part of any cut-off change.** `backend/routers/papers.py` filters at `min_score = 0.3` and keeps 5 researchers per paper. Changing the scoring without changing this filter is how `app-mtplx-stage2` would have hidden every match (DEVLOG 2026-10-14, finding 5).
-5. **There is no offline relevance ground truth for this task.** Citation positives are paused, authorship positives were dropped, and human judgments are out of scope. The offline plan in section 5 is consistency and regression checks, labelled as such. User feedback is the only direct relevance signal.
+5. **There is no offline relevance ground truth for the app's direction.** The gold standard ranks papers for one researcher, not researchers for one paper, and it is almost all CS; it supports the choice of model and aggregation, not the app's cut-off or cross-researcher ranking. The offline plan in section 5 is consistency and regression checks, labelled as such. User feedback is the only direct relevance signal for the app's direction.
 
 ## 2. The current code
 
-### 2.1 What the matching job does
+### 2.1 What the matching job does (after PRs 1, 2 and #8)
 
 `backend/services/matching.py`, `run_matching_job`, every `JOB_INTERVAL_HOURS` (6):
 
 1. For each distinct followed institution, fetch OpenAlex works with `from_publication_date` = the institution's cursor (`FetchCursor`, initialised to *today*), at most 200 per run (`openalex.py`, `max_papers=200`).
 2. Insert into `fetched_papers`, dropping exact-title duplicates per institution.
-3. Embed `"{title} {abstract} {concepts}"` (cut to 2,048 characters) with `qwen3-embedding:latest` via Ollama, falling back to Ollama Cloud. Write the vector into `fetched_papers.embedding` with an f-string SQL `UPDATE`.
-4. Load **every** `researcher_papers.embedding` into numpy and compute the full cosine matrix (`sklearn`).
-5. Per paper: keep pairs with cosine ≥ `MATCH_THRESHOLD` (0.3), group by researcher, rank researchers by their best work, take the top 10.
-6. Stage 2: for each of those 10, call Llama 3.2 3B (`_llm_generate`) with the paper and the researcher's top 5 matching works. `IRRELEVANT` drops the researcher; `RELEVANT x` replaces the cosine score with `x`; failure keeps the cosine score.
-7. Insert `paper_researcher_matches` (score, `model="qwen+llama"`, top-5 matched works as JSON, `llm_score`).
+3. Embed `"{title} {abstract} {concepts}"` (cut to 2,048 characters) with `qwen3-embedding:latest` via local Ollama only (the Ollama Cloud fallback was removed). Vectors are bound through pgvector's SQLAlchemy type (#8), no longer written with f-string SQL.
+4. Load **every** `researcher_papers.embedding` into numpy and compute the cosine matrix (`services/ranking.py`, `cosine_matrix`).
+5. Per paper, `rank_researchers` (`services/ranking.py`, shared by both jobs since PR 1): keep rows with cosine ≥ `MATCH_THRESHOLD` (0.3), group by researcher, aggregate with `MATCH_AGGREGATION` (`max` default, or `mean_top3`; D3), keep the top `RAG_RETRIEVE_TOP_K` (10).
+6. Insert `paper_researcher_matches` with the cosine score, `model = qwen3-embedding:latest`, the researcher's top-5 matched works as JSON, and no `llm_score` (column kept until PR 8).
 
-`run_stage2_for_unmatched` repeats steps 3–7 for papers with no match.
+No stage 2 since PR 2. `run_rematch_unmatched` reruns steps 3–6 for papers with no match; both jobs share `_embed_and_store` and `_match_and_store`. The read path (`routers/papers.py`) still filters at `min_score = MATCH_THRESHOLD`, keeps `TOP_K_MATCHES` (5) per paper and de-duplicates by `display_name`.
 
 ### 2.2 Gap against the target
 
@@ -36,22 +37,23 @@ The draft target flow holds up against the research and the code, with five corr
 |---|---|---|---|
 | 1 | Persistent BOUN index with `model_version` | `researcher_papers` row per (researcher, work), vector per row, no version | Duplicate vectors per co-author; no way to tell which model produced a vector |
 | 2 | External side as a stream, never compared with each other | Already the case (new papers × BOUN only) | Cursor starts *today*, so no backfill; `from_publication_date` misses works that OpenAlex indexes late with an older date; cap of 200 per run silently truncates |
-| 3 | Work-level retrieval, researcher-level output, matched works as explanation | Work-level cosine, researcher = best work (max), top-5 works stored as JSON | Close already. Aggregation is max over all works above 0.3, not over a top-K; JSON blob instead of rows |
+| 3 | Work-level retrieval, researcher-level output, matched works as explanation | Work-level cosine, researcher score by `MATCH_AGGREGATION` (max default), top-5 works stored as JSON | Close already. Aggregation is over all works above 0.3, not over a top-K₁; JSON blob instead of rows |
 | 4 | pgvector search in SQL | Full table into numpy every run | 4,096 dims cannot be ANN-indexed (section 1); exact `<=>` in SQL is fine at this size |
-| 5 | Same model and template both sides; re-embed on change | Same template both sides; Ollama with silent Cloud fallback | Fallback can mix runtimes (APP_NOTES: vectors from different runtimes are not comparable); template differs from the research's best (`tac_600_1500`) |
-| 6 | No LLM stage 2 by default | Llama 3.2 3B on the top 10, replaces the score | Remove. Research: pointwise Llama halves nDCG@10 alone and adds nothing fused |
-| 7 | Top-K per paper plus a model-specific minimum | Fixed cosine 0.3 in the job **and** in the read path | Both places must change together |
+| 5 | Same model and template both sides; re-embed on change | Same template both sides; local Ollama only (Cloud fallback removed) | Runtime differs from the research's verified `llama-server` setup (D2); template differs from D7 (title + abstract, no truncation) |
+| 6 | No LLM stage 2 by default | Removed in PR 2 | Done |
+| 7 | Top-K per paper plus a model-specific minimum | Fixed cosine 0.3 in the job (one shared function since PR 1) **and** in the read path | Both places must change together (PR 5) |
 | 8 | Seed from cleaned data, down-weight huge author lists | Seeds from `research/data/cleaned/boun.csv` | `boun.csv` keeps errata/editorials, misses conference papers, cuts author lists at 100 (`BOUN_DATA.md`) |
 | 9 | Log feedback for evaluation | `paper_feedback(user, paper, researcher, is_relevant)` | No snapshot of score, rank or model version at click time |
 
 ### 2.3 Other issues found while reading
 
-- **Self-matches.** DEVLOG (2026-10-15) counts 311 `boun.csv` works with a co-author from the v1 followed-institution list. Such a work arrives in the stream *and* sits in the BOUN index, so it matches its own BOUN authors at cosine ≈ 1.0. Needs a rule (section 7, D6).
+- **Self-matches.** The cleaned data has 642 BOUN works with a co-author from a followed institution, 460 of them 100+-author collaborations (DEVLOG 2026-10-19; `boun.csv` had 311). Such a work arrives in the stream *and* sits in the BOUN index, so it matches its own BOUN authors at cosine ≈ 1.0. Rule: D6.
 - **Dead or misplaced pieces.** `Researcher.profile_embedding` (mean vector) is computed by the seeder and never used by matching. The backend writes `.npz` caches into `research/data/embeddings_cache/`. `embedding.py` imports `MODEL_MAP`, `OLLAMA_MODEL_MAP`, `MAX_TEXT_CHARS` from `research/src/similarity.py` (APP_NOTES 2026-10-11). `PaperResearcherMatch.model` defaults to `"specter2"`.
-- **SQL built with f-strings** for vector updates (`seeder.py`, `matching.py`). Values are floats, so not injectable, but they should be bound parameters through `pgvector`'s type.
-- **No migration tool.** `init_db` runs `create_all` plus ad-hoc `ALTER`s. The table rewrite in section 3 is the point to decide whether to introduce Alembic (D9).
+- ~~**SQL built with f-strings** for vector updates.~~ Fixed in #8 (bound through pgvector's SQLAlchemy type; pgvector pinned to 0.5.1).
+- **No migration tool.** `init_db` runs `create_all` plus ad-hoc `ALTER`s, including a block that drops and recreates `embedding` columns. Alembic comes with PR 3 (D9).
 - **Split author ids.** OpenAlex splits some people into two ids (e.g. two "Atakisi" ids with 214 and 213 works). The read path hides this by de-duplicating on `display_name`, which also merges different people with the same name.
 - **LFS seed in Docker.** `research/data/boun/*.csv.gz` are Git LFS files; the backend image must get the real files, not pointers.
+- **Production runs Ollama in Docker** (`docker-compose.prod.yml`: `ollama` and `ollama-init` services pulling `qwen3-embedding`). D2's `llama-server` needs its own service there (section 7, O1).
 
 ## 3. Schema and migration
 
@@ -62,15 +64,17 @@ All changes below need your approval before they are written (the brief says: as
 ```
 boun_works
   openalex_id        text  PK
-  title, abstract    text
-  tags_text          text            -- OpenAlex tag field used in the template (D7)
-  abstract_source    text            -- openalex | none | (crossref | s2 if looked up)
+  doi                text            -- for the self-match rule (D6)
+  duplicate_ids      text[]          -- merged duplicate records (cleaned data), for D6
+  title, abstract    text            -- abstract only from OpenAlex (D5)
+  abstract_source    text            -- openalex | crossref | s2 | none; crossref/s2 text is used
+                                     --   for the vector only, never stored or shown (D5)
   type               text
   first_date         date            -- earliest version (cleaned data)
   n_authors          int
   large_collaboration bool           -- 100+ authors
   language_flag      text            -- en | tr | mixed | unknown | other
-  embedding          vector(D)       -- D fixed by D1
+  embedding          vector(4096)    -- D1
   embedding_version  text            -- see 3.4
 
 boun_authorships
@@ -109,7 +113,7 @@ paper_feedback  (+ columns)
 
 ### 3.4 What `embedding_version` encodes
 
-One string covering everything that makes two vectors incomparable: model id, runtime and quantization, output dimension, pooling, text template id, query instruction (if any). Example: `qwen3-emb-8b|llama.cpp-q8_0|d4096|last|tac_600_1500|noinstr`.
+One string covering everything that makes two vectors incomparable: model id, runtime and quantization, output dimension, pooling, text template id, query instruction (if any). With D1, D2 and D7: `qwen3-emb-8b|llama.cpp-b11146-q4_k_m|d4096|last|ta_full|noinstr`.
 
 **Acceptance test for any runtime or model change** (from `lessons.md`, GGUF and pooling): embed 20 fixed works with the new runtime and the reference implementation; cosine between the two vectors of each work must be ≥ 0.99. The EmbeddingGemma GGUF failed exactly this way (correlation ≈ 0).
 
@@ -130,39 +134,44 @@ At 7,822 rows × 4,096 dims (~128 MB as float32) this is a sequential scan, well
 ### 3.6 Migration path
 
 1. Add the new tables next to the old ones; old job keeps running.
-2. Load the cleaned BOUN data and embed it (long run, needs approval; see 6, PR 4).
+2. Load the cleaned BOUN data and embed it (needs approval; see 6, PR 4). The Experiment B vectors can fill most of it (section 6, PR 4).
 3. Switch the job and the read path to the new tables in one PR.
 4. Drop `researcher_papers`, `profile_embedding`, `llm_score`, `matched_paper_ids` after a release with no reads from them.
 
 ## 4. Target flow, with the open questions answered as proposals
 
 1. **Ingest.** Per institution: OpenAlex works since the cursor, filtered by `from_created_date` (or `from_updated_date`) rather than `from_publication_date`, so late-indexed works are not missed. *To verify: whether `from_created_date` is available on the current OpenAlex plan.* Remove the 200 cap or log when it is hit.
-2. **Embed** title + abstract + topics with the template of `embedding_version`. A paper with no abstract is embedded from title + topics, and flagged.
+2. **Embed** `"{title} {abstract}"`, no truncation, the same on both sides (D7). A paper with no abstract is embedded from its title and flagged.
 3. **Retrieve** the top K₁ BOUN works (proposal: K₁ = 50) with exact cosine, excluding the paper itself (D6). Match on OpenAlex id, the cleaned data's `duplicate_ids` and DOI, because a preprint in the index can arrive in the stream as its published version under another id.
-4. **Aggregate** per researcher. Proposal: score = max cosine over the researcher's retrieved works. Mean of top 3 is the alternative.
+4. **Aggregate** per researcher with `max` (D3; already a parameter since PR 2). Mean of top 3 is checked in PR 5.
    - Median works per researcher is 1 (`BOUN_DATA.md`), so max and mean-of-top-3 differ only for the 1,672 researchers with ≥ 2 works.
-   - The real risk is that max favours prolific researchers (more works, more chances of one high cosine). Mean-of-top-3 penalises researchers with one or two works. Decide with the regression checks in 5.2 and with feedback, not by argument.
+   - On the gold standard, mean-of-top-3 is slightly better within each researcher's profile (Qwen3 0.219 vs 0.222, within the CIs, not pre-registered). The open risk is across researchers: max favours prolific researchers, which the gold standard cannot test.
 5. **Cut off.** Keep the top K₂ researchers (proposal: 5, the current `TOP_K_MATCHES`). A floor applied per pair would be nearly inert: at the 99th percentile of random-pair cosine about 78 of 7,822 random works pass per paper, more than K₁ and K₂ keep anyway. So the floor acts per **paper**: if the paper's best researcher score is below it, the paper shows no researchers ("no BOUN match"). The floor is set per `embedding_version` from a chosen target, e.g. "at most 1 in 20 random papers gets a match", derived from the best-match distribution of random (paper, BOUN index) pairs, so it carries over when the model changes. Same constant in the job and the read path.
 6. **Store** matches and evidence rows with the version.
 7. **Show** the researchers with their matched works (evidence rows), as now.
 8. **Feedback** stores the version, score and rank shown.
 
-**No stage 2.** A reranker comes back only after it shows a gain on the app's own checks (5.2) and on feedback. The only candidate with evidence is Qwen3-Reranker-4B fused with the embedding score (+3.2 R-precision, Holm p = 0.040, on a different task).
+**No stage 2** (removed in PR 2). A reranker comes back only after it shows a gain on feedback. The evidence against one is now stronger than at drafting time:
+- Qwen3-Reranker-4B fused with the embedding helped on citation labels (+3.2 R-precision, Holm p = 0.040) but not on human labels (0.233 vs 0.222, post-hoc); alone it is worse on human labels (0.268).
+- Listwise Llama is order-sensitive in a model-dependent direction (3.2 3B favours the first candidates, 3.1 8B the last). Shuffled, both trail the embedding on both label sources.
+- Cost: about 0.35 s per pointwise call (3B), 7–9 s per listwise list (3B), about 18 s (8B), against one encoder call per new paper.
 
-**From `app-mtplx-stage2`, salvage** the discipline, not the code path: a strict score-only parser that logs failures, an LLM floor separate from the cosine floor, and the unit tests. The branch is otherwise not merged.
+**Citation signals** are not part of the scoring. Bibliographic coupling adds nothing significant on top of Qwen3-Embedding (0.212 vs 0.222, Holm p = 1.0), and only 52 of 200 recent followed-institution papers share any reference with a BOUN work. Strong coupling is a high-precision positive (top decile: mean rating 4.50), but D10 keeps it out of the checks for now.
 
-### Model choice
+Branch `app-mtplx-stage2` is superseded by PR 2 and can be deleted.
 
-- Qwen3-Embedding-8B was best in every benchmark, MiniLM within about 4 R-precision points (v2) at a fraction of the cost.
+### Model choice (D1, D2)
+
+- Qwen3-Embedding-8B was best on both label sources: R-precision 87.0 / 80.1 on the citation pools, loss 0.222 [0.177, 0.274] on the gold standard. MiniLM is within about four R-precision points and at 0.242 on the gold standard, so it stays the fallback if an 8B model cannot be hosted (O1).
 - 0.6B and 4B Qwen3-Embedding were not tested. Matryoshka truncation of 8B was not tested.
-- **Query instruction prefix.** The model card asks for a one-sentence instruction on queries (`Instruct: {task}\nQuery:{query}`) and none on documents. The research never used one (same text format both sides), so all reported numbers are without it. Worth one measured comparison on the 5.2 checks (it cannot be judged for relevance offline); if adopted, it goes into `embedding_version`.
-- The full 7,822-work re-embed is the cost of any model change. Measure throughput on 200 works first and report the estimate before the full run.
+- **Query instruction prefix.** The model card asks for a one-sentence instruction on queries (`Instruct: {task}\nQuery:{query}`) and none on documents. Every number in the research and the paper is without it (a stated limitation of the paper). Worth one measured comparison on the gold standard and the 5.2 checks; if adopted, it goes into `embedding_version` and forces a full re-embed (O3).
+- A model change means re-embedding all 7,822 works. Measure throughput on 200 works first and report the estimate before the full run.
 
-### Data handling
+### Data handling (D4, D5)
 
-- **Large collaborations.** 1,004 works have 100+ authors; 311 researchers have only such works. Zero weight would remove those 311 from the app entirely. Proposal: keep them, and multiply a work's cosine by a factor < 1 when it has 100+ authors (D4).
-- **Missing abstracts.** 1,237 works have none, and the 591 Crossref/S2 abstracts are not in the repo. Either embed those from title + topics, or have the seeder look them up at load time and store them in the database only (D5).
-- **Turkish and bilingual works** (245 tr, 81 mixed). The research covered English only. Proposal: embed as is, record `language_flag`, and check in 5.2 whether Turkish works ever reach the top K for English papers.
+- **Large collaborations** at full weight, flagged by `large_collaboration` (D4). 1,004 works have 100+ authors; 311 researchers have only such works. PR 5's exposure check decides whether a weight is added.
+- **Missing abstracts** (D5). Crossref/S2 abstracts (591 works) are used for the vector only; works with no abstract anywhere (1,237) are embedded from the title and flagged.
+- **Turkish and bilingual works** (245 tr, 81 mixed). The research covered English only. Embed as is, record `language_flag`, and check in 5.2 whether Turkish works reach the top K for English papers.
 - **Split author ids.** Not merged automatically. Proposal: keep the read-path de-duplication, but on (normalised name, shared works) instead of the display name alone; a manual alias table is the fallback.
 
 ## 5. Evaluation plan
@@ -171,8 +180,9 @@ At 7,822 rows × 4,096 dims (~128 MB as float32) this is a sequential scan, well
 
 There is no offline ground truth for "researcher X works on this paper's topic". Citation positives (paused) and authorship positives (dropped) define a different task, and human judgments are out of scope. So:
 
+- **Evidence for the scoring function** comes from the research: the gold standard (human expertise ratings, within one researcher, CS only) and the citation benchmark agree on the model and on dropping stage 2 (Kendall τ 0.79 between the two label sources over 8 methods). It does not cover the app's direction (researchers for one paper), the cut-off, or non-CS fields.
 - **Offline checks** below are consistency and regression checks. They catch broken embeddings, version drift and bad cut-offs. They do **not** measure relevance.
-- **Relevance** is measured only by feedback (5.3), once there is a database dump (TODO 6B.4).
+- **Relevance in the app's direction** is measured only by feedback (5.3), once there is a database dump (TODO 6B.4).
 
 ### 5.2 Offline checks (run on every model, template or aggregation change)
 
@@ -185,8 +195,7 @@ There is no offline ground truth for "researcher X works on this paper's topic".
 | Coverage | Too strict or too loose cut-off | Share of fetched papers with ≥ 1 researcher, and researchers per paper |
 | Topic agreement | Gross mismatches | Share of top-5 pairs sharing an OpenAlex primary topic field. Weak and partly circular (topics are in the text); a sanity read only |
 | Turkish and collaboration exposure | Data-handling choices in 4 | How often tr works and 100+-author works appear in top-5 evidence |
-
-Optional, only if you want them (you ruled these out as the definition of relevance): authorship leave-one-out and citation positives as **regression canaries**, i.e. "did a change make these numbers much worse", never reported as quality.
+| Authorship leave-one-out (D10) | Regressions in retrieval through a researcher's other works | BOUN works with a followed co-author as queries, the work itself excluded; share with a BOUN author in the top 10 (Experiment B baseline: 80.0% of 110). A regression signal, never quality |
 
 ### 5.3 Online feedback
 
@@ -198,27 +207,25 @@ Optional, only if you want them (you ruled these out as the definition of releva
 
 Each PR is small and leaves the app working. ⚠ = needs explicit approval before it runs.
 
-1. **Read path and constants.** Move `MATCH_THRESHOLD`/`TOP_K_MATCHES` into one place used by both job and read path. No behaviour change.
-2. **Remove stage 2.** Drop `_llm_generate` and the Llama call; store cosine scores only; label matches with the embedding model. Deletes the rematch job's duplicate code path by sharing one function. Tests for aggregation and cut-off on fixed vectors.
-3. ⚠ **Schema: works, authorships, versions, evidence, feedback snapshot** (section 3), added next to the old tables. Decide D9 (Alembic) here.
-4. ⚠ **Seeder from `research/data/boun/`** plus the embedding runtime decision (D1, D2): load works and authorships, embed once, write `embedding_version`. Long embedding run; throughput measured first.
+1. ✅ **Read path and constants** (senaoz/SWE-599#6). The cut-off rule is one function (`rank_researchers`) used by both jobs; no behaviour change.
+2. ✅ **Remove stage 2** (senaoz/SWE-599#7). Cosine scores only, `MATCH_AGGREGATION` parameter, shared job code, tests on fixed vectors. Also merged: vector binding through pgvector's type (#8).
+3. ⚠ **Alembic and schema** (D9): a baseline migration of the current schema, then works, authorships, versions, evidence and the feedback snapshot (section 3) next to the old tables. `init_db`'s drop-and-recreate block becomes a start-up error.
+4. ⚠ **Seeder from `research/data/boun/` and the `llama-server` encoder** (D1, D2, D5, D7): load works and authorships, embed once, write `embedding_version`.
+   - **Vector reuse.** The Experiment B cache (`research/data/v2/embeddings_boun/qwen.npz`, gitignored, local only) holds 8,016 Qwen3-Embedding-8B vectors from the D2 setup, keyed by the sha256 of the embedded text. The seeder can reuse a vector only if it builds the identical string (`src.boun_data.work_texts`: `f"{title} {abstract}".strip()`, abstract from OpenAlex or the Crossref/S2 cache). Check the hit rate and the runtime-equivalence test (3.4) before relying on it; the rest is embedded live.
+   - Needs the hosting decision (O1) for production.
 5. **Search in SQL and job switch, together with the read path and the calibrated floor.** Exact `<=>` top-K₁, aggregation, top-K₂ with floor; read path reads the new tables at the current version. Offline checks 5.2 reported in the PR.
-6. **Ingest fixes.** `from_created_date` (if available), cap logging, self-match rule, optional ⚠ backfill (count call per institution first; OpenAlex cost is small, local embedding time is the cost).
+6. **Ingest fixes.** `from_created_date` (if available, O2), the 200-per-run cap fixed, the self-match rule (D6), and the ⚠ 30-day backfill on first follow (D8; count call per institution first).
 7. **Feedback snapshot in the UI flow** and a small export script for 5.3.
 8. **Cleanup.** Drop old tables and columns, `profile_embedding`, the `.npz` writes into `research/`, and the `src.similarity` import.
 
-## 7. Decisions needed
+## 7. Open questions
 
-- **D1. Model and dimension.** Qwen3-Embedding-8B at 4,096 (exact search only), 8B truncated to ≤ 2,000 (indexable, untested), a smaller Qwen3-Embedding, or MiniLM.
-- **D2. Runtime.** Ollama as now, or `llama-server` as in the research (APP_NOTES 2026-10-11). Drop the Ollama Cloud fallback, since it can mix runtimes.
-- **D3. Aggregation.** Max (proposal) or mean of top 3.
-- **D4. Large collaborations.** Keep with a weight below 1 (proposal), keep at full weight, or exclude (removes 311 researchers).
-- **D5. Missing abstracts.** Title + topics only, or a Crossref/S2 lookup at seed time stored in the database only.
-- **D6. Self-matches.** Exclude the paper itself (by id, merged duplicate ids and DOI) from retrieval (proposal), or show "co-author" separately.
-- **D7. Text template.** App template (t+a+c, 2,048 characters both sides) or the research's best (`tac_600_1500`). In the research, 1,500 characters were the query (the paper looking for matches) and 600 the candidates; in the app that maps to 1,500 for the new external paper and 600 for BOUN works. Proposal: the research template with that mapping. Tag field: the fetcher uses OpenAlex `concepts` (`openalex.py`); the cleaned BOUN data has `concepts`, `topics` and `keywords`. Use the same field on both sides; `concepts` matches the research, but *to verify* that OpenAlex still fills `concepts` for new works, since `topics` superseded it.
-- **D8. Backfill.** None, or N months on first follow.
-- **D9. Migrations.** Introduce Alembic with PR 3, or keep `init_db` `ALTER`s.
-- **D10. Optional canaries.** Whether to add authorship and citation regression canaries to 5.2.
+D1–D10 are decided (section 8). Still open:
+
+- **O1. Hosting the encoder in production.** Production runs Ollama in Docker on the VPS. D2 needs a `llama-server` service there with the Q4_K_M GGUF (4.4 GB on disk) and enough RAM; the VPS size is not recorded in the repo. If it cannot host 8B, the fallback is MiniLM (D1), which changes `embedding_version` and needs a full re-embed. Decide before PR 4 reaches production.
+- **O2.** Whether OpenAlex's `from_created_date` filter is available on the current plan (PR 6).
+- **O3.** Whether to measure Qwen3-Embedding's query instruction prefix (section 4, Model choice). Not planned; it would force a full re-embed.
+- **O4.** A full re-embed of the BOUN index needs the gitignored Crossref/S2 abstract cache, which exists only on the author's machine (D5). Keep a backup of it, or accept title-only vectors for those 591 works after a re-embed elsewhere.
 
 ## 8. Decisions
 
