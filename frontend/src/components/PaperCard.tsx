@@ -10,6 +10,7 @@ interface Researcher {
   researcher_id: string;
   display_name: string;
   score: number;
+  matched_papers?: { title: string | null; score: number }[];
 }
 
 interface PaperCardProps {
@@ -105,34 +106,33 @@ export default function PaperCard({
       </button>
 
       {snippet && (
-        <p className="mb-3 text-sm text-tertiary leading-relaxed">{snippet}</p>
+        <p className="mb-3 line-clamp-4 text-sm leading-relaxed text-tertiary sm:line-clamp-none">{snippet}</p>
       )}
 
       {top_researchers.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-xs text-quaternary">BOUN matches:</span>
+        <div className="flex flex-col gap-2 border-t border-secondary pt-3">
+          <span className="text-xs font-medium text-tertiary">Boğaziçi researchers on this topic</span>
+          <div className="flex flex-wrap items-center gap-1.5">
           {top_researchers.map((r) => (
             <ResearcherChip
               key={r.researcher_id}
-              id={r.researcher_id}
               name={r.display_name}
               score={r.score}
+              matchedPapers={r.matched_papers}
               feedback={feedback[r.researcher_id] ?? null}
               onFeedback={(isRelevant) =>
                 handleFeedback(r.researcher_id, isRelevant)
               }
             />
           ))}
+          </div>
         </div>
       )}
 
       {top_researchers.length === 0 && (
-        <button
-          onClick={openModal}
-          className="mt-2 text-xs text-tertiary hover:text-brand-secondary transition-colors"
-        >
-          View details →
-        </button>
+        <p className="border-t border-secondary pt-3 text-xs text-tertiary">
+          No Boğaziçi researcher matched yet.
+        </p>
       )}
 
     </div>
