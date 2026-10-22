@@ -73,6 +73,7 @@ def research_dir(tmp_path, monkeypatch):
         "id": wid, "doi": doi, "duplicate_ids": json.dumps(dups), "title": title, "abstract": abstract,
         "abstract_source": "openalex" if abstract else "none", "type": "article", "first_date": "2024-01-01",
         "author_ids": json.dumps([a(x) for x in authors]), "large_collaboration": False, "language_flag": "en",
+        "primary_topic": "Graph theory" if "Graph" in title else "Proteins",
     } for wid, doi, dups, title, abstract, authors in WORKS]).to_csv(boun / "boun_works.csv.gz", index=False)
     pd.DataFrame([{"researcher_id": a(r), "display_name": f"Researcher {r}", "n_works": n}
                   for r, n in (("A1", 2), ("A2", 2), ("A3", 1))]).to_csv(boun / "researchers.csv.gz", index=False)
@@ -220,38 +221,163 @@ def test_matching_ranks_researchers_and_excludes_the_paper_itself(research_dir, 
     run(body)
 
 
+async def matched_paper_and_user(stub_encoder, pid="https://openalex.org/P1", **paper):
+    """Seed, add one new graph paper matched to A1 (rank 1) and A2 (rank 2), and one user."""
+    from backend.database import SessionLocal
+    from backend.models import FetchedPaper, User
+    from backend.services.matching import _match_and_store
+
+    await seed(stub_encoder)
+    async with SessionLocal() as db:
+        db.add(FetchedPaper(openalex_id=pid, title="New graph paper", **paper))
+        user = User(email="u@example.com", password_hash="x")
+        db.add(user)
+        await db.commit()
+        user_id = user.id
+    await _match_and_store([{"openalex_id": pid, "doi": None}], mix((0, 0.9), (3, 0.3))[None, :], "TEST")
+    return user_id
+
+
 def test_read_path_and_feedback_snapshot(research_dir, stub_encoder):
     from backend.config import EMBEDDING_VERSION
     from backend.database import SessionLocal
-    from backend.models import FetchedPaper, PaperFeedback, User
+    from backend.models import PaperFeedback, User
     from backend.routers.feedback import submit_feedback
     from backend.routers.papers import load_matches
     from backend.schemas import FeedbackRequest
-    from backend.services.matching import _match_and_store
     from sqlalchemy import select
 
     pid = "https://openalex.org/P1"
 
     async def body():
-        await seed(stub_encoder)
+        user_id = await matched_paper_and_user(stub_encoder)
         async with SessionLocal() as db:
-            db.add(FetchedPaper(openalex_id=pid, title="New graph paper"))
-            user = User(email="u@example.com", password_hash="x")
-            db.add(user)
-            await db.commit()
-            user_id = user.id
-        await _match_and_store([{"openalex_id": pid, "doi": None}], mix((0, 0.9), (3, 0.3))[None, :], "TEST")
-
-        async with SessionLocal() as db:
-            rows = await load_matches(db, [pid])
-            assert [m.researcher_id for m, _, _ in rows][:2] == ["A1", "A2"]
-            name, papers = rows[0][1], rows[0][2]
-            assert name == "Researcher A1"
-            assert [p.title for p in papers] == ["Graph neural networks", "Graph theory"]
+            rows = await load_matches(db, [pid], user_id)
+            assert [m.researcher_id for m in rows][:2] == ["A1", "A2"]
+            assert rows[0].display_name == "Researcher A1"
+            assert [p.title for p in rows[0].matched_papers] == ["Graph neural networks", "Graph theory"]
+            assert rows[0].matched_papers[0].work_id == "https://openalex.org/W1"
+            assert rows[0].matched_papers[0].year == 2024
+            assert rows[0].my_verdict is None
 
             user = await db.get(User, user_id)
-            await submit_feedback(FeedbackRequest(paper_openalex_id=pid, researcher_id="A2", is_relevant=True), user, db)
+            await submit_feedback(FeedbackRequest(
+                paper_openalex_id=pid, researcher_id="A2", verdict="partly", reason="too_general"), user, db)
             fb = await db.scalar(select(PaperFeedback))
-            assert (fb.embedding_version, fb.rank) == (EMBEDDING_VERSION, 2)
-            assert fb.score == pytest.approx(rows[1][0].score)
+            assert (fb.verdict, fb.reason, fb.embedding_version, fb.rank) == ("partly", "too_general", EMBEDDING_VERSION, 2)
+            assert fb.score == pytest.approx(rows[1].score)
+            assert (await load_matches(db, [pid], user_id))[1].my_verdict == "partly"
+
+            # "yes" drops the reason; None withdraws the answer.
+            await submit_feedback(FeedbackRequest(
+                paper_openalex_id=pid, researcher_id="A2", verdict="yes", reason="too_general"), user, db)
+            assert (await db.scalar(select(PaperFeedback.reason))) is None
+            await submit_feedback(FeedbackRequest(paper_openalex_id=pid, researcher_id="A2", verdict=None), user, db)
+            assert await db.scalar(select(PaperFeedback)) is None
+    run(body)
+
+
+def test_claim_and_for_me_feed(research_dir, stub_encoder):
+    from fastapi import HTTPException
+    from backend.database import SessionLocal
+    from backend.models import User
+    from backend.routers.auth import claim_researcher, unclaim_researcher
+    from backend.routers.papers import get_papers_for_me
+    from backend.schemas import ClaimRequest
+
+    async def body():
+        user_id = await matched_paper_and_user(stub_encoder)
+        async with SessionLocal() as db:
+            user = await db.get(User, user_id)
+            with pytest.raises(HTTPException) as e:
+                await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
+                                        current_user=user, db=db)
+            assert e.value.status_code == 409
+
+            me = await claim_researcher(ClaimRequest(researcher_id="A2"), user, db)
+            assert me.researcher.id == "A2" and me.researcher.display_name == "Researcher A2"
+            feed = await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
+                                           current_user=user, db=db)
+            assert [p.openalex_id for p in feed.papers] == ["https://openalex.org/P1"]
+            assert feed.papers[0].my_match.researcher_id == "A2" and feed.papers[0].my_match.rank == 2
+
+            await claim_researcher(ClaimRequest(researcher_id="A3"), user, db)
+            feed = await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
+                                           current_user=user, db=db)
+            assert feed.total == 0  # A3 is stored at rank 3 with cosine 0, below the 0.3 shown in Explore
+
+            with pytest.raises(HTTPException):
+                await claim_researcher(ClaimRequest(researcher_id="NOPE"), user, db)
+            assert (await unclaim_researcher(user, db)).researcher is None
+    run(body)
+
+
+def test_explore_field_filter_and_fields(research_dir, stub_encoder):
+    from backend.database import SessionLocal
+    from backend.models import FetchedPaper, User, UserFollow
+    from backend.routers.papers import get_papers, get_fields
+
+    inst = "https://openalex.org/I1"
+
+    async def body():
+        user_id = await matched_paper_and_user(stub_encoder, source_institution_id=inst, field="Mathematics",
+                                               type="article", doi="10.9/p1")
+        async with SessionLocal() as db:
+            db.add(FetchedPaper(openalex_id="https://openalex.org/P2", title="Other", source_institution_id=inst,
+                                field="Medicine", type="dataset"))
+            db.add(UserFollow(user_id=user_id, institution_openalex_id=inst, institution_name="Inst"))
+            await db.commit()
+            user = await db.get(User, user_id)
+            assert [(f.field, f.count) for f in await get_fields(user, db)] in (
+                [("Mathematics", 1), ("Medicine", 1)], [("Medicine", 1), ("Mathematics", 1)])
+
+            kwargs = dict(page=1, limit=20, institution_id=None, from_date=None, to_date=None, min_score=0.3,
+                          include_unmatched=True, search=None, concept=None, current_user=user, db=db)
+            assert (await get_papers(field=None, **kwargs)).total == 2
+            only = await get_papers(field="Mathematics", **kwargs)
+            assert [p.openalex_id for p in only.papers] == ["https://openalex.org/P1"]
+            assert (only.papers[0].type, only.papers[0].doi) == ("article", "10.9/p1")
+            assert only.papers[0].top_researchers[0].researcher_id == "A1"
+    run(body)
+
+
+def test_researcher_profile_and_admin_feedback(research_dir, stub_encoder):
+    from backend.database import SessionLocal
+    from backend.models import User
+    from backend.routers.admin import feedback_summary
+    from backend.routers.feedback import submit_feedback
+    from backend.routers.researchers import researcher_profile
+    from backend.schemas import FeedbackRequest
+
+    pid = "https://openalex.org/P1"
+
+    async def body():
+        user_id = await matched_paper_and_user(stub_encoder)
+        async with SessionLocal() as db:
+            profile = await researcher_profile(db, ["A1"])
+            assert profile.topics == ["Graph theory"]
+            assert {w.title for w in profile.recent_works} == {"Graph neural networks", "Graph theory"}
+            assert [(c.id, c.shared_works) for c in profile.coauthors] == [("A2", 1)]  # through W4
+
+            user = await db.get(User, user_id)
+            await submit_feedback(FeedbackRequest(paper_openalex_id=pid, researcher_id="A1", verdict="yes"), user, db)
+            await submit_feedback(FeedbackRequest(
+                paper_openalex_id=pid, researcher_id="A2", verdict="no", reason="different_field"), user, db)
+            summary = await feedback_summary(user, db)
+            assert summary.total == 2
+            assert [(r.rank, r.yes, r.no) for r in summary.by_rank] == [(1, 1, 0), (2, 0, 1)]
+            assert summary.reasons == {"different_field": 1}
+    run(body)
+
+
+def test_init_db_refuses_a_schema_with_missing_columns():
+    from sqlalchemy import text
+    from backend.database import engine, init_db, SchemaError
+
+    async def body():
+        await init_db()
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE users DROP COLUMN researcher_id"))
+        with pytest.raises(SchemaError, match="users.researcher_id"):
+            await init_db()
     run(body)
