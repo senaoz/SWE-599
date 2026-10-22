@@ -6,6 +6,7 @@ import {
   Dialog,
 } from "@/components/application/modals/modal";
 import { Badge } from "@/components/base/badges/badges";
+import PublicationDate from "./PublicationDate";
 import client from "../api/client";
 import ResearcherModal from "./ResearcherModal";
 
@@ -110,11 +111,7 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
                         {data.source_institution_name}
                       </Badge>
                     )}
-                    {data?.publication_date && (
-                      <span className="text-xs text-tertiary">
-                        {data.publication_date}
-                      </span>
-                    )}
+                    <PublicationDate date={data?.publication_date ?? null} />
                   </div>
                   <button
                     type="button"

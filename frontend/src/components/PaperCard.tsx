@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/base/badges/badges";
 import ResearcherChip from "./ResearcherChip";
+import PublicationDate from "./PublicationDate";
 import PaperModal from "./PaperModal";
 import client from "../api/client";
 
@@ -81,9 +82,7 @@ export default function PaperCard({
             {source_institution_name}
           </Badge>
         )}
-        {publication_date && (
-          <span className="text-xs text-tertiary">{publication_date}</span>
-        )}
+        <PublicationDate date={publication_date} />
       </div>
 
       <button
