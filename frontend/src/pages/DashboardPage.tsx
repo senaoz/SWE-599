@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BookOpen01, ChevronDown, ChevronLeft, ChevronRight, FilterLines, SearchLg, XClose } from "@untitledui/icons";
 import client from "../api/client";
@@ -67,6 +67,35 @@ const SCORE_OPTIONS = [
 
 const control =
   "h-9 rounded-lg bg-primary px-3 text-sm text-primary shadow-xs ring-1 ring-primary ring-inset placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-brand";
+
+/** A native select (keyboard and mobile pickers for free) with our own arrow, spaced from the edge. */
+function SelectField({
+  label,
+  value,
+  onChange,
+  className,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className={cx("relative inline-flex", className)}>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cx(control, "w-full cursor-pointer appearance-none truncate pr-10")}
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-fg-quaternary" />
+    </span>
+  );
+}
 
 function todayIso(): string {
   const d = new Date();
@@ -243,11 +272,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Institution"
+          <SelectField
+            label="Institution"
             value={filters.institution_id}
-            onChange={(e) => setFilter("institution_id", e.target.value)}
-            className={cx(control, "w-full sm:w-auto sm:max-w-xs")}
+            onChange={(v) => setFilter("institution_id", v)}
+            className="w-full sm:w-auto sm:max-w-xs"
           >
             <option value="">All institutions</option>
             {institutions.map((i) => (
@@ -255,20 +284,20 @@ export default function DashboardPage() {
                 {i.institution_name}
               </option>
             ))}
-          </select>
+          </SelectField>
 
-          <select
-            aria-label="Match score"
+          <SelectField
+            label="Match score"
             value={filters.min_score}
-            onChange={(e) => setFilter("min_score", e.target.value)}
-            className={cx(control, "w-full sm:w-auto")}
+            onChange={(v) => setFilter("min_score", v)}
+            className="w-full sm:w-auto"
           >
             {SCORE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
-          </select>
+          </SelectField>
 
           <Button
             color="secondary"
