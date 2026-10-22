@@ -163,16 +163,15 @@ This setting ranks papers for one researcher, the reverse of our system's direct
 We report 95\% bootstrap confidence intervals over queries or researchers and compare methods with paired two-sided Wilcoxon signed-rank tests, Holm-corrected~\citep{holm1979simple} within each pre-specified family, and report mean differences with every test~\citep{sakai2016significance}.
 On citation labels, order-sensitive LLM methods are averaged over five shuffle seeds.
 The bibliographic-coupling analysis on human labels was pre-registered, the LLM design on human labels was fixed in code before any LLM loss was computed, and the fusion analyses on human labels are post-hoc; we mark them as such.
-% PENDING: Llama 3.1 8B currently has one shuffle seed on citation labels (seeds 1-4 = tier 3).
 
 \section{RQ1: Candidate Order Changes the Answer}
 \label{sec:rq1}
 We show each listwise model the same candidates in three orders: cited papers first, the order of our first evaluation; shuffled; and the reverse of the first order, so that the cited papers come last.
-Prompt, text and decoding are those of Section~\ref{sec:methods}; the comparison uses the 118 test queries of both benchmarks and one shuffle seed.
+Prompt, text and decoding are those of Section~\ref{sec:methods}; the comparison uses the 118 test queries of both benchmarks and shuffle seed 0.
 Table~\ref{tab:order} gives the results.
 
 \begin{table}[t]
-  \caption{R-precision (\%) of listwise rerankers under three candidate orders, citation labels, test split, one seed (\emph{random} / \emph{concept} negatives). Qwen3-Embedding does not depend on order. A random ranking scores 33.3.}
+  \caption{R-precision (\%) of listwise rerankers under three candidate orders, citation labels, test split, shuffle seed 0 (\emph{random} / \emph{concept} negatives). Qwen3-Embedding does not depend on order. A random ranking scores 33.3.}
   \label{tab:order}
   \small
   \begin{tabular}{@{}lccc@{}}
@@ -202,7 +201,7 @@ Nor is the effect an artefact of incomplete outputs: on the queries where a mode
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{order_mechanism}
-  \caption{Where each model ranks a candidate, by the position it was shown at: mean relative position in the model's own output, for tenths of the shown list, with 95\% bootstrap intervals over queries (shuffled lists, citation test split, both benchmarks, one seed). No labels are used.}
+  \caption{Where each model ranks a candidate, by the position it was shown at: mean relative position in the model's own output, for tenths of the shown list, with 95\% bootstrap intervals over queries (shuffled lists, citation test split, both benchmarks, shuffle seed 0). No labels are used.}
   \label{fig:mechanism}
 \end{figure}
 
@@ -214,17 +213,17 @@ The direction of the bias is a property of the model, not of the label source.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{position_bias_3b_8b}
-  \caption{Listwise Llama 3.2 3B and 3.1 8B under three candidate orders, with 95\% bootstrap intervals. Left and middle: R-precision on citation labels (test split, one shuffle seed). Right: weighted Kendall-$\tau$ loss on human labels (five seeds), axis inverted so that up is better in every panel. The 3B model does best when the relevant papers come first, the 8B model when they come last.}
+  \caption{Listwise Llama 3.2 3B and 3.1 8B under three candidate orders, with 95\% bootstrap intervals. Left and middle: R-precision on citation labels (test split, shuffle seed 0). Right: weighted Kendall-$\tau$ loss on human labels (five seeds), axis inverted so that up is better in every panel. The 3B model does best when the relevant papers come first, the 8B model when they come last.}
   \label{fig:order}
 \end{figure*}
 % Partial outputs per condition (test, seed 0): 3B 39-56 of 118; 8B 8-21 of 118. Human labels: 8B 870 of 870 ok; 3B 867 ok, 3 partial.
 
 \section{RQ2: Which Method Wins Under Controlled Order?}
 \label{sec:rq2}
-% Table 2: one column per label source (R-precision; weighted Kendall-tau loss). Pending: 8B seeds 1-4 (citation labels).
+% Table 2: one column per label source (R-precision; weighted Kendall-tau loss).
 % Embeddings were never tested against each other on human labels; published SPECTER2-max is 0.2215 vs Qwen3 0.2223.
 % Human labels: MiniLM 0.242 vs Qwen3 0.222. Gold standard ran a subset; LLMs saw profile titles, embeddings title+abstract.
-Under shuffled order, Qwen3-Embedding-8B has the best point estimate of the methods we ran on both label sources, 38--43 R-precision points ahead of the 3B listwise reranker and about 20 ahead of the 8B one, while a 22M-parameter MiniLM stays within 4.3 points of it.
+Under shuffled order, Qwen3-Embedding-8B has the best point estimate of the methods we ran on both label sources, 38--43 R-precision points ahead of the 3B listwise reranker and 20.6 / 17.3 ahead of the 8B one (66.3 / 62.8 over five seeds, Holm $p \le 2 \cdot 10^{-14}$), while a 22M-parameter MiniLM stays within 4.3 points of it.
 On human labels the 8B model improves on the 3B (loss 0.388 vs.\ 0.467) but stays well behind Qwen3-Embedding (0.222; worse for 46 of 58 researchers, Holm $p = 4.6 \cdot 10^{-6}$).
 Figure~\ref{fig:agreement} places the eight methods run on both label sources side by side.
 The two sources order them similarly (Kendall $\tau = 0.79$, 95\% bootstrap interval [0.57, 0.86]; three of 28 pairs swap): the embeddings lead on both, and the listwise Llama models trail on both, the 3B one close to a constant ranking on human labels.
@@ -233,7 +232,7 @@ The swaps involve the lexical methods and pointwise Llama, which is fourth on ci
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{fig3_label_agreement}
-  \caption{Citation labels (R-precision, \emph{random} negatives, test split) against human labels (weighted Kendall-$\tau$ loss, lower is better), with 95\% bootstrap intervals, for the eight methods run on both; Llama 3.1 8B has one shuffle seed on citation labels, the other LLM methods five. Up and to the right is better on both axes.}
+  \caption{Citation labels (R-precision, \emph{random} negatives, test split) against human labels (weighted Kendall-$\tau$ loss, lower is better), with 95\% bootstrap intervals, for the eight methods run on both; LLM methods are averaged over five shuffle seeds. Up and to the right is better on both axes.}
   \label{fig:agreement}
 \end{figure}
 
@@ -330,7 +329,7 @@ Because a 22M-parameter MiniLM stays within about four R-precision points of the
 \section{Limitations}
 \label{sec:limitations}
 \emph{Labels.} Citations measure what a paper cites, not what a reader finds relevant; people also cite methods, tools and background. The human labels cover 58 researchers, almost all in computer science, and rank papers for one researcher, the reverse of our system's direction; on them, the LLMs see a researcher's profile titles while the encoders see titles and abstracts. Our \emph{concept} negatives share a field with the query rather than its topic, so neither citation benchmark contains same-topic hard negatives.
-\emph{Models.} We test two general Llama models (3.2~3B and 3.1~8B, both 4-bit), which differ in release as well as size, one trained reranker and one cross-encoder; larger and hosted LLMs, and rerankers fine-tuned for listwise ranking, may behave differently. On citation labels the order conditions use one shuffle seed, and the prompts on human labels were written for the task without tuning. The embedding models run without their recommended instruction prefixes.
+\emph{Models.} We test two general Llama models (3.2~3B and 3.1~8B, both 4-bit), which differ in release as well as size, one trained reranker and one cross-encoder; larger and hosted LLMs, and rerankers fine-tuned for listwise ranking, may behave differently. On citation labels the order comparison uses one shuffle seed (the method comparison averages five), and the prompts on human labels were written for the task without tuning. The embedding models run without their recommended instruction prefixes.
 \emph{Contamination.} Only one test query appeared after the Llama models' training cutoff, Qwen3-Reranker-4B was released after every query, and the human labels have been public since 2023, so we cannot rule out that some models have seen the papers or their labels~\citep{sainz2023contamination}.
 
 \begin{acks}
@@ -345,7 +344,7 @@ This work began as a course project (SWE 599) at Boğaziçi University. I thank 
 \section{Data Quality and Robustness}
 \label{app:robustness}
 \emph{Abstracts.} About 6\% of OpenAlex ``abstracts'' are not abstracts (author lists, citation strings or another paper's title); dropping the affected test queries moves no method by more than 1.1 points.
-\emph{Seeds.} Over five shuffle seeds, the standard deviation of each 3B LLM method's R-precision is 0.8--2.0 points.
+\emph{Seeds.} Over five shuffle seeds, the standard deviation of each LLM method's R-precision is 0.8--2.0 points (listwise 8B: 0.9 / 2.0).
 \emph{Output failures.} Listwise 3B returns a partial ranking for 38\% of full-list calls (9--42 candidates); its sliding-window variant, at most 10 candidates per call, fails on about 2\% of queries and still scores 55.6 / 52.2, far below the embeddings. The 8B model returns partial rankings for 7--19\% of queries per condition, mostly as complete answers that leave out some candidates rather than as truncated ones. On human labels, lists are shorter and almost every call succeeds.
 \emph{Coverage.} Adding references found by title search raises profile coverage from 80.3\% to 85.2\% and changes no coupling conclusion.
 
