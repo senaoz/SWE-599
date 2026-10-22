@@ -44,7 +44,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 ## Main findings
 
 1. **Embedding models beat every LLM variant.** On v2, Qwen3-Embedding-8B reaches R-precision 87.0% [84.2, 89.7] on random negatives and 80.1% [77.0, 83.0] on topically matched ones. Listwise Llama 3.2 3B scores 43.9% and 42.0%, close to chance (33.3%) and about 40 points below Qwen3 (p ≈ 2·10⁻¹⁹).
-2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them. A larger model does not remove the effect but reverses it: Llama 3.1 8B favours the *last* candidates, with R-precision 73.9 / 69.0 when the cited papers come first and 89.4 / 85.9 when they come last, above Qwen3-Embedding (one shuffle seed; its human-label runs are in progress).
+2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them. A larger model does not remove the effect but reverses it: Llama 3.1 8B favours the *last* candidates, with R-precision 73.9 / 69.0 when the cited papers come first and 89.4 / 85.9 when they come last, above Qwen3-Embedding (one shuffle seed). The same reversal holds on human labels: the 8B model's loss is 0.413 with the best papers first and 0.253 with them last (Holm p = 7.7·10⁻⁵).
 3. **Reranking hurts the two-stage pipeline, and stage 1 is not the reason.** Qwen3's top 10 already holds about 90% of the true references; reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
 4. **Small embedding models are almost as good as large ones.** MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B.
 5. **The full corpus is much harder, and extra signals add little.** Against 11,967 papers, Qwen3's R-precision falls to 25.1%. Leakage-controlled co-citation expansion adds nothing significant; pointwise Llama halves nDCG@10; only Qwen3-Reranker-4B, fused with the embedding, helps modestly.
@@ -241,6 +241,7 @@ It also tests **bibliographic coupling** (a new paper and a researcher's paper c
 | Coupling, IDF-cosine, max (pre-registered) | 0.299 [0.248, 0.348] | not significant |
 | Pointwise Llama 3.2 3B | 0.337 [0.282, 0.395] | worse, Holm p = 3.9·10⁻⁴ |
 | Listwise Llama 3.2 3B, shuffled | 0.467 [0.442, 0.493] | worse, Holm p = 1.6·10⁻⁷ |
+| Listwise Llama 3.1 8B, shuffled (scale check) | 0.388 [0.339, 0.438] | worse, Holm p = 4.6·10⁻⁶ (own family) |
 | Forward citation (new paper cites a profile paper) | 0.468 [0.445, 0.488] | |
 | Constant | 0.500 | |
 
@@ -253,6 +254,7 @@ It also tests **bibliographic coupling** (a new paper and a researcher's paper c
 | Coupling + Qwen3-Embedding, linear fusion | 0.212 [0.164, 0.264] |
 | Listwise Llama, best-first (true order shown) | 0.253 [0.179, 0.328] |
 | Listwise Llama, worst-first | 0.685 [0.604, 0.765] |
+| Listwise Llama 3.1 8B, best-first / worst-first | 0.413 [0.323, 0.503] / 0.253 [0.194, 0.323] |
 
 The LLM prompts (notebook `17`) ask how qualified the researcher is to review the paper, with the same structure as on the citation benchmark. Listwise and pointwise Llama see the profile titles. Qwen3-Reranker-4B takes each profile paper as the query, max over the profile. The fused reranker (notebook `18`, weight by leave-one-participant-out) is better for 0 researchers, worse for 18 and tied for 40 (p = 1.96·10⁻⁴).
 
