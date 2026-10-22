@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { BookOpen01, ChevronLeft, ChevronRight } from "@untitledui/icons";
 import client from "../api/client";
 import PaperCard from "../components/PaperCard";
+import PageHeader from "../components/PageHeader";
 import PaperModal from "../components/PaperModal";
 import ResearcherModal from "../components/ResearcherModal";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
@@ -176,22 +177,23 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-primary">Latest Papers</h1>
-        <div className="flex items-center gap-3">
-          {hasActiveFilters && (
-            <button
-              onClick={resetFilters}
-              className="text-xs text-brand-secondary hover:underline"
-            >
-              Reset filters
-            </button>
-          )}
-          <span className="text-sm text-tertiary">
-            {data?.total ?? 0} papers
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="Latest papers"
+        description="New papers from the institutions you follow, with the Boğaziçi researchers who work on each topic."
+        actions={
+          <>
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="text-sm font-medium text-brand-secondary hover:underline"
+              >
+                Reset filters
+              </button>
+            )}
+            <span className="text-sm text-tertiary">{data?.total ?? 0} papers</span>
+          </>
+        }
+      />
 
       {/* Search bar */}
       <div className="mb-3 relative">

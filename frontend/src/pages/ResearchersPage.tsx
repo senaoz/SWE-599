@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SearchLg, User01, ChevronLeft, ChevronRight } from "@untitledui/icons";
+import { SearchLg, ChevronLeft, ChevronRight } from "@untitledui/icons";
 import client from "../api/client";
 import { Input } from "@/components/base/input/input";
 import ResearcherModal from "../components/ResearcherModal";
+import PageHeader from "../components/PageHeader";
 
 interface Researcher {
   id: string;
@@ -59,15 +60,11 @@ export default function ResearchersPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-2">
-        <User01 className="size-5 text-tertiary" />
-        <h1 className="text-xl font-semibold text-primary">Researchers</h1>
-        {data && (
-          <span className="ml-auto text-sm text-tertiary">
-            {data.total} researchers
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title="Researchers"
+        description="Boğaziçi University researchers with works since 2020."
+        actions={data && <span className="text-sm text-tertiary">{data.total} researchers</span>}
+      />
 
       <div className="mb-4">
         <Input

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Lightning01, Settings01, RefreshCcw01 } from "@untitledui/icons";
+import { Lightning01, RefreshCcw01 } from "@untitledui/icons";
 import client from "../api/client";
+import PageHeader from "../components/PageHeader";
 import { Button } from "@/components/base/buttons/button";
 
 interface Status {
@@ -66,10 +67,7 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-2">
-        <Settings01 className="size-5 text-tertiary" />
-        <h1 className="text-xl font-semibold text-primary">Admin</h1>
-      </div>
+      <PageHeader title="Admin" description="Matching status and manual runs." />
 
       {msg && (
         <div className="mb-6 rounded-xl bg-success-primary px-4 py-3 text-sm font-medium text-success-primary ring-1 ring-success_subtle">
