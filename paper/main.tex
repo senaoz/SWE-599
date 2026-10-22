@@ -12,8 +12,8 @@
 
 \begin{document}
 
-\title{Does LLM Reranking Help Scientific Paper Recommendation?}
-\subtitle{Evidence from Citation and Human Expertise Labels}
+\title{Do Small Local LLM Rerankers Help Scientific Paper Recommendation?}
+\subtitle{An Audit and Re-evaluation with Citation and Human Expertise Labels}
 
 \author{Sena Oz}
 \affiliation{%
@@ -22,7 +22,7 @@
   \country{Türkiye}}
 
 \begin{abstract}
-Small LLMs that run locally are an attractive second stage for scientific paper recommenders. We built such a recommender for researchers at Boğaziçi University and asked whether reranking embedding-retrieved papers with Llama improves it. Our first evaluation said it did; an audit of that evaluation found nine problems, chief among them that the cited papers were always shown to the LLM first. On a rebuilt, leak-free citation benchmark (118 queries, 13 methods and a larger Llama) and on expertise ratings from 58 researchers, we find that listwise LLM rerankers are sensitive to candidate order in a model-dependent direction: Llama 3.2 3B favours the first candidates and Llama 3.1 8B the last, so a single fixed order inflates the 3B model's score and can lift the 8B model above dense retrieval. Under shuffled order, no LLM reranker, second stage or citation-graph signal we tested beats Qwen3-Embedding-8B on both label sources, and a 22M-parameter encoder comes within about four R-precision points of it. We recommend evaluating LLM rerankers under several candidate orders and checking citation-derived labels against human judgments.
+Small LLMs that run locally are an attractive second stage for scientific paper recommenders. We built such a recommender for researchers at Boğaziçi University and asked whether reranking embedding-retrieved papers with Llama improves it. Our first evaluation said it did. We audit that evaluation, find nine problems, chief among them that the cited papers were always shown to the LLM first, and re-evaluate on a rebuilt, leak-free citation benchmark (118 queries, 13 methods and a larger Llama) and on expertise ratings from 58 researchers. We find that listwise LLM rerankers are sensitive to candidate order in a model-dependent direction: Llama 3.2 3B favours the first candidates and Llama 3.1 8B the last, so a single fixed order inflates the 3B model's score and can lift the 8B model above dense retrieval. Under shuffled order, no LLM reranker, second stage or citation-graph signal we tested beats Qwen3-Embedding-8B on both label sources, and a 22M-parameter encoder comes within about four R-precision points of it. We recommend evaluating LLM rerankers under several candidate orders and checking citation-derived labels against human judgments.
 \end{abstract}
 
 \keywords{scientific paper recommendation, LLM reranking, position bias, evaluation}
@@ -37,12 +37,13 @@ It retrieves candidates with an embedding model and was designed to rerank them 
 Whether that second stage earns its cost is the question of this paper.
 
 Our first evaluation answered it in the LLM's favour: on a citation benchmark, listwise Llama 3.2 3B reached MRR 0.84 against 0.51 for Qwen3-Embedding-8B.
-Auditing our own code, we found nine problems with that evaluation (Appendix~\ref{app:audit}).
+Auditing our own code, we found nine problems with that evaluation (Section~\ref{sec:audit}); this paper is a reproducibility study of our own claim.
 The most consequential for the LLM was that the cited papers were always shown first; we show below that candidate order alone reproduces its score, while its lead over the embeddings also depended on an indexing error that gave positive candidates other papers' text and so degraded every other method.
 We therefore rebuilt the evaluation and tested every conclusion on a second, independent label source: the self-reported reviewing expertise of 58 researchers~\citep{stelmakh2025gold}.
 
 Our contributions are:
 \begin{itemize}[leftmargin=*]
+  \item an audit that traces our first result to nine problems, listed as a checklist for evaluating LLM rankers (Section~\ref{sec:audit});
   \item a leak-free citation benchmark for paper recommendation, with controlled candidate order, two kinds of negatives and an 11,967-paper corpus whose co-citation graph obeys explicit, unit-tested leakage rules (Section~\ref{sec:setup});
   \item evidence that listwise LLM rerankers are sensitive to candidate order in a direction that depends on the model, Llama 3.2 3B favouring the first candidates and Llama 3.1 8B the last, on citation and human labels alike (Section~\ref{sec:rq1});
   \item a comparison of 13 methods on citation labels and eight on human labels, which order the shared methods similarly (Section~\ref{sec:rq2});
@@ -84,6 +85,27 @@ The gold standard of \citet{stelmakh2025gold}, in which researchers rated their 
 Co-citation~\citep{small1973cocitation} and bibliographic coupling~\citep{kessler1963coupling} are classic relatedness signals, and corpus graphs have been used to expand dense retrieval results~\citep{macavaney2022gar,kulkarni2023ladr}.
 Evaluating them on citation labels risks leakage, which we control with explicit rules.
 Our audit of our own first benchmark joins a line of work showing how weak baselines and flawed evaluation inflate reported progress in recommendation and retrieval~\citep{ferraridacrema2019progress,ferraridacrema2021troubling,lin2019neuralhype}.
+
+\section{Auditing the First Evaluation}
+\label{sec:audit}
+Our first benchmark ranked each query's cited references among sampled distractors and reported MRR 0.84 for listwise Llama 3.2 3B against 0.51 for Qwen3-Embedding.
+Auditing it, we found nine problems, which we list as a checklist for LLM ranking evaluations.
+Each item below was confirmed from the code or the stored outputs; per-query effects of F4 and F6 could not be recomputed because the original candidate pools no longer exist.
+
+\begin{enumerate}[label=F\arabic*,leftmargin=*]
+  \item Candidates were passed to every LLM method as positives followed by negatives.
+  \item The prompt's format example, \texttt{[3, 1, 7, \ldots]}, pointed at a positive.
+  \item A parse or HTTP failure returned the input order, putting positives first.
+  \item Negatives lacked the concept field that positives had, so the two groups differed in format.
+  \item The drop of the two-stage cascade was attributed to first-stage recall, which it was not.
+  \item A label-versus-position indexing error gave positive candidates the text of other papers, pushing every non-LLM method towards chance.
+  \item nDCG was normalized by the hits found rather than by the ideal ranking.
+  \item Negative sampling was seeded with Python's per-process salted \texttt{hash()}, so the pools could not be reproduced.
+  \item SPECTER2 was encoded with mean pooling instead of its [CLS] token.
+\end{enumerate}
+F1--F4 affect only the LLM methods, and F6 every method.
+The benchmark in Section~\ref{sec:setup} was rebuilt so that each item is checked in code, and its runs store the order shown to every method.
+Because the first pools cannot be regenerated (F8), we compare the two versions claim by claim rather than query by query.
 
 \section{Evaluation Setup}
 \label{sec:setup}
@@ -168,13 +190,22 @@ Table~\ref{tab:order} gives the results.
 
 The 3B model favours early candidates.
 Moving the cited papers from first to last costs it 42.3 R-precision points on \emph{random} and 54.2 on \emph{concept} negatives (paired Wilcoxon, $p \le 6 \cdot 10^{-12}$), and its MRR falls from 0.95 and 0.98 to 0.33 and 0.27, below the 0.56 of a random ranking on both benchmarks; R-precision falls to or below chance on both, significantly only on \emph{concept}.
-With the cited papers first, its MRR exceeds the 0.84 that our first evaluation reported, so candidate order alone accounts for the LLM's score there; even in that order it stays below Qwen3-Embedding ($p \le 0.031$), and its apparent lead in the first evaluation also needed the indexing error F6 (Appendix~\ref{app:audit}).
+With the cited papers first, its MRR exceeds the 0.84 that our first evaluation reported, so candidate order alone accounts for the LLM's score there; even in that order it stays below Qwen3-Embedding ($p \le 0.031$), and its apparent lead in the first evaluation also needed the indexing error F6 (Section~\ref{sec:audit}).
 
 The 8B model favours late candidates.
 Its R-precision rises by 15.5 and 16.9 points when the cited papers move to the end ($p < 10^{-4}$), and in that order it scores above Qwen3-Embedding on both benchmarks, significantly on \emph{concept} ($p = 0.004$) but not on \emph{random} ($p = 0.10$).
 The two models fail in different ways.
 In shuffled lists, 52.6\% of the 3B model's rankings follow the order they were shown in (Spearman $\rho > 0.8$ between output and input position, over rankings with at least five candidates), against 0.9\% of the 8B model's; the 8B model reverses the shown order more often (10.3\% vs.\ 5.1\%), and half of its rankings (51.5\%) are close to order-independent ($|\rho| \le 0.3$).
 Order sensitivity therefore does not disappear with scale: a fixed order inflates the 3B model's score, and with the cited papers last it lifts the 8B model above dense retrieval.
+Figure~\ref{fig:mechanism} shows the same pattern without any labels: in shuffled lists the 3B model ranks the candidates shown in the first tenth of the list at a mean relative position of 0.24 and those in the last tenth at 0.73, while the 8B model does the reverse, more weakly (0.57 and 0.40).
+Nor is the effect an artefact of incomplete outputs: on the queries where a model returns a complete ranking in all three orders, moving the cited papers from first to last changes R-precision by $+32.9$ and $+41.9$ points for the 3B model (36 and 26 queries) and by $-12.0$ and $-12.1$ for the 8B (79 and 85 queries; all $p \le 8.4 \cdot 10^{-3}$).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{order_mechanism}
+  \caption{Where each model ranks a candidate, by the position it was shown at: mean relative position in the model's own output, for tenths of the shown list, with 95\% bootstrap intervals over queries (shuffled lists, citation test split, both benchmarks, one seed). No labels are used.}
+  \label{fig:mechanism}
+\end{figure}
 
 Both effects replicate on human labels (Figure~\ref{fig:order}, right).
 The 3B model's loss is 0.253 with the highest-rated papers first, 0.467 shuffled and 0.685 with them last (best- vs.\ worst-first, Holm $p = 1.4 \cdot 10^{-5}$).
@@ -197,7 +228,7 @@ The direction of the bias is a property of the model, not of the label source.
 Under shuffled order, Qwen3-Embedding-8B has the best point estimate of the methods we ran on both label sources, 38--43 R-precision points ahead of the 3B listwise reranker and about 20 ahead of the 8B one, while a 22M-parameter MiniLM stays within 4.3 points of it.
 On human labels the 8B model improves on the 3B (loss 0.388 vs.\ 0.467) but stays well behind Qwen3-Embedding (0.222; worse for 46 of 58 researchers, Holm $p = 4.6 \cdot 10^{-6}$).
 Figure~\ref{fig:agreement} places the eight methods run on both label sources side by side.
-The two sources order them similarly (Kendall $\tau = 0.79$; three of 28 pairs swap): the embeddings lead on both, and the listwise Llama models trail on both, the 3B one close to a constant ranking on human labels.
+The two sources order them similarly (Kendall $\tau = 0.79$, 95\% bootstrap interval [0.57, 0.86]; three of 28 pairs swap): the embeddings lead on both, and the listwise Llama models trail on both, the 3B one close to a constant ranking on human labels.
 The swaps involve the lexical methods and pointwise Llama, which is fourth on citation labels and sixth on human labels.
 
 \begin{figure}[t]
@@ -286,7 +317,7 @@ Failure handling matters as well: a parse failure must fall back to a random ord
 Aggregating over permutations~\citep{tang2024found} reduces the bias, but multiplies the cost of a stage that, in our experiments, did not help.
 
 \paragraph{Citation labels and human labels mostly agree.}
-The two label sources order the eight methods they share similarly (Kendall $\tau = 0.79$), and every claim about position bias and about the embedding's lead holds on both.
+The two label sources order the eight methods they share similarly (Kendall $\tau = 0.79$ [0.57, 0.86]), and every claim about position bias and about the embedding's lead holds on both.
 Two results do not transfer: pointwise Llama scores above the lexical baselines on citation labels (in point estimate) but below them on human labels, and fusing a trained reranker with the embedding helps on citation labels only.
 Citation-graph signals behave in between.
 When bibliographic coupling is strong, it is precise: the top decile of non-zero coupling scores has a mean rating of 4.50 and 88\% of its papers are rated 4 or higher, and a researcher's top paper by coupling is rated as highly as the top paper by Qwen3-Embedding (4.39 vs.\ 4.37).
@@ -311,26 +342,6 @@ This work began as a course project (SWE 599) at Boğaziçi University. I thank 
 \bibliography{refs}
 
 \appendix
-
-\section{Audit of the First Benchmark}
-\label{app:audit}
-Auditing the first version of our benchmark revealed nine problems, including a positives-first candidate order and, as the code shows, positive candidates that carried other papers' text, which we list as a checklist for LLM ranking evaluations.
-The first version reported MRR 0.84 for listwise Llama 3.2 3B against 0.51 for Qwen3-Embedding.
-Each item below was confirmed from the code or the stored outputs; per-query effects of F4 and F6 could not be recomputed because the original candidate pools no longer exist.
-
-\begin{enumerate}[label=F\arabic*,leftmargin=*]
-  \item Candidates were passed to every LLM method as positives followed by negatives.
-  \item The prompt's format example, \texttt{[3, 1, 7, \ldots]}, pointed at a positive.
-  \item A parse or HTTP failure returned the input order, putting positives first.
-  \item Negatives lacked the concept field that positives had, so the two groups differed in format.
-  \item The drop of the two-stage cascade was attributed to first-stage recall, which it was not.
-  \item A label-versus-position indexing error gave positive candidates the text of other papers, pushing every non-LLM method towards chance.
-  \item nDCG was normalized by the hits found rather than by the ideal ranking.
-  \item Negative sampling was seeded with Python's per-process salted \texttt{hash()}, so the pools could not be reproduced.
-  \item SPECTER2 was encoded with mean pooling instead of its [CLS] token.
-\end{enumerate}
-F1--F4 affect only the LLM methods, and F6 every method.
-The benchmark in Section~\ref{sec:setup} was rebuilt so that each item is checked in code, and its runs store the order shown to every method.
 
 \section{Data Quality and Robustness}
 \label{app:robustness}
