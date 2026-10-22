@@ -210,6 +210,7 @@ Each PR is small and leaves the app working. ⚠ = needs explicit approval befor
 4. **Calibrated floor and the 5.2 checks**, with the D10 canary and the D4 exposure check. The 0.3 floor removed no paper on the first run.
 5. **Ingest fixes.** `from_created_date` (if available, O2), the 200-per-run cap fixed, and the ⚠ 30-day backfill on first follow (D8; following sets a 14-day cursor today).
 6. **Feedback export** for 5.3 (the snapshot itself is stored since the rebuild).
+7. ✅ **Redesign around the Boğaziçi researcher** (2026-10-22, branch `app-redesign`, on top of #12 and #13). The main user is a Boğaziçi researcher (user decision): an account claims a researcher profile (unverified) and gets a **For me** feed; the institution feed becomes **Explore**. Scores are shown as levels (Strong / Likely / Weak), the matched BOUN work is shown on every card, researchers matched through the same work are grouped, and feedback asks "Works on this topic?" (yes / partly / no, with an optional reason) instead of thumbs; Admin summarizes answers by rank (section 5.3). New paper fields from OpenAlex: work type, field of the primary topic, open-access link.
 
 The planned cleanup PR is no longer needed: the rebuild removed the old tables and columns, `profile_embedding`, the `.npz` writes into `research/` and the `src.similarity` import.
 
@@ -218,7 +219,9 @@ The planned cleanup PR is no longer needed: the rebuild removed the old tables a
 D1–D10 are decided (section 8). Still open:
 
 - **O1. Hosting the encoder in production.** Production runs Ollama in Docker on the VPS. D2 needs a `llama-server` service there with the Q4_K_M GGUF (4.4 GB on disk) and enough RAM; the VPS size is not recorded in the repo. If it cannot host 8B, the fallback is MiniLM (D1), which changes `embedding_version` and needs a full re-embed. Seeding there without the gitignored research cache means embedding all 7,822 works live: about 6 h at the local speed of the first run (2.8 s per text with another 8B model loaded); copying the cache to the server avoids it. Decide before deploying the rebuild.
-- **O2.** Whether OpenAlex's `from_created_date` filter is available on the current plan (PR 6).
+- **O2.** ~~Whether OpenAlex's `from_created_date` filter is available.~~ Answered 2026-10-22: it needs a paid plan ("Plan upgrade required"). PR 5 has to filter on each work's `created_date` after the fetch instead, which also drops old records with future publication dates (Zenodo uploads dated 2027–2028).
+- **O5.** Profile claims are unverified: any account can claim any researcher. Before real users, verify claims (e.g. by the university email or ORCID).
+- **Follow-ups from the redesign:** a weekly email digest per researcher, "similar new papers" on the paper page, and department filters (OpenAlex has no departments, so they need a mapping).
 - **O3.** Whether to measure Qwen3-Embedding's query instruction prefix (section 4, Model choice). Not planned; it would force a full re-embed.
 - **O4.** A full re-embed of the BOUN index needs the gitignored Crossref/S2 abstract cache, which exists only on the author's machine (D5). Keep a backup of it, or accept title-only vectors for those 591 works after a re-embed elsewhere.
 

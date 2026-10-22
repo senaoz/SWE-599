@@ -75,9 +75,13 @@ Frontend runs at **http://localhost:5173**
    ```
 2. Go to **Institutions** → follow one or more institutions (a fixed list: MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google, Google DeepMind)
 3. Go to **Admin** → click **Run matching job now** (the scheduled job first runs 6 hours after start-up; **Rematch unmatched** reruns matching for papers with no match)
-4. Go to **Dashboard** → see papers matched to BOUN researchers
-5. Go to **Researchers** → browse/search all 3,648 BOUN researchers
-6. Mark a listed researcher as relevant or not (thumbs-up/down); feedback is stored with the embedding version, score and rank that were shown, but not yet used for matching
+4. Go to **For me** → find your Boğaziçi profile and click **This is me**. The page then lists new papers close to your own works, with the work each one was matched through. Claiming is not verified: any account can claim any profile.
+5. Go to **Explore** → all new papers from the institutions you follow, with the Boğaziçi researchers grouped by the work they were matched through. Filter by field, date and match level.
+6. Answer "Works on this topic?" (Yes / Partly / No, with an optional reason) under a paper. Answers are stored with the embedding version, score and rank that were shown; **Admin** summarizes them by rank. They are not yet used for matching.
+
+Match levels (Strong / Likely / Weak) are bands of an uncalibrated cosine, not probabilities; the exact value is in the tooltip.
+
+A database created before this version stops start-up with "The database schema is older than the code"; there is no migration tool yet, so reset it with `docker compose down -v`.
 
 Only admins see the Admin page; the `/admin` API returns 403 for everyone else. Admin rights live in `users.is_admin` and are granted or revoked (`--revoke`) with `backend.make_admin`.
 
