@@ -1,9 +1,10 @@
 import { type FC, type ReactNode } from "react";
-import { Bell01, SearchLg, Settings01, BookOpen01 } from "@untitledui/icons";
+import { Bell01, SearchLg, Settings01 } from "@untitledui/icons";
 import { TabList, Tabs } from "@/components/application/tabs/tabs";
 import { DropdownAccountButton } from "@/components/base/dropdown/dropdown-account-button";
 import { Input } from "@/components/base/input/input";
 import { cx } from "@/utils/cx";
+import Brand from "@/components/Brand";
 import { MobileNavigationHeader } from "./base-components/mobile-header";
 import { NavButton } from "./base-components/nav-button";
 import { NavList } from "./base-components/nav-list";
@@ -136,12 +137,13 @@ export const HeaderNavigationBase = ({
     <>
       <MobileNavigationHeader>
         <aside className="flex h-full max-w-full flex-col overflow-auto bg-primary pt-4">
-          <div className="flex flex-col gap-5 px-4">
-            <BookOpen01 className="size-6" />
-            <Input aria-label="Search" placeholder="Search" icon={SearchLg} />
+          <div className="px-4">
+            <Brand />
           </div>
 
           <NavList items={items} />
+
+          {hasCustomActions && <div className="mt-auto border-t border-secondary p-4">{actions}</div>}
         </aside>
       </MobileNavigationHeader>
 
@@ -161,13 +163,7 @@ export const HeaderNavigationBase = ({
             <div
               className={cx("flex items-center", centered ? "flex-1" : "mr-4")}
             >
-              <a
-                aria-label="Go to homepage"
-                href="/"
-                className="rounded-xs outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                <BookOpen01 className="size-6" />
-              </a>
+              <Brand />
             </div>
 
             <nav>

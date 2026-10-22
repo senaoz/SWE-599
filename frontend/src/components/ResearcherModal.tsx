@@ -6,8 +6,10 @@ import {
   Dialog,
 } from "@/components/application/modals/modal";
 import { Badge, BadgeWithIcon } from "@/components/base/badges/badges";
-import { Link01 } from "@untitledui/icons";
+import { Link01, XClose } from "@untitledui/icons";
 import client from "../api/client";
+import PublicationDate from "./PublicationDate";
+import ScoreBar from "./ScoreBar";
 
 interface MatchedPaper {
   openalex_id: string;
@@ -87,9 +89,9 @@ export default function ResearcherModal({ name, onClose }: Props) {
                   type="button"
                   aria-label="Close"
                   onClick={onClose}
-                  className="shrink-0 text-quaternary hover:text-primary transition-colors text-lg leading-none cursor-pointer"
+                  className="shrink-0 cursor-pointer rounded-md p-1 text-fg-quaternary transition-colors hover:text-fg-secondary"
                 >
-                  ✕
+                  <XClose className="size-5" />
                 </button>
               </div>
 
@@ -143,13 +145,6 @@ export default function ResearcherModal({ name, onClose }: Props) {
                       ) : (
                         <ul className="space-y-2">
                           {data.matched_papers.map((p) => {
-                            const pct = Math.round(p.score * 100);
-                            const color =
-                              pct >= 70
-                                ? "success"
-                                : pct >= 50
-                                  ? "warning"
-                                  : "gray";
                             return (
                               <li
                                 onClick={(e) => {
@@ -163,7 +158,7 @@ export default function ResearcherModal({ name, onClose }: Props) {
                                   window.open(`/?paper=${paperId}`, "_blank");
                                 }}
                                 key={p.openalex_id}
-                                className="rounded-xl ring-1 ring-secondary p-3 cursor-pointer hover:bg-brand-solid/5 transition-colors"
+                                className="cursor-pointer rounded-xl p-3 ring-1 ring-secondary transition-colors hover:bg-primary_hover"
                               >
                                 <div className="flex flex-wrap items-center gap-2 mb-1.5">
                                   {p.source_institution_name && (
@@ -171,16 +166,10 @@ export default function ResearcherModal({ name, onClose }: Props) {
                                       {p.source_institution_name}
                                     </Badge>
                                   )}
-                                  {p.publication_date && (
-                                    <span className="text-xs text-tertiary">
-                                      {p.publication_date}
-                                    </span>
-                                  )}
-                                  <Badge type="color" color={color} size="sm">
-                                    {pct}% match
-                                  </Badge>
+                                  <PublicationDate date={p.publication_date} />
+                                  <ScoreBar score={p.score} className="ml-auto" />
                                 </div>
-                                <h4 className="text-sm font-medium">
+                                <h4 className="text-sm font-medium text-primary">
                                   {p.title ?? "(No title)"}
                                 </h4>
                               </li>
