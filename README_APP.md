@@ -4,6 +4,11 @@ Scholar Radar is an automated paper recommendation system for Boğaziçi Univers
 
 > The research in this repository found that an LLM reranking stage does not improve on Qwen3-Embedding alone, on citation labels or on human expertise labels, so the app has no second stage. The design and its decisions are in [`docs/MATCHING_DESIGN.md`](docs/MATCHING_DESIGN.md); known issues are in [`APP_NOTES.md`](APP_NOTES.md).
 
+
+<img width="1030" height="798" alt="Screenshot 2026-10-22 at 08 18 36" src="https://github.com/user-attachments/assets/a69ba0dd-3e77-415b-8b01-d6668709eeff" />
+<img width="1036" height="1125" alt="Screenshot 2026-10-22 at 08 18 51" src="https://github.com/user-attachments/assets/9326d338-4804-4753-9cd2-bb07e27a99bd" />
+
+
 ---
 
 ## How to Run
