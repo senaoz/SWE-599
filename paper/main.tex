@@ -174,15 +174,75 @@ The swaps involve the lexical methods and pointwise Llama, which is fourth on ci
 
 \section{RQ3: Does a Second Stage Help?}
 \label{sec:rq3}
-% Table 3: v2 cascade, full-corpus pointwise reranking, Qwen3-Reranker-4B fusion on both label sources.
-% Cascade numbers are 3B on fixed pools. Fusion: nDCG@10 not significant (Holm 0.22); notebook 18 is post-hoc.
 A second stage does not help: listwise reranking of the embedding's top 10 lowers R-precision by 10--13 points, and the one gain we found, fusing a trained reranker with the embedding score (+3.2 R-precision on citations), does not transfer to human labels.
+
+Table~\ref{tab:rerank} collects every second stage we tried on top of Qwen3-Embedding.
+In the cascade on the fixed pools, the embedding's top 10 already holds 93\% and 89\% of the cited papers, so the first stage leaves little to recover; listwise Llama reranking of those ten nonetheless lowers R-precision from 87.0 to 74.0 and from 80.1 to 69.7 ($p \le 3 \cdot 10^{-10}$).
+In the full corpus, where the embedding's top 100 is reranked, pointwise Llama alone halves nDCG@10, and fusing its score with the embedding's (weight chosen on dev) changes nothing.
+Qwen3-Reranker-4B, a model trained for reranking, ranks the top 100 better than the embedding on its own (within-list AUC 0.824 vs.\ 0.761) but improves nDCG@10 only when fused, by 0.021 points, which does not survive Holm correction; R-precision rises from 25.1 to 28.3 (Holm $p = 0.040$).
+On human labels the same reranker is worse than the embedding alone, and a post-hoc fusion with leave-one-researcher-out weights does not beat the embedding either.
+The only second-stage gain in this study therefore depends on the label source, and we do not claim it.
+
+\begin{table}[t]
+  \caption{Second stages on top of Qwen3-Embedding-8B, as the change from the embedding alone. Pools: R-precision (random / concept). Full corpus: nDCG@10 (embedding alone 0.340), reranking its top 100. Human labels: $\tau$ loss (embedding alone 0.222; lower is better). $p$: Holm-corrected Wilcoxon.}
+  \label{tab:rerank}
+  \small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Setting & Second stage & Change \\
+    \midrule
+    Pools & Llama 3B listwise, top 10 & $-13.0$ / $-10.4$ ($p \le 3 \cdot 10^{-10}$) \\
+    \midrule
+    Full corpus & Llama 3B pointwise & $-0.164$ ($p = 3.1 \cdot 10^{-11}$) \\
+     & \quad fused ($\alpha = 0.1$) & $-0.004$ (n.s.) \\
+     & Qwen3-Reranker-4B & $+0.002$ (n.s.) \\
+     & \quad fused ($\alpha = 0.8$) & $+0.021$ ($p = 0.22$) \\
+    \midrule
+    Human labels & Llama 3B pointwise & $+0.115$ ($p = 3.9 \cdot 10^{-4}$) \\
+     & Qwen3-Reranker-4B & $+0.046$ ($p = 9.4 \cdot 10^{-3}$) \\
+     & \quad fused (post-hoc) & $+0.011$ (no gain) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \section{RQ4: Do Citation-Graph Signals Add Information?}
 \label{sec:rq4}
-% Table 4: co-citation expansion (full corpus, canary +5.8, kNN control +0.3); bibliographic coupling (human labels):
-% alone 0.299; + SPECTER2 0.197 (Holm 8.3e-3); + Qwen3 n.s. Coupling as silver label: top decile 88% rated >= 4, 30% silent.
 Citation-graph signals add little on top of a strong dense model: co-citation expansion adds 0.8 recall@100 points (not significant) in the full corpus, and bibliographic coupling improves SPECTER2 but not Qwen3-Embedding on human labels.
+
+\paragraph{Co-citation in the full corpus.}
+Qwen3-Embedding finds 64.0\% [58.7, 69.4] of the cited papers in its top 100, so 36\% never reach a second stage.
+We replace the bottom 10\% of that list with the papers most often co-cited with its top 5~\citep{small1973cocitation}, following graph-based adaptive retrieval~\citep{macavaney2022gar}, with seed and replacement sizes chosen on dev.
+Under the five leakage rules (Section~\ref{sec:citation-labels}) only 54.7\% of test positives have any allowed citing paper; without the conservative date rule this would be 62.9\%, and without the date rule at all 68.1\%, so each rule removes real leaks, such as a 2012 record of a review that holds all ten references of a 2020 query.
+Table~\ref{tab:graph} shows the result.
+The expansion gains 0.8 points, not significantly, and little more than its controls: the same expansion over a degree-preserving random graph loses 0.5--0.9 points, and over a $k$-nearest-neighbour graph built from the embeddings themselves~\citep{kulkarni2023ladr} it gains 0.3; only 20 of the 548 positives in the expanded lists (3.6\%) came through the graph.
+A canary that adds each query's own references to the graph gains 5.8 points, so the method recovers papers when the signal is present; under leakage control, it is not.
+
+\paragraph{Bibliographic coupling on human labels.}
+Coupling scores a paper by the references it shares with a researcher's papers~\citep{kessler1963coupling}, a signal that exists as soon as a paper is published.
+In an analysis pre-registered before any score was computed, it carries real signal (loss 0.299, better than a constant ranking for 46 of 58 researchers, Holm $p = 4.2 \cdot 10^{-6}$) but trails every embedding, though not significantly.
+Fused with an embedding (weights chosen leave-one-researcher-out), it improves SPECTER2 significantly but not Qwen3-Embedding, the model the deployed system uses.
+On both label sources, the citation graph adds no significant gain to a strong dense model.
+
+\begin{table}[t]
+  \caption{Citation-graph signals. Full corpus: change in recall@100 from Qwen3-Embedding alone (64.0), 95\% paired bootstrap interval; co-citation is not significant (Holm $p = 1.0$), the canary is ($p = 1.6 \cdot 10^{-4}$). Human labels: $\tau$ loss (lower is better). $p$: Holm-corrected Wilcoxon against the dense model alone.}
+  \label{tab:graph}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Setting & Signal & Result \\
+    \midrule
+    Full corpus & Co-citation, all rules & $+0.8$ [$-0.4$, $+2.1$] \\
+     & Random graph (same degrees) & $-0.5$ to $-0.9$ \\
+     & Embedding $k$NN graph & $+0.3$ [$-0.6$, $+1.3$] \\
+     & Canary (own references) & $+5.8$ [$+3.6$, $+8.2$] \\
+    \midrule
+    Human & Coupling alone & 0.299 [0.248, 0.348] \\
+     & Qwen3 / + coupling & 0.222 / 0.212 ($p = 1.0$) \\
+     & SPECTER2 / + coupling & 0.231 / 0.197 ($p = 8.3 \cdot 10^{-3}$) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \section{Discussion}
 \label{sec:discussion}
