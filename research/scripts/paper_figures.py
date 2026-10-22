@@ -72,8 +72,10 @@ def fig_label_agreement() -> None:
                      "rprec": cit.loc[m, "rprec"], "rprec_lo": cit.loc[m, "rprec_lo"], "rprec_hi": cit.loc[m, "rprec_hi"],
                      "loss": hum.loc[g, "loss"], "loss_lo": hum.loc[g, "lo"], "loss_hi": hum.loc[g, "hi"]})
     d = pd.DataFrame(rows)
-    tau = kendalltau(d["rprec"], -d["loss"]).statistic
+    tau, tau_lo, tau_hi = tau_ci()
     d.to_csv(FIG_DIR / "fig3_label_agreement.csv", index=False, float_format="%.4f")
+    pd.DataFrame([{"kendall_tau": tau, "lo": tau_lo, "hi": tau_hi, "methods": len(d)}]).to_csv(
+        FIG_DIR / "fig3_label_agreement_tau.csv", index=False, float_format="%.4f")
 
     setup_style()
     fig, ax = plt.subplots(figsize=(3.3, 2.6))
@@ -106,7 +108,40 @@ def fig_label_agreement() -> None:
     fig.tight_layout()
     save(fig, "fig3_label_agreement")
     print(d[["method", "rprec", "rprec_lo", "rprec_hi", "loss", "loss_lo", "loss_hi"]].round(3).to_string(index=False))
-    print(f"Kendall tau between the two orderings (n={len(d)}): {tau:.3f}")
+    print(f"Kendall tau between the two orderings (n={len(d)}): {tau:.3f} [{tau_lo:.3f}, {tau_hi:.3f}]")
+
+
+# gold-standard prediction files (v2/goldstandard/predictions/<algo>_d_20_<i>_ta.json) per method
+PRED_ALGO = {"qwen": ("qwen", range(1, 11)), "specter2": ("specter2", range(1, 11)), "minilm": ("minilm", range(1, 11)),
+             "tfidf": ("tfidf", range(1, 11)), "bm25": ("bm25", range(1, 11)),
+             "llama-pointwise": ("pointwise-llama", range(1, 11)), "llama": ("listwise-shuffled", range(1, 6)),
+             "llama8b": ("listwise8b-shuffled", range(1, 6))}
+
+
+def tau_ci(n_boot: int = 2000) -> tuple[float, float, float]:
+    """Kendall tau between the two label sources' method orderings, with a 95% bootstrap CI that
+    resamples citation queries and gold-standard researchers (the same draws for every method)."""
+    from src import bibcoupling as bc
+    from src import goldstandard as gs
+    C = json.loads((V2 / "config.json").read_text())
+    tag = f"{C['fields']}_{C['max_chars']}_{C['query_max_chars']}"
+    pq = per_query(load_runs("random", tag, split="test"))
+    cit = pq.pivot(index="pi_id", columns="method", values="rprec")[list(METHODS)].dropna()
+    refs = gs.load(Path(__file__).resolve().parents[1] / "data" / "external" / "goldstandard")["refs"]
+    reviewers = sorted(refs)
+    tables = {m: [bc._reviewer_table(json.load(open(GS / "predictions" / f"{a}_d_20_{i}_ta.json")), refs) for i in S]
+              for m, (a, S) in PRED_ALGO.items()}
+    def human(pool):
+        return np.array([np.mean([bc._pooled(t, pool) for t in tables[m]]) for m in METHODS])
+    rng = np.random.default_rng(SEED)
+    point = kendalltau(cit.mean().to_numpy(), -human(reviewers)).statistic
+    taus = []
+    for _ in range(n_boot):
+        q = rng.integers(0, len(cit), len(cit))
+        pool = rng.choice(reviewers, len(reviewers), replace=True)
+        taus.append(kendalltau(cit.iloc[q].mean().to_numpy(), -human(pool)).statistic)
+    lo, hi = np.percentile(taus, [2.5, 97.5])
+    return float(point), float(lo), float(hi)
 
 
 ORDERS = {"original": "Cited first", "shuffled": "Shuffled", "reversed": "Cited last"}
@@ -184,6 +219,61 @@ def fig_position_bias_models() -> None:
     print(d.round(1).to_string(index=False))
 
 
+def fig_order_mechanism() -> None:
+    """Label-free view of order sensitivity: where each model puts a candidate in its own output,
+    by the position it was shown at (shuffled runs, seed 0, both benchmarks, model's parsed output)."""
+    from src.pipeline_v2 import read_run
+    from src.rankers_v2 import parse_listwise
+    C = json.loads((V2 / "config.json").read_text())
+    tag = f"{C['fields']}_{C['max_chars']}_{C['query_max_chars']}"
+    edges = np.linspace(0, 1, 11)
+    rows = []
+    for m in MODELS:
+        for bench in ("random", "concept"):
+            for r in read_run(V2 / "runs" / bench / tag / f"{m}__shuffled__s0.jsonl").values():
+                if r["split"] != "test":
+                    continue
+                order, _ = parse_listwise(r["raw"], r["n_cand"])
+                if len(order) < 5:
+                    continue
+                n, k = r["n_cand"], len(order)
+                for out_pos, in_idx in enumerate(order):
+                    rows.append({"model": m, "pi_id": r["pi_id"], "bench": bench,
+                                 "x": in_idx / (n - 1), "y": out_pos / (k - 1)})
+    d = pd.DataFrame(rows)
+    d["bin"] = np.clip(np.digitize(d["x"], edges[1:-1]), 0, 9)
+    # mean per (query, bin) first, so long lists do not dominate; then mean and 95% CI over queries
+    g = d.groupby(["model", "bench", "pi_id", "bin"])["y"].mean().reset_index()
+    rng = np.random.default_rng(SEED)
+    out = []
+    for (m, b), t in g.groupby(["model", "bin"]):
+        x = t["y"].to_numpy()
+        lo, hi = boot_ci(x, rng, N_BOOT)
+        out.append({"model": m, "bin": b, "x": (edges[b] + edges[b + 1]) / 2, "y": x.mean(), "lo": lo, "hi": hi,
+                    "lists": len(t)})
+    o = pd.DataFrame(out)
+    o.to_csv(FIG_DIR / "order_mechanism.csv", index=False, float_format="%.4f")
+
+    setup_style()
+    fig, ax = plt.subplots(figsize=(3.3, 2.5))
+    ax.plot([0, 1], [0, 1], color=INK_2, lw=0.8, ls="--", label="copies the shown order")
+    ax.plot([0, 1], [0.5, 0.5], color=INK_2, lw=0.8, ls=":", label="ignores the order")
+    for m, (name, color) in MODELS.items():
+        t = o[o["model"] == m].sort_values("x")
+        ax.fill_between(t["x"], t["lo"], t["hi"], color=color, alpha=0.18, lw=0)
+        ax.plot(t["x"], t["y"], "o-", color=color, ms=3.5, lw=1.5, label=name)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(1, 0)  # inverted: ranked first at the top
+    ax.set_xlabel("Position shown (0 = first, 1 = last)", fontsize=8)
+    ax.set_ylabel("Position in the model's ranking\n(0 = ranked first)", fontsize=8)
+    ax.tick_params(labelsize=7)
+    ax.legend(loc="lower left", fontsize=7, frameon=True, facecolor="white", edgecolor="none", framealpha=0.9)
+    fig.tight_layout()
+    save(fig, "order_mechanism")
+    print(o.pivot(index="bin", columns="model", values="y").round(2).to_string())
+
+
 if __name__ == "__main__":
+    fig_order_mechanism()
     fig_position_bias_models()
     fig_label_agreement()
