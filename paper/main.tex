@@ -7,6 +7,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
 \graphicspath{{../research/v2/figures/}}
+\hyphenation{Sci-Rep-Eval Embedding-Gemma}
 
 \begin{document}
 
@@ -43,10 +44,32 @@ Code, data and per-query results are available at \url{https://github.com/senaoz
 
 \section{Related Work}
 \label{sec:related}
-% To find and verify before citing (PAPER_NOTES.md): listwise LLM reranking (RankGPT), position bias and
-% permutation sensitivity, "lost in the middle", SPECTER2 / SciRepEval, citation recommendation benchmarks,
-% reviewer assignment and expert finding, co-citation and bibliographic coupling.
 Listwise LLM reranking has been reported to rival trained rankers, but LLMs are sensitive to where items appear in their input, and scientific-document embeddings are already strong baselines.
+
+\paragraph{LLMs as rerankers.}
+LLMs have been used to rerank retrieved candidates pointwise, by scoring each candidate on its own~\citep{sachan2022upr}; pairwise, by comparing two at a time~\citep{qin2024prp}; setwise~\citep{zhuang2024setwise}; and listwise, by returning an order for a whole list~\citep{sun2023rankgpt,ma2023lrl}, which has been distilled into open models~\citep{pradeep2023rankvicuna,pradeep2023rankzephyr}.
+Listwise prompting with a sliding window over long lists~\citep{sun2023rankgpt} is the setting closest to our cascade.
+In recommendation, LLMs have been studied as zero-shot rankers of candidate items~\citep{hou2024llmrank,dai2023chatgptrec}.
+Most of this work uses large hosted or fine-tuned models; we ask what a small local model, the kind a university system can afford to run, adds to an embedding retriever.
+
+\paragraph{Position bias.}
+LLM outputs depend on the position of information in the prompt: models use information at the start and end of a long context better than in the middle~\citep{liu2024lost}, few-shot predictions drift toward recent examples~\citep{zhao2021calibrate}, LLM judges prefer answers by their position~\citep{zheng2023judging,wang2024fair}, and multiple-choice answers depend on option order~\citep{pezeshkpour2024order,zheng2024selectors}.
+For ranking, \citet{tang2024found} reduce the effect by aggregating rankings over shuffled inputs, and \citet{hou2024llmrank} report that the order of candidates affects LLM recommenders.
+We add two observations: the direction of the bias changed between two sizes of the same model family, and a single fixed order in the evaluation can make a reranker look better than dense retrieval.
+
+\paragraph{Scientific documents.}
+Some encoders learn document embeddings from citations, as SPECTER~\citep{cohan2020specter} and SPECTER2~\citep{singh2023scirepeval} do; others are general sentence encoders~\citep{reimers2019sbert,wang2020minilm} or large embedding models~\citep{zhang2025qwen3embedding,vera2025embeddinggemma}, compared on benchmarks such as MTEB~\citep{muennighoff2023mteb} and SciRepEval.
+Citation recommendation uses a paper's references as relevance labels~\citep{bhagavatula2018citeomatic,farber2020citation}, a practice that surveys of research-paper recommenders also document~\citep{beel2016survey}.
+We use such labels too, but test every conclusion against human judgments.
+
+\paragraph{Expert finding and reviewer assignment.}
+Matching papers to people is studied as expertise retrieval~\citep{balog2012expertise} and reviewer assignment~\citep{mimno2007expertise,charlin2013tpms}.
+The gold standard of \citet{stelmakh2025gold}, in which researchers rated their own expertise, is our second label source; its direction (papers for one researcher) is the reverse of our system's (researchers for one paper).
+
+\paragraph{Citation graphs and evaluation practice.}
+Co-citation~\citep{small1973cocitation} and bibliographic coupling~\citep{kessler1963coupling} are classic relatedness signals, and corpus graphs have been used to expand dense retrieval results~\citep{macavaney2022gar,kulkarni2023ladr}.
+Evaluating them on citation labels risks leakage, which we control with explicit rules.
+Our audit of our own first benchmark joins a line of work showing how weak baselines and flawed evaluation inflate reported progress in recommendation and retrieval~\citep{ferraridacrema2019progress,ferraridacrema2021troubling,lin2019neuralhype}.
 
 \section{Evaluation Setup}
 \label{sec:setup}
@@ -102,7 +125,7 @@ This setting ranks papers for one researcher, the reverse of our system's direct
 
 \subsection{Statistics}
 \label{sec:stats}
-We report 95\% bootstrap confidence intervals over queries or researchers and compare methods with paired two-sided Wilcoxon signed-rank tests, Holm-corrected~\citep{holm1979simple} within each pre-specified family.
+We report 95\% bootstrap confidence intervals over queries or researchers and compare methods with paired two-sided Wilcoxon signed-rank tests, Holm-corrected~\citep{holm1979simple} within each pre-specified family, and report mean differences with every test~\citep{sakai2016significance}.
 On citation labels, order-sensitive LLM methods are averaged over five shuffle seeds.
 The bibliographic-coupling analysis on human labels was pre-registered, the LLM design on human labels was fixed in code before any LLM loss was computed, and the fusion analyses on human labels are post-hoc; we mark them as such.
 % PENDING: Llama 3.1 8B currently has one shuffle seed on citation labels (seeds 1-4 = tier 3).
