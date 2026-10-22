@@ -150,8 +150,8 @@ export const HeaderNavigationBase = ({
       <header className="max-lg:hidden">
         <section
           className={cx(
-            "flex h-16 w-full items-center justify-center bg-primary",
-            (!hideBorder || showSecondaryNav) && "border-b border-secondary",
+            "flex h-20 w-full items-center justify-center bg-secondary",
+            showSecondaryNav && !hideBorder && "border-b border-secondary",
           )}
         >
           <div
@@ -161,18 +161,25 @@ export const HeaderNavigationBase = ({
             )}
           >
             <div
-              className={cx("flex items-center", centered ? "flex-1" : "mr-4")}
+              className={cx("flex items-center", centered ? "flex-1" : "mr-12")}
             >
               <Brand />
             </div>
 
             <nav>
-              <ul className="flex items-center gap-0.5">
+              <ul className="flex items-center gap-8">
                 {items.map((item) => (
                   <li key={item.label}>
-                    <NavButton current={isActive(item)} href={item.href}>
+                    <a
+                      href={item.href}
+                      aria-current={isActive(item) ? "page" : undefined}
+                      className={cx(
+                        "rounded-xs text-md text-secondary underline-offset-6 outline-focus-ring transition duration-100 ease-linear hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2",
+                        isActive(item) && "text-primary underline decoration-1",
+                      )}
+                    >
                       {item.label}
-                    </NavButton>
+                    </a>
                   </li>
                 ))}
               </ul>

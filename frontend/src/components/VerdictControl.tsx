@@ -87,7 +87,7 @@ export default function VerdictControl({
               className={cx(
                 "cursor-pointer rounded-full px-2 py-0.5 text-xs ring-1 transition-colors",
                 reason === r.value
-                  ? "bg-brand-primary text-brand-secondary ring-brand"
+                  ? "bg-utility-brand-100 text-utility-brand-700 ring-utility-brand-300"
                   : "text-tertiary ring-secondary hover:text-secondary",
               )}
             >

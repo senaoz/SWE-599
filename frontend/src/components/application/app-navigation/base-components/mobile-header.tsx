@@ -13,7 +13,7 @@ import Brand from "@/components/Brand";
 export const MobileNavigationHeader = ({ children }: PropsWithChildren) => {
   return (
     <AriaDialogTrigger>
-      <header className="flex h-14 items-center justify-between border-b border-secondary bg-primary p-3 pl-4 lg:hidden">
+      <header className="flex h-14 items-center justify-between bg-secondary p-3 pl-4 lg:hidden">
         <Brand />
         <AriaButton
           aria-label="Expand navigation menu"

@@ -121,17 +121,30 @@
     --color-alpha-white: rgb(255 255 255);
     --color-alpha-black: rgb(0 0 0);
 
-    --color-brand-50: rgb(249 245 255);
-    --color-brand-100: rgb(244 235 255);
-    --color-brand-200: rgb(233 215 254);
-    --color-brand-300: rgb(214 187 251);
-    --color-brand-400: rgb(182 146 246);
-    --color-brand-500: rgb(158 119 237);
-    --color-brand-600: rgb(127 86 217);
-    --color-brand-700: rgb(105 65 198);
-    --color-brand-800: rgb(83 56 158);
-    --color-brand-900: rgb(66 48 125);
-    --color-brand-950: rgb(44 28 95);
+    /* Warm graphite accent and warm paper neutrals. */
+    --color-brand-50: rgb(244 242 237);
+    --color-brand-100: rgb(232 229 221);
+    --color-brand-200: rgb(214 209 198);
+    --color-brand-300: rgb(188 181 167);
+    --color-brand-400: rgb(150 143 129);
+    --color-brand-500: rgb(112 106 95);
+    --color-brand-600: rgb(64 61 55);
+    --color-brand-700: rgb(46 44 40);
+    --color-brand-800: rgb(36 34 31);
+    --color-brand-900: rgb(28 27 24);
+    --color-brand-950: rgb(20 19 17);
+
+    --color-neutral-50: rgb(239 237 231);
+    --color-neutral-100: rgb(230 227 219);
+    --color-neutral-200: rgb(218 214 204);
+    --color-neutral-300: rgb(198 193 181);
+    --color-neutral-400: rgb(158 152 140);
+    --color-neutral-500: rgb(122 116 105);
+    --color-neutral-600: rgb(94 89 80);
+    --color-neutral-700: rgb(72 68 61);
+    --color-neutral-800: rgb(52 49 44);
+    --color-neutral-900: rgb(46 44 40);
+    --color-neutral-950: rgb(26 25 22);
 
     /* LIGHT MODE VARIABLES */
 
@@ -345,7 +358,7 @@
     --color-fg-brand-secondary_hover: var(--color-brand-600);
 
     /* BACKGROUND COLORS */
-    --color-bg-primary: var(--color-white);
+    --color-bg-primary: rgb(249 248 244);
     --color-bg-tertiary: var(--color-neutral-100);
     --color-bg-brand-primary: var(--color-brand-50);
     --color-bg-error-secondary: var(--color-red-100);
@@ -366,7 +379,7 @@
     --color-bg-brand-secondary: var(--color-brand-100);
     --color-bg-secondary: var(--color-neutral-50);
     --color-bg-quaternary: var(--color-neutral-200);
-    --color-bg-primary_alt: var(--color-white);
+    --color-bg-primary_alt: rgb(249 248 244);
     --color-bg-brand-primary_alt: var(--color-brand-50);
     --color-bg-secondary_alt: var(--color-neutral-50);
     --color-bg-overlay: var(--color-neutral-950);
@@ -713,7 +726,7 @@
         --color-bg-warning-secondary: var(--color-yellow-600);
         --color-bg-success-primary: var(--color-green-950);
         --color-bg-success-secondary: var(--color-green-600);
-        --color-bg-brand-solid: var(--color-brand-600);
+        --color-bg-brand-solid: var(--color-brand-500);
         --color-bg-secondary-solid: var(--color-neutral-600);
         --color-bg-error-solid: var(--color-red-600);
         --color-bg-warning-solid: var(--color-yellow-600);
@@ -721,7 +734,7 @@
         --color-bg-secondary_hover: var(--color-neutral-800);
         --color-bg-primary_hover: var(--color-neutral-900);
         --color-bg-active: var(--color-neutral-800);
-        --color-bg-brand-solid_hover: var(--color-brand-500);
+        --color-bg-brand-solid_hover: var(--color-brand-400);
         --color-bg-error-primary: var(--color-red-950);
         --color-bg-brand-secondary: var(--color-brand-600);
         --color-bg-secondary: var(--color-neutral-900);

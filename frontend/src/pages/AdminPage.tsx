@@ -96,12 +96,12 @@ function timeAgo(iso: string): string {
 
 function Callout({ tone, icon: Icon, children }: { tone: "warning" | "success" | "brand"; icon: typeof Clock; children: ReactNode }) {
   const styles = {
-    warning: "bg-warning-primary text-warning-primary",
-    success: "bg-success-primary text-success-primary",
-    brand: "bg-brand-primary text-brand-secondary",
+    warning: "bg-utility-yellow-100 text-utility-yellow-700 ring-utility-yellow-300",
+    success: "bg-utility-green-100 text-utility-green-700 ring-utility-green-300",
+    brand: "bg-utility-brand-100 text-utility-brand-700 ring-utility-brand-300",
   };
   return (
-    <div className={cx("flex items-start gap-3 rounded-xl px-4 py-3 text-sm ring-1 ring-secondary", styles[tone])}>
+    <div className={cx("flex items-start gap-3 rounded-xl px-4 py-3 text-sm ring-1 ring-inset", styles[tone])}>
       <Icon className="mt-0.5 size-4 shrink-0" />
       <div>{children}</div>
     </div>
