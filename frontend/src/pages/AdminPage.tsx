@@ -11,6 +11,73 @@ interface Status {
   researcher_count: number;
   unmatched_count: number;
   last_run_at: string | null;
+  embedding_version: string;
+}
+
+interface FeedbackSummary {
+  embedding_version: string;
+  total: number;
+  by_rank: { rank: number; yes: number; partly: number; no: number }[];
+  reasons: Record<string, number>;
+}
+
+const REASON_LABELS: Record<string, string> = {
+  different_field: "Different field",
+  too_general: "Too general",
+  collaboration_only: "Only via a collaboration",
+  same_author: "Same author",
+};
+
+/** Answers to "works on this topic?" by the rank the researcher was shown at: the app's only relevance signal. */
+function FeedbackCard({ summary }: { summary: FeedbackSummary | null }) {
+  return (
+    <section className="rounded-xl bg-primary p-5 shadow-sm ring-1 ring-primary">
+      <h2 className="text-md font-semibold text-primary">Feedback</h2>
+      <p className="mt-1 mb-4 text-sm text-tertiary">
+        Answers to "works on this topic?" at the current model version, by the rank the researcher was shown at.
+      </p>
+      {!summary || summary.total === 0 ? (
+        <p className="text-sm text-tertiary">No answers yet.</p>
+      ) : (
+        <>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-tertiary">
+                <th className="pb-2 font-medium">Rank</th>
+                <th className="pb-2 font-medium">Yes</th>
+                <th className="pb-2 font-medium">Partly</th>
+                <th className="pb-2 font-medium">No</th>
+                <th className="pb-2 font-medium">Share yes</th>
+              </tr>
+            </thead>
+            <tbody className="tabular-nums text-secondary">
+              {summary.by_rank.map((r) => {
+                const n = r.yes + r.partly + r.no;
+                return (
+                  <tr key={r.rank} className="border-t border-secondary">
+                    <td className="py-1.5">{r.rank}</td>
+                    <td>{r.yes}</td>
+                    <td>{r.partly}</td>
+                    <td>{r.no}</td>
+                    <td>{n ? `${Math.round((100 * r.yes) / n)}% of ${n}` : "–"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {Object.keys(summary.reasons).length > 0 && (
+            <p className="mt-3 text-xs text-tertiary">
+              Reasons:{" "}
+              {Object.entries(summary.reasons)
+                .map(([k, n]) => `${REASON_LABELS[k] ?? k} ${n}`)
+                .join(" · ")}
+            </p>
+          )}
+          <p className="mt-2 text-xs text-quaternary">Small counts; read them as a direction, not a measurement.</p>
+        </>
+      )}
+    </section>
+  );
 }
 
 // The scheduled job runs every 6 hours (JOB_INTERVAL_HOURS); twice that without a fetch is worth a warning.
@@ -43,6 +110,7 @@ function Callout({ tone, icon: Icon, children }: { tone: "warning" | "success" |
 
 export default function AdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackSummary | null>(null);
   const [triggering, setTriggering] = useState(false);
   const [rematching, setRematching] = useState(false);
   const [startedAt, setStartedAt] = useState<{ kind: string; at: number } | null>(null);
@@ -60,6 +128,13 @@ export default function AdminPage() {
   }, []);
 
   useEffect(load, [load]);
+
+  useEffect(() => {
+    client
+      .get<FeedbackSummary>("/admin/feedback")
+      .then((r) => setFeedback(r.data))
+      .catch((err) => console.error("Could not load the feedback summary", err));
+  }, []);
 
   // While a job started from here may still be running, refresh the counts and the elapsed time.
   useEffect(() => {
@@ -118,7 +193,15 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <PageHeader title="Admin" description="Matching status and manual runs." />
+      <PageHeader
+        title="Admin"
+        description={
+          <>
+            Matching status, feedback and manual runs. Model version{" "}
+            <code className="rounded bg-secondary px-1 text-xs text-secondary">{status.embedding_version}</code>
+          </>
+        }
+      />
 
       <div className="mb-6 space-y-3">
         {startedAt && (
@@ -158,6 +241,8 @@ export default function AdminPage() {
       </div>
 
       <div className="space-y-4">
+        <FeedbackCard summary={feedback} />
+
         <section className="rounded-xl bg-primary p-5 shadow-sm ring-1 ring-primary">
           <h2 className="text-md font-semibold text-primary">Run the matching job</h2>
           <p className="mt-1 mb-4 text-sm text-tertiary">
