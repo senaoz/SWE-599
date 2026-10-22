@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 from datetime import date, datetime, timezone
 
@@ -9,12 +8,12 @@ import numpy as np
 from backend.config import (
     MATCH_THRESHOLD,
     MATCH_AGGREGATION,
-    OLLAMA_URL,
-    RETRIEVE_MODEL,
+    EMBEDDING_VERSION,
+    RETRIEVE_WORKS,
     RAG_RETRIEVE_TOP_K,
     RAG_CONTEXT_PAPERS,
 )
-from backend.services.ranking import match_papers
+from backend.services.ranking import rank_from_works
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +37,7 @@ async def _run_matching_job_impl() -> None:
     from backend.database import SessionLocal
     from backend.models import UserFollow, FetchCursor, FetchedPaper
     from backend.services.openalex import fetch_new_papers
+    from backend.services.seeder import normalize_doi
     from sqlalchemy import select, func, text as sa_text
 
     log.info("=" * 60)
@@ -93,13 +93,14 @@ async def _run_matching_job_impl() -> None:
                 result = await db.execute(
                     sa_text(
                         "INSERT INTO fetched_papers "
-                        "(openalex_id, title, abstract, concepts_text, publication_date, "
+                        "(openalex_id, doi, title, abstract, concepts_text, publication_date, "
                         "source_institution_id, source_institution_name) "
-                        "VALUES (:oid, :title, :abstract, :concepts, :pub_date, :inst_id, :inst_name) "
+                        "VALUES (:oid, :doi, :title, :abstract, :concepts, :pub_date, :inst_id, :inst_name) "
                         "ON CONFLICT (openalex_id) DO NOTHING"
                     ),
                     {
                         "oid": p["openalex_id"],
+                        "doi": normalize_doi(p.get("doi")),
                         "title": p.get("title"),
                         "abstract": p.get("abstract"),
                         "concepts": p.get("concepts_text"),
@@ -127,26 +128,17 @@ async def _run_matching_job_impl() -> None:
                 ))
         await db.commit()
 
-    # Pick up any previously-inserted papers that never got encoded (crashed runs)
+    # Pick up papers that were never encoded (crashed runs) or were encoded with another version
     async with SessionLocal() as db:
         unembedded = list(await db.execute(
-            select(
-                FetchedPaper.openalex_id,
-                FetchedPaper.title,
-                FetchedPaper.abstract,
-                FetchedPaper.concepts_text,
-            ).where(FetchedPaper.embedding.is_(None))
+            select(FetchedPaper.openalex_id, FetchedPaper.doi, FetchedPaper.title, FetchedPaper.abstract)
+            .where(FetchedPaper.embedding_version.is_distinct_from(EMBEDDING_VERSION))
         ))
-    if unembedded:
-        log.info("Found %d previously-inserted paper(s) without embeddings — adding to batch.", len(unembedded))
-        for row in unembedded:
-            if not any(p["openalex_id"] == row.openalex_id for p in all_new_papers):
-                all_new_papers.append({
-                    "openalex_id": row.openalex_id,
-                    "title": row.title,
-                    "abstract": row.abstract,
-                    "concepts_text": row.concepts_text,
-                })
+    new_ids = {p["openalex_id"] for p in all_new_papers}
+    extra = [_as_paper(r) for r in unembedded if r.openalex_id not in new_ids]
+    if extra:
+        log.info("Found %d earlier paper(s) without a current embedding — adding to batch.", len(extra))
+        all_new_papers += extra
 
     if not all_new_papers:
         log.info("No new papers to process — job done.")
@@ -162,10 +154,6 @@ async def _run_matching_job_impl() -> None:
     log.info("=" * 60)
     log.info("MATCHING JOB DONE — %d match(es) stored", total_matches)
     log.info("=" * 60)
-
-    import asyncio
-    from backend.services.seeder import export_fetched_paper_embeddings
-    asyncio.create_task(export_fetched_paper_embeddings())
 
 
 async def run_rematch_unmatched() -> None:
@@ -193,12 +181,14 @@ async def _run_rematch_unmatched_impl() -> None:
     async with SessionLocal() as db:
         rows = list(await db.execute(
             sa_text(
-                "SELECT openalex_id, title, abstract, concepts_text, embedding "
+                "SELECT openalex_id, doi, title, abstract, embedding, embedding_version "
                 "FROM fetched_papers fp "
                 "WHERE NOT EXISTS ("
-                "  SELECT 1 FROM paper_researcher_matches m WHERE m.paper_openalex_id = fp.openalex_id"
+                "  SELECT 1 FROM paper_researcher_matches m "
+                "  WHERE m.paper_openalex_id = fp.openalex_id AND m.embedding_version = :v"
                 ") ORDER BY openalex_id"
-            ).columns(embedding=FetchedPaper.embedding.type)
+            ).columns(embedding=FetchedPaper.embedding.type),
+            {"v": EMBEDDING_VERSION},
         ))
 
     if not rows:
@@ -207,11 +197,9 @@ async def _run_rematch_unmatched_impl() -> None:
 
     log.info("REMATCH JOB — %d unmatched paper(s) found.", len(rows))
 
-    def as_paper(r) -> dict:
-        return {"openalex_id": r.openalex_id, "title": r.title, "abstract": r.abstract, "concepts_text": r.concepts_text}
-
-    to_encode = [as_paper(r) for r in rows if r.embedding is None]
-    already_embedded = [r for r in rows if r.embedding is not None]
+    current = [r for r in rows if r.embedding is not None and r.embedding_version == EMBEDDING_VERSION]
+    current_ids = {r.openalex_id for r in current}
+    to_encode = [_as_paper(r) for r in rows if r.openalex_id not in current_ids]
 
     papers: list[dict] = []
     embs_list: list[np.ndarray] = []
@@ -221,8 +209,8 @@ async def _run_rematch_unmatched_impl() -> None:
             return
         papers += to_encode
         embs_list += list(embs)
-    for r in already_embedded:
-        papers.append(as_paper(r))
+    for r in current:
+        papers.append(_as_paper(r))
         embs_list.append(row_to_emb(r.embedding))
 
     total_matches = await _match_and_store(papers, np.vstack(embs_list), "REMATCH")
@@ -230,8 +218,8 @@ async def _run_rematch_unmatched_impl() -> None:
         log.info("REMATCH JOB DONE — %d match(es) stored", total_matches)
 
 
-def _paper_text(p: dict) -> str:
-    return f"{p.get('title') or ''} {p.get('abstract') or ''} {p.get('concepts_text') or ''}".strip()
+def _as_paper(r) -> dict:
+    return {"openalex_id": r.openalex_id, "doi": r.doi, "title": r.title, "abstract": r.abstract}
 
 
 async def _embed_and_store(papers: list[dict], job: str) -> np.ndarray | None:
@@ -239,14 +227,14 @@ async def _embed_and_store(papers: list[dict], job: str) -> np.ndarray | None:
     import asyncio
     from backend.database import SessionLocal
     from backend.models import FetchedPaper
-    from backend.services.embedding import encode_checked, emb_to_list
+    from backend.services.embedding import encode, emb_to_list, paper_text
     from sqlalchemy import update
 
-    log.info("%s — encoding %d paper(s) with %s …", job, len(papers), RETRIEVE_MODEL)
+    log.info("%s — encoding %d paper(s) …", job, len(papers))
     try:
-        embs = await asyncio.to_thread(encode_checked, [_paper_text(p) for p in papers], RETRIEVE_MODEL, OLLAMA_URL)
+        embs = await asyncio.to_thread(encode, [paper_text(p.get("title"), p.get("abstract")) for p in papers])
     except Exception as e:
-        log.error("%s — encoding failed (%s) — aborting. Is Ollama running at %s?", job, e, OLLAMA_URL)
+        log.error("%s — encoding failed (%s) — aborting. Is the encoder running?", job, e)
         return None
 
     async with SessionLocal() as db:
@@ -254,60 +242,88 @@ async def _embed_and_store(papers: list[dict], job: str) -> np.ndarray | None:
             await db.execute(
                 update(FetchedPaper)
                 .where(FetchedPaper.openalex_id == paper["openalex_id"])
-                .values(embedding=emb_to_list(emb))
+                .values(embedding=emb_to_list(emb), embedding_version=EMBEDDING_VERSION)
             )
         await db.commit()
     log.info("%s — stored %d paper embeddings", job, len(papers))
     return embs
 
 
+# Exact cosine search over the BOUN index at the current version, without the paper itself (D6):
+# the same OpenAlex id, a merged duplicate of it, or the same DOI.
+_SEARCH_SQL = """
+    SELECT openalex_id, 1 - (embedding <=> :q) AS cosine
+    FROM boun_works
+    WHERE embedding_version = :v
+      AND openalex_id <> :pid
+      AND NOT (:pid = ANY(duplicate_ids))
+      AND (CAST(:doi AS text) IS NULL OR doi IS DISTINCT FROM CAST(:doi AS text))
+    ORDER BY embedding <=> :q
+    LIMIT :k
+"""
+
+
 async def _match_and_store(papers: list[dict], paper_embs: np.ndarray, job: str) -> int | None:
-    """Rank BOUN researchers for each paper by cosine and store the top matches.
-
-    Returns the number of matches stored, or None if no BOUN embeddings are loaded yet.
-    """
+    """Retrieve BOUN works for each paper, rank their researchers and store the top matches with
+    their evidence. Returns the number of matches stored, or None if the BOUN index is empty."""
     from backend.database import SessionLocal
-    from backend.models import ResearcherPaper, PaperResearcherMatch
-    from backend.services.embedding import OLLAMA_MODEL_MAP, row_to_emb
-    from sqlalchemy import select
+    from backend.models import BounWork, BounAuthorship, PaperResearcherMatch, MatchEvidence
+    from backend.services.embedding import emb_to_list
+    from backend.services.seeder import normalize_doi
+    from pgvector.sqlalchemy import Vector
+    from sqlalchemy import select, delete, func, text as sa_text, bindparam
+
+    search = sa_text(_SEARCH_SQL).bindparams(bindparam("q", type_=Vector(paper_embs.shape[1])))
 
     async with SessionLocal() as db:
-        boun_rows = list(await db.execute(
-            select(ResearcherPaper.researcher_id, ResearcherPaper.paper_openalex_id, ResearcherPaper.embedding)
-            .where(ResearcherPaper.embedding.isnot(None))
-        ))
-    if not boun_rows:
-        log.warning("%s — no BOUN paper embeddings found (seeder may still be running) — aborting.", job)
-        return None
+        indexed = await db.scalar(
+            select(func.count(BounWork.openalex_id)).where(BounWork.embedding_version == EMBEDDING_VERSION)
+        )
+        if not indexed:
+            log.warning("%s — no BOUN works embedded at %s (seeder may still be running) — aborting.",
+                        job, EMBEDDING_VERSION)
+            return None
 
-    boun_embs = np.vstack([row_to_emb(r.embedding) for r in boun_rows])
-    researcher_ids = [r.researcher_id for r in boun_rows]
-    results = match_papers(paper_embs, boun_embs, researcher_ids, MATCH_THRESHOLD, RAG_RETRIEVE_TOP_K, MATCH_AGGREGATION)
-    model_label = OLLAMA_MODEL_MAP[RETRIEVE_MODEL]
+        total = 0
+        no_hits = 0
+        for paper, emb in zip(papers, paper_embs):
+            hits = [(r.openalex_id, float(r.cosine)) for r in await db.execute(search, {
+                "q": emb_to_list(emb), "v": EMBEDDING_VERSION, "pid": paper["openalex_id"],
+                "doi": normalize_doi(paper.get("doi")), "k": RETRIEVE_WORKS,
+            })]
+            authors: dict[str, list[str]] = {}
+            for wid, r_id in await db.execute(
+                select(BounAuthorship.work_id, BounAuthorship.researcher_id)
+                .where(BounAuthorship.work_id.in_([w for w, _ in hits]))
+            ):
+                authors.setdefault(wid, []).append(r_id)
 
-    total = 0
-    no_hits = 0
-    async with SessionLocal() as db:
-        for paper, ranked in zip(papers, results):
+            ranked = rank_from_works(hits, authors, MATCH_THRESHOLD, RAG_RETRIEVE_TOP_K, MATCH_AGGREGATION)
+
+            await db.execute(delete(PaperResearcherMatch).where(
+                PaperResearcherMatch.paper_openalex_id == paper["openalex_id"],
+                PaperResearcherMatch.embedding_version == EMBEDDING_VERSION,
+            ))
             if not ranked:
                 no_hits += 1
                 continue
-            for r_id, score, hits in ranked:
+            for rank, (r_id, score, r_hits) in enumerate(ranked, start=1):
                 db.add(PaperResearcherMatch(
-                    paper_openalex_id=paper["openalex_id"],
-                    researcher_id=r_id,
-                    score=round(score, 4),
-                    model=model_label,
-                    matched_paper_ids=json.dumps([
-                        {"id": boun_rows[j].paper_openalex_id, "score": round(s, 4)}
-                        for s, j in hits[:RAG_CONTEXT_PAPERS]
-                    ]),
+                    paper_openalex_id=paper["openalex_id"], researcher_id=r_id,
+                    embedding_version=EMBEDDING_VERSION, score=round(score, 4), rank=rank,
                 ))
-                total += 1
+            await db.flush()
+            for r_id, _, r_hits in ranked:
+                for cos, wid in r_hits[:RAG_CONTEXT_PAPERS]:
+                    db.add(MatchEvidence(
+                        paper_openalex_id=paper["openalex_id"], researcher_id=r_id,
+                        embedding_version=EMBEDDING_VERSION, work_id=wid, score=round(cos, 4),
+                    ))
+            total += len(ranked)
         await db.commit()
 
     log.info(
-        "%s — %d paper(s) against %d BOUN rows: %d match(es), %d paper(s) with no researcher above %.2f",
-        job, len(papers), len(boun_rows), total, no_hits, MATCH_THRESHOLD,
+        "%s — %d paper(s) against %d BOUN works: %d match(es), %d paper(s) with no researcher above %.2f",
+        job, len(papers), indexed, total, no_hits, MATCH_THRESHOLD,
     )
     return total

@@ -85,6 +85,7 @@ def fetch_new_papers(
 
             papers.append({
                 "openalex_id": work["id"],
+                "doi": work.get("doi"),
                 "title": work.get("title"),
                 "abstract": abstract,
                 "concepts_text": concepts_text,

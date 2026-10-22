@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.auth import get_current_user
 from backend.database import get_db
 from backend.models import User, Researcher, PaperResearcherMatch, FetchedPaper
+from backend.config import EMBEDDING_VERSION
 from backend.schemas import ResearcherOut, ResearchersResponse, ResearcherDetailOut, ResearcherMergedOut, MatchedPaperForResearcher
 
 router = APIRouter(prefix="/researchers", tags=["researchers"])
@@ -63,7 +64,7 @@ async def get_researcher_by_name(
     rows = await db.execute(
         select(PaperResearcherMatch, FetchedPaper)
         .join(FetchedPaper, PaperResearcherMatch.paper_openalex_id == FetchedPaper.openalex_id)
-        .where(PaperResearcherMatch.researcher_id.in_(researcher_ids))
+        .where(PaperResearcherMatch.researcher_id.in_(researcher_ids), PaperResearcherMatch.embedding_version == EMBEDDING_VERSION)
         .order_by(PaperResearcherMatch.score.desc())
         .limit(50)
     )
@@ -85,7 +86,7 @@ async def get_researcher_by_name(
 
     total_matches = await db.scalar(
         select(func.count(PaperResearcherMatch.paper_openalex_id))
-        .where(PaperResearcherMatch.researcher_id.in_(researcher_ids))
+        .where(PaperResearcherMatch.researcher_id.in_(researcher_ids), PaperResearcherMatch.embedding_version == EMBEDDING_VERSION)
     ) or 0
 
     return ResearcherMergedOut(
@@ -112,14 +113,14 @@ async def get_researcher(
 
     total_matches = await db.scalar(
         select(func.count(PaperResearcherMatch.paper_openalex_id))
-        .where(PaperResearcherMatch.researcher_id == researcher_id)
+        .where(PaperResearcherMatch.researcher_id == researcher_id, PaperResearcherMatch.embedding_version == EMBEDDING_VERSION)
     ) or 0
 
     offset = (page - 1) * limit
     rows = await db.execute(
         select(PaperResearcherMatch, FetchedPaper)
         .join(FetchedPaper, PaperResearcherMatch.paper_openalex_id == FetchedPaper.openalex_id)
-        .where(PaperResearcherMatch.researcher_id == researcher_id)
+        .where(PaperResearcherMatch.researcher_id == researcher_id, PaperResearcherMatch.embedding_version == EMBEDDING_VERSION)
         .order_by(PaperResearcherMatch.score.desc())
         .offset(offset)
         .limit(limit)

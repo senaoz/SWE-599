@@ -26,7 +26,7 @@ from backend.routers import auth, institutions, papers, admin, researchers, feed
 async def lifespan(app: FastAPI):
     await init_db()
 
-    # Seed researchers from boun.csv if table is empty
+    # Load the cleaned BOUN data if the tables are empty; works are embedded in the background
     from backend.services.seeder import seed_if_empty
     await seed_if_empty()
 
