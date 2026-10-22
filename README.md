@@ -17,14 +17,6 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 > **Correction (October 2026).** The final report (May 2026) presents v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)): candidates were always shown positives-first, the prompt's example pointed at a positive, and positive candidates carried other papers' text. Everything below comes from the rebuilt, leak-free v2 benchmark and later phases, and supersedes v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
 
-## Status (October 2026)
-
-| Part | State |
-|---|---|
-| Research | Done through notebook 18 (`research/v2/`). Paper draft in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline. |
-| App | **Rebuilt (October 2026):** stage 2 removed; one embedding stage (Qwen3-Embedding-8B on `llama-server`) over a per-work index of the cleaned Boğaziçi data, versioned matches and feedback, and a researcher-centred UI (For me / Explore). Design and decisions D1–D10: [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md). Next: a calibrated cut-off, ingest fixes, feedback export. |
-| Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **Obsolete:** the app no longer has a stage 2. Kept for reference, not to be merged. |
-
 ![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
 
 *The overview diagram covers every part of the project; each part has its own section below.*
@@ -292,6 +284,14 @@ So that nobody repeats them without a reason:
 - **Data quality** ([DATA_QUALITY.md](research/audit/DATA_QUALITY.md)). 155 listed references no longer exist in OpenAlex; 1.4% of positives are duplicate OpenAlex records of the same paper; about 6% of papers have an "abstract" that is not one. Dropping the affected test queries changes no method by more than about 1 point.
 - **Not a paired re-run of v1.** v1's candidate pools cannot be regenerated, so v1 and v2 numbers are compared claim by claim, not query by query ([BEFORE_AFTER.md](research/audit/BEFORE_AFTER.md)).
 - **No labelled benchmark for the app's direction** (researchers ranked for one paper). Model and scoring decisions rest on the citation benchmarks and the gold standard, which agree.
+
+## Status (October 2026)
+
+| Part | State |
+|---|---|
+| Research | Done through notebook 18 (`research/v2/`). Paper draft in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline. |
+| App | **Rebuilt (October 2026):** stage 2 removed; one embedding stage (Qwen3-Embedding-8B on `llama-server`) over a per-work index of the cleaned Boğaziçi data, versioned matches and feedback, and a researcher-centred UI (For me / Explore). Design and decisions D1–D10: [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md). Next: a calibrated cut-off, ingest fixes, feedback export. |
+| Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **Obsolete:** the app no longer has a stage 2. Kept for reference, not to be merged. |
 
 ## Next steps
 
