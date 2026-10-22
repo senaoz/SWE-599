@@ -7,3 +7,4 @@ build/
 *.log
 *.out
 *.synctex.gz
+comment.cut
