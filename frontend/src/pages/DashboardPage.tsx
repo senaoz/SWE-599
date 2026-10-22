@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BookOpen01, ChevronLeft, ChevronRight } from "@untitledui/icons";
+import { BookOpen01, ChevronDown, ChevronLeft, ChevronRight, FilterLines, SearchLg, XClose } from "@untitledui/icons";
 import client from "../api/client";
 import PaperCard from "../components/PaperCard";
 import PageHeader from "../components/PageHeader";
@@ -8,11 +8,14 @@ import PaperModal from "../components/PaperModal";
 import ResearcherModal from "../components/ResearcherModal";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { Button } from "@/components/base/buttons/button";
+import { Toggle } from "@/components/base/toggle/toggle";
+import { cx } from "@/utils/cx";
 
 interface Researcher {
   researcher_id: string;
   display_name: string;
   score: number;
+  matched_papers?: { title: string | null; score: number }[];
 }
 interface Paper {
   openalex_id: string;
@@ -41,6 +44,7 @@ interface Filters {
   from_date: string;
   to_date: string;
   hide_unmatched: boolean;
+  show_future: boolean;
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -51,7 +55,23 @@ const DEFAULT_FILTERS: Filters = {
   from_date: "",
   to_date: "",
   hide_unmatched: false,
+  show_future: false,
 };
+
+// Match-score options; the bands follow ScoreBar.
+const SCORE_OPTIONS = [
+  { value: "0.3", label: "All matches" },
+  { value: "0.55", label: "Good or better (55%+)" },
+  { value: "0.7", label: "Strong only (70%+)" },
+];
+
+const control =
+  "h-9 rounded-lg bg-primary px-3 text-sm text-primary shadow-xs ring-1 ring-primary ring-inset placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-brand";
+
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
@@ -66,6 +86,7 @@ export default function DashboardPage() {
     searchParams.get("researcher"),
   );
   const [searchInput, setSearchInput] = useState("");
+  const [moreFilters, setMoreFilters] = useState(false);
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -86,7 +107,10 @@ export default function DashboardPage() {
     if (filters.institution_id) params.institution_id = filters.institution_id;
     if (filters.min_score) params.min_score = filters.min_score;
     if (filters.from_date) params.from_date = filters.from_date;
-    if (filters.to_date) params.to_date = filters.to_date;
+    // Future-dated papers (often a journal's issue date) are hidden unless asked for.
+    const today = todayIso();
+    const toDate = filters.show_future ? filters.to_date : filters.to_date && filters.to_date < today ? filters.to_date : today;
+    if (toDate) params.to_date = toDate;
     if (filters.hide_unmatched) params.include_unmatched = false;
 
     client
@@ -195,150 +219,117 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Search bar */}
-      <div className="mb-3 relative">
-        <input
-          type="text"
-          placeholder="Search papers by title or abstract…"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="w-full rounded-xl bg-primary px-4 py-2.5 pl-10 text-sm text-primary placeholder:text-quaternary focus:outline-none focus:ring-2 focus:ring-brand-solid ring-1 ring-primary"
-        />
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-quaternary"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z"
+      {/* Search and filters */}
+      <div className="mb-6 space-y-3">
+        <div className="relative">
+          <SearchLg className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-quaternary" />
+          <input
+            type="text"
+            placeholder="Search papers by title or abstract…"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className={cx(control, "h-10 w-full pl-9", searchInput && "pr-9")}
           />
-        </svg>
-        {searchInput && (
-          <button
-            onClick={() => handleSearchChange("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-quaternary hover:text-secondary"
+          {searchInput && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => handleSearchChange("")}
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-fg-quaternary hover:text-fg-secondary"
+            >
+              <XClose className="size-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Institution"
+            value={filters.institution_id}
+            onChange={(e) => setFilter("institution_id", e.target.value)}
+            className={cx(control, "w-full sm:w-auto sm:max-w-xs")}
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
+            <option value="">All institutions</option>
+            {institutions.map((i) => (
+              <option key={i.institution_openalex_id} value={i.institution_openalex_id}>
+                {i.institution_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            aria-label="Match score"
+            value={filters.min_score}
+            onChange={(e) => setFilter("min_score", e.target.value)}
+            className={cx(control, "w-full sm:w-auto")}
+          >
+            {SCORE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+
+          <Button
+            color="secondary"
+            size="sm"
+            iconLeading={FilterLines}
+            iconTrailing={ChevronDown}
+            onClick={() => setMoreFilters((v) => !v)}
+            aria-expanded={moreFilters}
+            className={cx("h-9", moreFilters && "[&_svg:last-child]:rotate-180")}
+          >
+            More filters
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <Toggle
+            size="sm"
+            label="Show future-dated papers"
+            isSelected={filters.show_future}
+            onChange={(v) => setFilter("show_future", v)}
+          />
+          <Toggle
+            size="sm"
+            label="Hide papers without matches"
+            isSelected={filters.hide_unmatched}
+            onChange={(v) => setFilter("hide_unmatched", v)}
+          />
+        </div>
+
+        {moreFilters && (
+          <div className="grid grid-cols-1 gap-3 rounded-xl bg-primary p-4 ring-1 ring-secondary sm:grid-cols-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-secondary">Published from</span>
+              <input
+                type="date"
+                value={filters.from_date}
+                onChange={(e) => setFilter("from_date", e.target.value)}
+                className={control}
               />
-            </svg>
-          </button>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-secondary">Published until</span>
+              <input
+                type="date"
+                value={filters.to_date}
+                onChange={(e) => setFilter("to_date", e.target.value)}
+                className={control}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-secondary">Topic or tag</span>
+              <input
+                type="text"
+                placeholder="e.g. Machine learning"
+                value={filters.concept}
+                onChange={(e) => setFilter("concept", e.target.value)}
+                className={control}
+              />
+            </label>
+          </div>
         )}
-      </div>
-
-      {/* Filter bar */}
-      <div className="mb-6 rounded-xl bg-primary p-4 ring-1 ring-primary shadow-sm">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-tertiary">
-              Institution
-            </label>
-            <select
-              value={filters.institution_id}
-              onChange={(e) => setFilter("institution_id", e.target.value)}
-              className="rounded-lg border border-secondary bg-primary px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand-solid"
-            >
-              <option value="">All</option>
-              {institutions.map((i) => (
-                <option
-                  key={i.institution_openalex_id}
-                  value={i.institution_openalex_id}
-                >
-                  {i.institution_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-tertiary">
-              Min score
-            </label>
-            <input
-              type="number"
-              min={DEFAULT_FILTERS.min_score}
-              max="1"
-              step="0.05"
-              value={filters.min_score}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                const minScore = parseFloat(DEFAULT_FILTERS.min_score);
-                if (!isNaN(v) && v >= minScore)
-                  setFilter("min_score", e.target.value);
-              }}
-              className="rounded-lg border border-secondary bg-primary px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand-solid"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-tertiary">
-              From date
-            </label>
-            <input
-              type="date"
-              value={filters.from_date}
-              onChange={(e) => setFilter("from_date", e.target.value)}
-              className="rounded-lg border border-secondary bg-primary px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand-solid"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-tertiary">To date</label>
-            <input
-              type="date"
-              value={filters.to_date}
-              onChange={(e) => setFilter("to_date", e.target.value)}
-              className="rounded-lg border border-secondary bg-primary px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand-solid"
-            />
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-end justify-between gap-3">
-          <div className="flex flex-1 flex-col gap-1">
-            <label className="text-xs font-medium text-tertiary">
-              Topic / Tag
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Machine Learning"
-              value={filters.concept}
-              onChange={(e) => setFilter("concept", e.target.value)}
-              className="rounded-lg border border-secondary bg-primary px-2 py-1.5 text-sm text-primary placeholder:text-quaternary focus:outline-none focus:ring-2 focus:ring-brand-solid"
-            />
-          </div>
-          <label className="flex cursor-pointer items-center gap-2 select-none h-[38px]">
-            <div
-              onClick={() =>
-                setFilter("hide_unmatched", !filters.hide_unmatched)
-              }
-              className={`relative h-5 w-9 rounded-full transition-colors ${
-                filters.hide_unmatched ? "bg-brand-solid" : "bg-secondary"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                  filters.hide_unmatched ? "translate-x-4" : "translate-x-0.5"
-                }`}
-              />
-            </div>
-            <span className="text-xs text-secondary">
-              Hide unmatched papers
-            </span>
-          </label>
-        </div>
       </div>
 
       <div className={loading ? "opacity-60 pointer-events-none" : ""}>
