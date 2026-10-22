@@ -891,3 +891,9 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Mechanism figure** (`order_mechanism`, label-free): mean relative output position by tenth of the shown list, shuffled seed 0: 3B 0.24 (first tenth) → 0.73 (last tenth); 8B 0.57 → 0.40.
 - **τ interval.** Kendall τ between the two label sources over 8 methods 0.79 [0.57, 0.86] (2,000 joint bootstraps of queries and researchers). Recompute after tier 3.
 - **Framing.** Title "Do Small Local LLM Rerankers Help Scientific Paper Recommendation? An Audit and Re-evaluation with Citation and Human Expertise Labels"; the audit (F1–F9) moved from the appendix to Section 3; contributions open with the audit.
+
+### 2026-10-21 — Matching design updated to the current repo and the paper
+
+- **What.** `docs/MATCHING_DESIGN.md` brought up to date: section 2 describes the code after PRs 1, 2 and #8; the gap table marks stage 2 and the f-string SQL as done; sections 3–6 follow D1–D10 (no tag field, `doi` and `duplicate_ids` for the self-match rule, `embedding_version` example, aggregation, data handling, authorship canary in 5.2); the research summary and the no-stage-2 evidence now include the gold standard, Llama 3.1 8B and bibliographic coupling results; section 7 lists open questions instead of decisions.
+- **New open questions.** O1 hosting `llama-server` in production (production runs Ollama in Docker; the Q4_K_M GGUF is 4.4 GB; VPS size unknown), O2 `from_created_date`, O3 query instruction prefix, O4 the local-only Crossref/S2 cache needed for a full re-embed.
+- **PR 4 note.** The Experiment B cache holds 8,016 vectors keyed by the sha256 of the embedded text; the seeder can reuse one only if it builds the identical string.
