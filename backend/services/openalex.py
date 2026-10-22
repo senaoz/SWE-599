@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 from datetime import date as date_type
 from typing import Any
@@ -39,6 +40,22 @@ async def search_institutions(query: str, limit: int = 8) -> list[dict[str, Any]
         if q in inst["display_name"].lower()
     ]
     return results[:limit]
+
+
+def search_openalex_institutions(query: str, limit: int = 10) -> list[dict[str, Any]]:
+    """Search every institution in OpenAlex by name, or look one up by its OpenAlex id (I...)."""
+    from pyalex import Institutions
+
+    id_match = re.fullmatch(r"(?:https?://openalex\.org/)?(I\d+)", query.strip(), re.IGNORECASE)
+    fields = ["id", "display_name", "country_code"]
+    if id_match:
+        results = Institutions().filter(openalex_id=id_match.group(1).upper()).select(fields).get()
+    else:
+        results = Institutions().search(query).select(fields).get(per_page=limit)
+    return [
+        {"openalex_id": inst["id"], "display_name": inst["display_name"], "country_code": inst.get("country_code")}
+        for inst in results
+    ]
 
 
 def paper_from_work(work: dict[str, Any], institution_name: str | None) -> dict[str, Any]:

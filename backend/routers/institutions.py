@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import date, timedelta
 
@@ -21,6 +22,19 @@ router = APIRouter(prefix="/institutions", tags=["institutions"])
 async def search_institutions(q: str, _: User = Depends(get_current_user)):
     from backend.services.openalex import search_institutions as oa_search
     return await oa_search(q)
+
+
+@router.get("/openalex", response_model=list[InstitutionSearchResult])
+async def search_openalex(q: str, _: User = Depends(get_current_user)):
+    from backend.services.openalex import search_openalex_institutions
+    if len(q.strip()) < 2:
+        return []
+    try:
+        return await asyncio.to_thread(search_openalex_institutions, q.strip())
+    except Exception as e:
+        # The error text can hold the request URL, so log only its type.
+        log.warning("OpenAlex institution search failed: %s", type(e).__name__)
+        raise HTTPException(status_code=502, detail="OpenAlex search failed")
 
 
 @router.get("", response_model=list[FollowedInstitution])

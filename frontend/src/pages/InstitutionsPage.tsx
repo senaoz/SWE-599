@@ -39,7 +39,11 @@ export default function InstitutionsPage() {
     setFollowed((f) => f.filter((i) => i.institution_openalex_id !== id));
   };
 
-  const followedIds = new Set(followed.map((f) => f.institution_openalex_id));
+  const followedResults: SearchResult[] = followed.map((f) => ({
+    openalex_id: f.institution_openalex_id,
+    display_name: f.institution_name,
+    country_code: null,
+  }));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -50,7 +54,7 @@ export default function InstitutionsPage() {
 
       <InstitutionSearch
         onFollow={follow}
-        followedIds={followedIds}
+        followed={followedResults}
         onUnfollow={unfollow}
       />
     </div>
