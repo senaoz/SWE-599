@@ -21,7 +21,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 | Part | State |
 |---|---|
-| Research | Done through notebook 18 (`research/v2/`). Paper draft in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline ([PAPER_NOTES.md](research/audit/PAPER_NOTES.md)). |
+| Research | Done through notebook 18 (`research/v2/`). Paper draft in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline. |
 | Deployed app | **Unchanged since v1:** still Qwen3-Embedding → Llama 3.2 3B, seeded from the old `boun.csv`. The research says stage 2 should go; [APP_NOTES.md](APP_NOTES.md) collects what the app needs. |
 | App redesign | Draft in [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md): no LLM stage 2, a per-work Boğaziçi index on the cleaned data, versioned matches and feedback. Decisions D1–D10 open; no code yet. |
 | Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **On hold, not to be merged as is:** the feed's cosine filter (0.3) would hide every LLM-scored match. |
@@ -297,7 +297,7 @@ So that nobody repeats them without a reason:
 
 1. **Rebuild the app's matching** as drafted in [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md): the cleaned Boğaziçi data, one embedding per work, no LLM stage 2, a calibrated cut-off, and a model version on every match and feedback row. Decisions D1–D10 come first.
 2. **Use the app's feedback.** The app records thumbs-up/down on each paper–researcher match; relating it to offline scores needs a database dump.
-3. **The paper.** Benchmark paper with position bias as the headline; working notes in [PAPER_NOTES.md](research/audit/PAPER_NOTES.md). The full research plan with status notes is in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
+3. **The paper.** Benchmark paper with position bias as the headline; draft in [`paper/`](paper/). The full research plan with status notes is in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
 
 ---
 
@@ -369,7 +369,6 @@ SWE599_Progress_2026S_OZ_Sena.pdf, SWE599_Final_2026S_OZ_Sena.pdf   course repor
 | [BOUN_DATA.md](research/audit/BOUN_DATA.md) | Data card for the cleaned Boğaziçi works |
 | [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) | Data card for the Stelmakh et al. gold standard |
 | [BIBCOUPLING_PROMPT.md](research/audit/BIBCOUPLING_PROMPT.md) | Brief for the bibliographic-coupling experiment |
-| [PAPER_NOTES.md](research/audit/PAPER_NOTES.md) | Decisions for the paper in progress |
 | [TODO.md](research/audit/TODO.md), [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md) | Research plan and ideas, with status notes |
 | [research/README.md](research/README.md) | How to set up models and run the notebooks |
 | [DEVLOG.md](docs/DEVLOG.md) | Every step, dated, with commits |
