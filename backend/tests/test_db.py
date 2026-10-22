@@ -266,7 +266,8 @@ def test_read_path_and_feedback_snapshot(research_dir, stub_encoder):
             fb = await db.scalar(select(PaperFeedback))
             assert (fb.verdict, fb.reason, fb.embedding_version, fb.rank) == ("partly", "too_general", EMBEDDING_VERSION, 2)
             assert fb.score == pytest.approx(rows[1].score)
-            assert (await load_matches(db, [pid], user_id))[1].my_verdict == "partly"
+            again = (await load_matches(db, [pid], user_id))[1]
+            assert (again.my_verdict, again.my_reason) == ("partly", "too_general")
 
             # "yes" drops the reason; None withdraws the answer.
             await submit_feedback(FeedbackRequest(

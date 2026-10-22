@@ -119,6 +119,7 @@ function ForMeEvidence({ match }: { match: ResearcherMatch }) {
         paperId={match.paper_openalex_id}
         researcherId={match.researcher_id}
         initial={match.my_verdict}
+        initialReason={match.my_reason}
         question="Is this relevant to your work?"
       />
     </div>

@@ -61,10 +61,10 @@ async def load_matches(
                 year=work.first_date.year if work.first_date else None,
                 large_collaboration=work.large_collaboration,
             ))
-    verdicts: dict[tuple[str, str], str] = {}
+    verdicts: dict[tuple[str, str], tuple[str, str | None]] = {}
     if user_id is not None:
         verdicts = {
-            (f.paper_openalex_id, f.researcher_id): f.verdict
+            (f.paper_openalex_id, f.researcher_id): (f.verdict, f.reason)
             for f in await db.scalars(select(PaperFeedback).where(
                 PaperFeedback.user_id == user_id, PaperFeedback.paper_openalex_id.in_(paper_ids),
             ))
@@ -77,7 +77,8 @@ async def load_matches(
             score=round(m.score, 4),
             rank=m.rank,
             matched_papers=evidence.get((m.paper_openalex_id, m.researcher_id), []),
-            my_verdict=verdicts.get((m.paper_openalex_id, m.researcher_id)),
+            my_verdict=verdicts.get((m.paper_openalex_id, m.researcher_id), (None, None))[0],
+            my_reason=verdicts.get((m.paper_openalex_id, m.researcher_id), (None, None))[1],
         )
         for m, name in match_rows
     ]

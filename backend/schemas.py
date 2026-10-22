@@ -81,6 +81,7 @@ class ResearcherMatch(BaseModel):
     rank: int
     matched_papers: list[MatchedBounPaper] = []
     my_verdict: Verdict | None = None
+    my_reason: VerdictReason | None = None
 
 class PaperOut(BaseModel):
     openalex_id: str

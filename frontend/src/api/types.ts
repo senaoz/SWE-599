@@ -17,6 +17,7 @@ export interface ResearcherMatch {
   rank: number;
   matched_papers: MatchedWork[];
   my_verdict: Verdict | null;
+  my_reason: VerdictReason | null;
 }
 
 export interface Paper {

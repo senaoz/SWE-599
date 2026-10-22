@@ -162,7 +162,7 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
                                 </ul>
                               )}
                               <div className="ml-8">
-                                <VerdictControl paperId={paperId} researcherId={r.researcher_id} initial={r.my_verdict} />
+                                <VerdictControl paperId={paperId} researcherId={r.researcher_id} initial={r.my_verdict} initialReason={r.my_reason} />
                               </div>
                             </li>
                           ))}

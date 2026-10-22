@@ -20,6 +20,7 @@ interface VerdictControlProps {
   paperId: string;
   researcherId: string;
   initial: Verdict | null;
+  initialReason?: VerdictReason | null;
   /** The question; For me asks about the user's own work. */
   question?: string;
 }
@@ -29,10 +30,11 @@ export default function VerdictControl({
   paperId,
   researcherId,
   initial,
+  initialReason = null,
   question = "Works on this topic?",
 }: VerdictControlProps) {
   const [verdict, setVerdict] = useState<Verdict | null>(initial);
-  const [reason, setReason] = useState<VerdictReason | null>(null);
+  const [reason, setReason] = useState<VerdictReason | null>(initialReason);
   const [error, setError] = useState(false);
 
   const send = async (next: Verdict | null, nextReason: VerdictReason | null) => {
