@@ -7,12 +7,15 @@ Each entry gives the date it was noted, what to do, and why.
 ## Model serving
 
 - **2026-10-11 — Move off Ollama and drop the cloud fallback.** The research side serves models through a local OpenAI-compatible API (`/v1/chat/completions`, `/v1/embeddings`): Jan at first, and since 2026-10-12 a standalone `llama-server` from llama.cpp (see `research/README.md`). The backend still calls Ollama (`backend/services/embedding.py`) and falls back to Ollama Cloud (`OLLAMA_CLOUD_API_KEY`, `OLLAMA_CLOUD_MODEL` in `backend/config.py`).
+  - *2026-10-21: done. The app embeds with `llama-server` (Qwen3-Embedding-8B Q4_K_M, `--pooling last`), the research setup; production runs it as the `embedder` service. Whether the VPS can host it is open (design doc, O1).*
   - `llama-server` can also run server-side next to the Docker stack, with the same GGUF files and API as the research setup.
   - Decide this before removing the cloud fallback, so production keeps a working embedder.
   - *2026-10-21: the Ollama Cloud fallback was removed; the app embeds with local Ollama only. Moving off Ollama is still open.*
 - **2026-10-11 — Keep `src.similarity` names stable.** The backend imports `MODEL_MAP`, `OLLAMA_MODEL_MAP` and `MAX_TEXT_CHARS` from `research/src/similarity.py`. The research refactor keeps these names, but the coupling is fragile.
+  - *2026-10-21: resolved. The backend no longer imports `src.similarity`; it uses `src.boun_data.work_texts` (the seeder's text, kept identical to the research vectors) and `src.text_utils`.*
   - Give the backend its own model config, or a small shared module.
 - **2026-10-11 — Qwen3-Embedding pooling and dimension.** The backend expects 4096-dim vectors, i.e. the 8B model.
+  - *2026-10-21: every vector and match carries `EMBEDDING_VERSION`. On 20 BOUN works the app's encoder reproduces the research vectors exactly (cosine 1.000000).*
   - Whatever runtime replaces Ollama must use the model's intended pooling (last token for Qwen3-Embedding).
   - All stored pgvector embeddings must be regenerated with the same runtime and quantization; vectors from different runtimes are not comparable.
 
@@ -50,8 +53,19 @@ Each entry gives the date it was noted, what to do, and why.
 
 ## BOUN seed data (2026-10-15)
 
+- **2026-10-21 — The app now seeds from the cleaned data** (`research/data/boun/`), one row and one vector per work, with authorships in their own table. `boun.csv` is no longer used. The notes below describe why.
+
 - **`boun.csv` has known problems** (`research/audit/BOUN_DATA.md`). It keeps records OpenAlex now types as errata, editorials and similar non-research works; it misses conference papers, preprints and book chapters; and its author lists stop at 100, so BOUN members of large collaborations beyond the first 100 authors are missing (223 records are cut).
 - **A cleaned replacement exists** in `research/data/boun/` (7,822 works, 3,648 BOUN author ids, duplicates merged, earliest version date kept, misattributed collaboration authors removed). Switching the seeder to it is a separate app change; the stage-1 field ablation on the new data should come first.
 - **Profiles of collaboration physicists:** 311 researchers have only 100+-author works, so their profile is collaboration papers alone. Worth deciding whether such works should count fully in a profile.
 - **OpenAlex affiliation errors.** On 6 ATLAS/BESIII papers OpenAlex marks 77–370 authors as BOUN; 991 people were BOUN only through these. The cleaned data drops them. None of the 6 works is in `boun.csv`, so the app's current researcher list is not affected; a seeder that reads full author lists must apply the same check.
 - **Abstracts from Crossref / Semantic Scholar** (591 works) are not in the repository (copyright, public repo). The app would need its own lookup, or must embed those works from title and topics only.
+
+## Matching rebuild (2026-10-21)
+
+- **Done.** Schema, seeder, encoder, SQL search and read path follow `docs/MATCHING_DESIGN.md` (D1–D7, D10; D9 revised: no migration tool until there is data to keep).
+- **The 0.3 floor is inert at Qwen3 scale.** On the first local run (179 MIT papers published since 8 Oct 2026), every paper's best researcher scored above it: top-1 scores 0.41–0.95, median 0.58. The calibrated floor (design §4, item 5) is the next matching task.
+- **Large collaborations crowd the list.** One collaboration work with many BOUN authors can fill all five slots under a paper with tied scores (e.g. five researchers at 0.494 through one many-author work). D4's exposure check should decide a weight or a one-work-one-slot rule.
+- **Same title, different paper.** The top score (0.951) is a 2026 collaboration paper against a 2022 BOUN work with the same title and a different DOI, so the self-match rule correctly keeps it.
+- **Encoding speed.** 179 new papers took about 8.4 min on the M1 Max (about 2.8 s each, with a Llama 3.1 8B server also loaded); the exact search took about 0.2 s per paper.
+- **OpenAlex cursor paging now needs an API key**; the fetcher pages by number instead (up to 10,000 results, far above the 200-per-run cap).
