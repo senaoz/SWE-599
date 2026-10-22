@@ -141,28 +141,36 @@ The two models fail in different ways.
 In shuffled lists, 52.6\% of the 3B model's rankings follow the order they were shown in (Spearman $\rho > 0.8$ between output and input position, over rankings with at least five candidates), against 0.9\% of the 8B model's; the 8B model reverses the shown order more often (10.3\% vs.\ 5.1\%), and half of its rankings (51.5\%) are close to order-independent ($|\rho| \le 0.3$).
 Order sensitivity therefore does not disappear with scale: a single fixed order can make the 8B model look better than dense retrieval, as it made the 3B model look better in our first evaluation.
 
-On human labels, the 3B model shows the same primacy effect: its loss is 0.253 with the highest-rated papers first, 0.467 shuffled and 0.685 with them last (best- vs.\ worst-first, Holm $p = 1.4 \cdot 10^{-5}$).
-% PENDING (tier 2, ~18:20): 8B on human labels, 3 orders x 5 seeds. Add one sentence and a column/figure panel.
-% Fig. 2 (planned): both models x three orders x both label sources.
-% Partial outputs per condition (test, seed 0): 3B 39-56 of 118; 8B 8-21 of 118.
+Both effects replicate on human labels (Figure~\ref{fig:order}, right).
+The 3B model's loss is 0.253 with the highest-rated papers first, 0.467 shuffled and 0.685 with them last (best- vs.\ worst-first, Holm $p = 1.4 \cdot 10^{-5}$).
+The 8B model's is 0.413, 0.388 and 0.253: it again does best when the best papers come last (worst- vs.\ best-first, 43 of 58 researchers, Holm $p = 7.7 \cdot 10^{-5}$), and its rankings correlate negatively with the shown order (mean Kendall $\tau = -0.20$ when shuffled).
+The direction of the bias is a property of the model, not of the label source.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{position_bias_3b_8b}
+  \caption{Listwise Llama 3.2 3B and 3.1 8B under three candidate orders, with 95\% bootstrap intervals. Left and middle: R-precision on citation labels (test split, one shuffle seed). Right: weighted Kendall-$\tau$ loss on human labels (five seeds), axis inverted so that up is better in every panel. The 3B model does best when the relevant papers come first, the 8B model when they come last.}
+  \label{fig:order}
+\end{figure*}
+% Partial outputs per condition (test, seed 0): 3B 39-56 of 118; 8B 8-21 of 118. Human labels: 8B 870 of 870 ok; 3B 867 ok, 3 partial.
 
 \section{RQ2: Which Method Wins Under Controlled Order?}
 \label{sec:rq2}
-% Table 2: one column per label source (R-precision; weighted Kendall-tau loss). Pending: 8B seeds 1-4, 8B on human labels.
+% Table 2: one column per label source (R-precision; weighted Kendall-tau loss). Pending: 8B seeds 1-4 (citation labels).
 % Embeddings were never tested against each other on human labels; published SPECTER2-max is 0.2215 vs Qwen3 0.2223.
 % Human labels: MiniLM 0.242 vs Qwen3 0.222. Gold standard ran a subset; LLMs saw profile titles, embeddings title+abstract.
 Under shuffled order, Qwen3-Embedding-8B has the best point estimate of the methods we ran on both label sources, 38--43 R-precision points ahead of the 3B listwise reranker and about 20 ahead of the 8B one, while a 22M-parameter MiniLM stays within 4.3 points of it.
-Figure~\ref{fig:agreement} places the seven methods run on both label sources side by side.
-The two sources order them similarly (Kendall $\tau = 0.71$; three of 21 pairs swap): the embeddings lead on both, and listwise Llama trails on both, close to a constant ranking on human labels.
+On human labels the 8B model improves on the 3B (loss 0.388 vs.\ 0.467) but stays well behind Qwen3-Embedding (0.222; worse for 46 of 58 researchers, Holm $p = 4.6 \cdot 10^{-6}$).
+Figure~\ref{fig:agreement} places the eight methods run on both label sources side by side.
+The two sources order them similarly (Kendall $\tau = 0.79$; three of 28 pairs swap): the embeddings lead on both, and the listwise Llama models trail on both, the 3B one close to a constant ranking on human labels.
 The swaps involve the lexical methods and pointwise Llama, which is fourth on citation labels and sixth on human labels.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{fig3_label_agreement}
-  \caption{Citation labels (R-precision, \emph{random} negatives, test split) against human labels (weighted Kendall-$\tau$ loss, lower is better), with 95\% bootstrap intervals, for the seven methods run on both. Up and to the right is better on both axes.}
+  \caption{Citation labels (R-precision, \emph{random} negatives, test split) against human labels (weighted Kendall-$\tau$ loss, lower is better), with 95\% bootstrap intervals, for the eight methods run on both; Llama 3.1 8B has one shuffle seed on citation labels, the other LLM methods five. Up and to the right is better on both axes.}
   \label{fig:agreement}
 \end{figure}
-% PENDING: add Llama 3.1 8B listwise when tier 2 is done (scripts/paper_figures.py).
 
 \section{RQ3: Does a Second Stage Help?}
 \label{sec:rq3}
