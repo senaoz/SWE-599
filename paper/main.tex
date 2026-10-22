@@ -22,7 +22,7 @@
   \country{Türkiye}}
 
 \begin{abstract}
-We find that small LLM rerankers are sensitive to candidate order in a model-dependent direction, and that under controlled order no LLM reranker, second stage or citation-graph signal we tested beats a dense embedding model on both citation-derived and human expertise labels.
+Small LLMs that run locally are an attractive second stage for scientific paper recommenders. We built such a recommender for researchers at Boğaziçi University and asked whether reranking embedding-retrieved papers with Llama improves it. Our first evaluation said it did; an audit of that evaluation found nine problems, chief among them that the cited papers were always shown to the LLM first. On a rebuilt, leak-free citation benchmark (118 queries, 13 methods) and on expertise ratings from 58 researchers, we find that listwise LLM rerankers are sensitive to candidate order in a model-dependent direction: Llama 3.2 3B favours the first candidates and Llama 3.1 8B the last, so a single fixed order can make either look better than dense retrieval. Under shuffled order, no LLM reranker, second stage or citation-graph signal we tested beats Qwen3-Embedding-8B on both label sources, and a 22M-parameter encoder comes within about four R-precision points of it. We recommend evaluating LLM rerankers under several candidate orders and checking citation-derived labels against human judgments.
 \end{abstract}
 
 \keywords{scientific paper recommendation, LLM reranking, position bias, evaluation}
@@ -31,8 +31,25 @@ We find that small LLM rerankers are sensitive to candidate order in a model-dep
 
 \section{Introduction}
 \label{sec:intro}
-% System (Fig. 1), research question, v1 result and its retraction, four contributions.
 A recommender for Boğaziçi University researchers led us to ask whether reranking embedding-retrieved papers with a small local LLM improves recommendations; our first evaluation said yes, and this paper shows why that answer was wrong.
+
+Researchers miss relevant work from institutions they do not follow.
+Our system monitors new papers from a set of institutions and, for each one, lists the Boğaziçi researchers who work on its topic (Figure~\ref{fig:design}a).
+It retrieves candidates with an embedding model and was designed to rerank them with a small LLM that runs on local hardware, an attractive choice for a university system that would rather not depend on a paid, hosted model.
+Whether that second stage earns its cost is the question of this paper.
+
+Our first evaluation answered it in the LLM's favour: on a citation benchmark, listwise Llama 3.2 3B reached MRR 0.84 against 0.51 for Qwen3-Embedding-8B.
+Auditing our own code, we found nine problems with that evaluation (Appendix~\ref{app:audit}).
+The most consequential was that the cited papers were always shown to the LLM first, and we show below that candidate order alone reproduces the result.
+We therefore rebuilt the evaluation and tested every conclusion on a second, independent label source: the self-reported reviewing expertise of 58 researchers~\citep{stelmakh2025gold}.
+
+Our contributions are:
+\begin{itemize}[leftmargin=*]
+  \item a leak-free citation benchmark for paper recommendation, with controlled candidate order, two kinds of negatives and an 11,967-paper corpus whose co-citation graph obeys explicit, unit-tested leakage rules (Section~\ref{sec:setup});
+  \item evidence that listwise LLM rerankers are sensitive to candidate order in a direction that depends on the model, Llama 3.2 3B favouring the first candidates and Llama 3.1 8B the last, on citation and human labels alike (Section~\ref{sec:rq1});
+  \item a comparison of 13 methods on citation labels and eight on human labels, which order the shared methods similarly (Section~\ref{sec:rq2});
+  \item negative results: neither a second stage nor citation-graph signals improve a strong embedding model on both label sources (Sections~\ref{sec:rq3} and~\ref{sec:rq4}).
+\end{itemize}
 Code, data and per-query results are available at \url{https://github.com/senaoz/SWE-599}.
 % TODO before arXiv: link a release tag (e.g. paper-v1) instead of the default branch; LICENSE added (MIT).
 
