@@ -12,7 +12,7 @@ from backend.config import TOP_K_MATCHES, MATCH_THRESHOLD, EMBEDDING_VERSION
 from backend.database import get_db
 from backend.models import (
     User, UserFollow, FetchedPaper, PaperResearcherMatch, MatchEvidence, BounWork, Researcher,
-    UserPaperView, PaperFeedback,
+    UserPaperView, PaperFeedback, UserFavoriteResearcher,
 )
 from backend.schemas import (
     PapersResponse, PaperOut, PaperDetailOut, ResearcherMatch, MatchedBounPaper, FieldCount,
@@ -141,12 +141,18 @@ async def _papers_response(
         UserPaperView.user_id == user.id, UserPaperView.paper_openalex_id.in_(paper_ids),
     )))
 
+    favorite_ids = set(await db.scalars(
+        select(UserFavoriteResearcher.researcher_id).where(UserFavoriteResearcher.user_id == user.id)
+    ))
+
     shown: dict[str, list[ResearcherMatch]] = {pid: [] for pid in paper_ids}
-    mine: dict[str, ResearcherMatch] = {}
+    favorites: dict[str, list[ResearcherMatch]] = {pid: [] for pid in paper_ids}
     names: dict[str, set[str]] = {pid: set() for pid in paper_ids}
     for m in await load_matches(db, paper_ids, user.id):
-        if user.researcher_id and m.researcher_id == user.researcher_id:
-            mine[m.paper_openalex_id] = m
+        mine = favorites[m.paper_openalex_id]
+        if (m.researcher_id in favorite_ids and m.rank <= TOP_K_MATCHES and m.score >= MATCH_THRESHOLD
+                and all(f.display_name != m.display_name for f in mine)):
+            mine.append(m)
         # Split author ids share a display name; show each name once.
         if m.score < min_score or len(shown[m.paper_openalex_id]) >= TOP_K_MATCHES or m.display_name in names[m.paper_openalex_id]:
             continue
@@ -159,7 +165,7 @@ async def _papers_response(
                 **{k: p[k] for k in ("openalex_id", "title", "abstract", "publication_date",
                                      "source_institution_name", "doi", "type", "field", "oa_url")},
                 top_researchers=shown[p["openalex_id"]],
-                my_match=mine.get(p["openalex_id"]),
+                favorite_matches=favorites[p["openalex_id"]],
                 is_seen=p["openalex_id"] in seen_ids,
             )
             for p in papers
@@ -215,17 +221,16 @@ async def get_papers_for_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Papers matched to the user's claimed Boğaziçi profile, from any institution in the database."""
-    if not current_user.researcher_id:
-        raise HTTPException(status_code=409, detail="No researcher profile claimed")
+    """Papers matched to the user's favourite Boğaziçi researchers, from any institution in the database."""
     conditions, params = _filters(None, from_date, to_date, search, None, field)
     conditions.append(
-        "EXISTS (SELECT 1 FROM paper_researcher_matches m WHERE m.paper_openalex_id = fetched_papers.openalex_id "
-        "AND m.embedding_version = :version AND m.researcher_id = :rid AND m.rank <= :top_k AND m.score >= :min_score)"
+        "EXISTS (SELECT 1 FROM paper_researcher_matches m "
+        "JOIN user_favorite_researchers f ON f.researcher_id = m.researcher_id AND f.user_id = :uid "
+        "WHERE m.paper_openalex_id = fetched_papers.openalex_id "
+        "AND m.embedding_version = :version AND m.rank <= :top_k AND m.score >= :min_score)"
     )
-    # Only papers where the researcher would be shown under the paper in Explore.
-    params.update(version=EMBEDDING_VERSION, rid=current_user.researcher_id, top_k=TOP_K_MATCHES,
-                  min_score=MATCH_THRESHOLD)
+    # Only papers where a favourite would be shown under the paper in Explore.
+    params.update(uid=current_user.id, version=EMBEDDING_VERSION, top_k=TOP_K_MATCHES, min_score=MATCH_THRESHOLD)
     total, papers = await _page_of_papers(db, conditions, params, page, limit)
     return await _papers_response(db, current_user, papers, total, page, limit, 0.0)
 

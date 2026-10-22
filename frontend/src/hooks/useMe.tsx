@@ -4,13 +4,14 @@ import type { Me } from "../api/types";
 
 interface MeContextValue {
   me: Me | null;
-  claim: (researcherId: string) => Promise<void>;
-  unclaim: () => Promise<void>;
+  /** Several ids for one person whose OpenAlex profile is split. */
+  addFavorite: (researcherIds: string[]) => Promise<void>;
+  removeFavorite: (researcherIds: string[]) => Promise<void>;
 }
 
 const MeContext = createContext<MeContextValue | null>(null);
 
-/** The signed-in account and its claimed Boğaziçi profile, shared by the navigation and the pages. */
+/** The signed-in account and its favourite Boğaziçi researchers, shared by the navigation and the pages. */
 export function MeProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
 
@@ -21,17 +22,21 @@ export function MeProvider({ children }: { children: ReactNode }) {
       .catch((err) => console.error("Could not load the current user", err));
   }, []);
 
-  const claim = useCallback(async (researcherId: string) => {
-    const r = await client.put<Me>("/auth/me/researcher", { researcher_id: researcherId });
-    setMe(r.data);
+  const addFavorite = useCallback(async (researcherIds: string[]) => {
+    for (const id of researcherIds) {
+      const r = await client.put<Me>(`/auth/me/favorites/${id}`);
+      setMe(r.data);
+    }
   }, []);
 
-  const unclaim = useCallback(async () => {
-    const r = await client.delete<Me>("/auth/me/researcher");
-    setMe(r.data);
+  const removeFavorite = useCallback(async (researcherIds: string[]) => {
+    for (const id of researcherIds) {
+      const r = await client.delete<Me>(`/auth/me/favorites/${id}`);
+      setMe(r.data);
+    }
   }, []);
 
-  return <MeContext.Provider value={{ me, claim, unclaim }}>{children}</MeContext.Provider>;
+  return <MeContext.Provider value={{ me, addFavorite, removeFavorite }}>{children}</MeContext.Provider>;
 }
 
 export function useMe(): MeContextValue {

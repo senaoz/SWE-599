@@ -37,11 +37,7 @@ class ResearcherBrief(BaseModel):
 class MeResponse(BaseModel):
     email: str
     is_admin: bool
-    researcher: ResearcherBrief | None = None
-
-
-class ClaimRequest(BaseModel):
-    researcher_id: str
+    favorites: list[ResearcherBrief] = []
 
 
 # ── Institutions ──────────────────────────────────────────────────────────────
@@ -94,7 +90,7 @@ class PaperOut(BaseModel):
     field: str | None = None
     oa_url: str | None = None
     top_researchers: list[ResearcherMatch]
-    my_match: ResearcherMatch | None = None  # the user's own researcher, in For me
+    favorite_matches: list[ResearcherMatch] = []  # the user's favourite researchers, in For me
     is_seen: bool = False
 
 class FieldCount(BaseModel):

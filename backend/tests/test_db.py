@@ -278,38 +278,44 @@ def test_read_path_and_feedback_snapshot(research_dir, stub_encoder):
     run(body)
 
 
-def test_claim_and_for_me_feed(research_dir, stub_encoder):
+def test_favorites_and_for_me_feed(research_dir, stub_encoder):
     from fastapi import HTTPException
     from backend.database import SessionLocal
     from backend.models import User
-    from backend.routers.auth import claim_researcher, unclaim_researcher
+    from backend.routers.auth import add_favorite, remove_favorite
     from backend.routers.papers import get_papers_for_me
-    from backend.schemas import ClaimRequest
+
+    async def for_me(user, db):
+        return await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
+                                       current_user=user, db=db)
 
     async def body():
         user_id = await matched_paper_and_user(stub_encoder)
         async with SessionLocal() as db:
             user = await db.get(User, user_id)
-            with pytest.raises(HTTPException) as e:
-                await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
-                                        current_user=user, db=db)
-            assert e.value.status_code == 409
+            assert (await for_me(user, db)).total == 0
 
-            me = await claim_researcher(ClaimRequest(researcher_id="A2"), user, db)
-            assert me.researcher.id == "A2" and me.researcher.display_name == "Researcher A2"
-            feed = await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
-                                           current_user=user, db=db)
+            me = await add_favorite("A2", user, db)
+            assert [r.id for r in me.favorites] == ["A2"] and me.favorites[0].display_name == "Researcher A2"
+            assert [r.id for r in (await add_favorite("A2", user, db)).favorites] == ["A2"]
+            feed = await for_me(user, db)
             assert [p.openalex_id for p in feed.papers] == ["https://openalex.org/P1"]
-            assert feed.papers[0].my_match.researcher_id == "A2" and feed.papers[0].my_match.rank == 2
+            assert [(m.researcher_id, m.rank) for m in feed.papers[0].favorite_matches] == [("A2", 2)]
 
-            await claim_researcher(ClaimRequest(researcher_id="A3"), user, db)
-            feed = await get_papers_for_me(page=1, limit=20, from_date=None, to_date=None, search=None, field=None,
-                                           current_user=user, db=db)
-            assert feed.total == 0  # A3 is stored at rank 3 with cosine 0, below the 0.3 shown in Explore
+            me = await add_favorite("A1", user, db)
+            assert [r.id for r in me.favorites] == ["A1", "A2"]
+            feed = await for_me(user, db)
+            assert feed.total == 1
+            assert [m.researcher_id for m in feed.papers[0].favorite_matches] == ["A1", "A2"]
+
+            await remove_favorite("A1", user, db)
+            await remove_favorite("A2", user, db)
+            await add_favorite("A3", user, db)
+            assert (await for_me(user, db)).total == 0  # A3 is stored at rank 3 with cosine 0, below the 0.3 shown in Explore
 
             with pytest.raises(HTTPException):
-                await claim_researcher(ClaimRequest(researcher_id="NOPE"), user, db)
-            assert (await unclaim_researcher(user, db)).researcher is None
+                await add_favorite("NOPE", user, db)
+            assert (await remove_favorite("A3", user, db)).favorites == []
     run(body)
 
 
@@ -378,7 +384,7 @@ def test_init_db_refuses_a_schema_with_missing_columns():
     async def body():
         await init_db()
         async with engine.begin() as conn:
-            await conn.execute(text("ALTER TABLE users DROP COLUMN researcher_id"))
-        with pytest.raises(SchemaError, match="users.researcher_id"):
+            await conn.execute(text("ALTER TABLE users DROP COLUMN is_admin"))
+        with pytest.raises(SchemaError, match="users.is_admin"):
             await init_db()
     run(body)

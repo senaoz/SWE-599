@@ -21,8 +21,6 @@ interface VerdictControlProps {
   researcherId: string;
   initial: Verdict | null;
   initialReason?: VerdictReason | null;
-  /** The question; For me asks about the user's own work. */
-  question?: string;
 }
 
 /** Asks whether a researcher works on a paper's topic. The answer is the app's only relevance signal. */
@@ -31,7 +29,6 @@ export default function VerdictControl({
   researcherId,
   initial,
   initialReason = null,
-  question = "Works on this topic?",
 }: VerdictControlProps) {
   const [verdict, setVerdict] = useState<Verdict | null>(initial);
   const [reason, setReason] = useState<VerdictReason | null>(initialReason);
@@ -59,8 +56,8 @@ export default function VerdictControl({
   return (
     <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-tertiary">{question}</span>
-        <div role="group" aria-label={question} className="inline-flex overflow-hidden rounded-lg ring-1 ring-primary">
+        <span className="text-xs text-tertiary">Works on this topic?</span>
+        <div role="group" aria-label="Works on this topic?" className="inline-flex overflow-hidden rounded-lg ring-1 ring-primary">
           {VERDICTS.map((v) => (
             <button
               key={v.value}

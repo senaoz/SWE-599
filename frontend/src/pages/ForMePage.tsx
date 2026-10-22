@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, SearchLg, User01 } from "@untitledui/icons";
+import { Check, ChevronLeft, ChevronRight, Plus, SearchLg, Star01, User01, XClose } from "@untitledui/icons";
 import { Avatar } from "@/components/base/avatar/avatar";
 import { Button } from "@/components/base/buttons/button";
 import { Toggle } from "@/components/base/toggle/toggle";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
+import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { cx } from "@/utils/cx";
 import client from "../api/client";
 import type { PapersResponse, ResearcherBrief } from "../api/types";
@@ -18,14 +19,34 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 
-/** Shown until the account is linked to a Boğaziçi profile. */
-function FindProfile() {
-  const { claim } = useMe();
+interface Person {
+  name: string;
+  ids: string[];
+  works: number;
+}
+
+/** One entry per name: OpenAlex splits some people into two profiles. */
+function byName(researchers: ResearcherBrief[]): Person[] {
+  const people = new Map<string, Person>();
+  for (const r of researchers) {
+    const p = people.get(r.display_name) ?? { name: r.display_name, ids: [], works: 0 };
+    p.ids.push(r.id);
+    p.works += r.paper_count;
+    people.set(r.display_name, p);
+  }
+  return [...people.values()];
+}
+
+/** The researchers whose work drives the feed, with a search to add more. */
+function Favorites() {
+  const { me, addFavorite, removeFavorite } = useMe();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ResearcherBrief[]>([]);
   const [viewing, setViewing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const favorites = byName(me?.favorites ?? []);
+  const favoriteNames = new Set(favorites.map((f) => f.name));
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -41,35 +62,56 @@ function FindProfile() {
     }, 300);
   }, [query]);
 
-  const pick = async (id: string) => {
+  const update = async (change: () => Promise<void>) => {
     setError(null);
     try {
-      await claim(id);
+      await change();
     } catch {
-      setError("Could not link this profile.");
+      setError("Could not update your favourites.");
     }
   };
 
   return (
-    <div className="rounded-xl bg-primary p-6 shadow-sm ring-1 ring-primary">
+    <div className="mb-6 rounded-xl bg-primary p-6 shadow-sm ring-1 ring-primary">
       <div className="mb-4 flex items-start gap-3">
-        <span className="rounded-lg bg-brand-primary p-2 text-fg-brand-primary">
-          <User01 className="size-5" />
-        </span>
+        <FeaturedIcon color="brand" theme="light" size="md" icon={Star01} className="shrink-0" />
         <div>
-          <h2 className="text-md font-semibold text-primary">Find your Boğaziçi profile</h2>
+          <h2 className="text-md font-semibold text-primary">Your favourite Boğaziçi researchers</h2>
           <p className="mt-0.5 text-sm text-tertiary">
-            Link your account to your researcher profile to see new papers close to your own work.
-            Profiles come from OpenAlex; some people have two.
+            Pick the researchers whose work you want to follow; new papers close to their work show up here.
           </p>
         </div>
       </div>
+
+      {favorites.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {favorites.map((f) => (
+            <span
+              key={f.name}
+              className="inline-flex items-center gap-1 rounded-full bg-secondary py-1 pr-1.5 pl-3 text-sm ring-1 ring-secondary"
+            >
+              <button type="button" onClick={() => setViewing(f.name)} className="font-medium text-secondary hover:text-brand-secondary">
+                {f.name}
+              </button>
+              <button
+                type="button"
+                aria-label={`Remove ${f.name}`}
+                onClick={() => update(() => removeFavorite(f.ids))}
+                className="rounded-full p-0.5 text-fg-quaternary hover:text-fg-secondary"
+              >
+                <XClose className="size-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="relative mb-3">
         <SearchLg className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-quaternary" />
         <input
-          autoFocus
+          autoFocus={favorites.length === 0}
           type="text"
-          placeholder="Your name…"
+          placeholder="Add a researcher by name…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className={cx(control, "h-10 w-full pl-9")}
@@ -78,22 +120,28 @@ function FindProfile() {
       {error && <p className="mb-2 text-sm text-error-primary">{error}</p>}
       {results.length > 0 && (
         <ul className="divide-y divide-secondary overflow-hidden rounded-lg ring-1 ring-secondary">
-          {results.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 px-3 py-2.5">
-              <Avatar size="sm" initials={initials(r.display_name)} />
+          {byName(results).map((r) => (
+            <li key={r.name} className="flex items-center gap-3 px-3 py-2.5">
+              <Avatar size="sm" initials={initials(r.name)} />
               <button
                 type="button"
-                onClick={() => setViewing(r.display_name)}
+                onClick={() => setViewing(r.name)}
                 className="min-w-0 flex-1 truncate text-left text-sm font-medium text-primary hover:text-brand-secondary"
               >
-                {r.display_name}
+                {r.name}
                 <span className="ml-2 text-xs font-normal text-tertiary">
-                  {r.paper_count} {r.paper_count === 1 ? "work" : "works"}
+                  {r.works} {r.works === 1 ? "work" : "works"}
                 </span>
               </button>
-              <Button color="secondary" size="sm" onClick={() => pick(r.id)}>
-                This is me
-              </Button>
+              {favoriteNames.has(r.name) ? (
+                <Button color="tertiary" size="sm" iconLeading={Check} isDisabled>
+                  Added
+                </Button>
+              ) : (
+                <Button color="secondary" size="sm" iconLeading={Plus} onClick={() => update(() => addFavorite(r.ids))}>
+                  Add
+                </Button>
+              )}
             </li>
           ))}
         </ul>
@@ -107,17 +155,17 @@ function FindProfile() {
 }
 
 export default function ForMePage() {
-  const { me, unclaim } = useMe();
+  const { me } = useMe();
   const [data, setData] = useState<PapersResponse | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preset, setPreset] = useState<DatePreset>("month");
   const [showFuture, setShowFuture] = useState(false);
-  const researcher = me?.researcher ?? null;
+  const favoriteIds = (me?.favorites ?? []).map((f) => f.id).join(",");
 
   useEffect(() => {
-    if (!researcher) return;
+    if (!favoriteIds) return;
     setLoading(true);
     const params: Record<string, string | number> = { page, limit: 20 };
     const from = presetFromDate(preset);
@@ -132,7 +180,7 @@ export default function ForMePage() {
       })
       .catch(() => setError("Could not load your papers."))
       .finally(() => setLoading(false));
-  }, [researcher, page, preset, showFuture]);
+  }, [favoriteIds, page, preset, showFuture]);
 
   if (!me) {
     return <p className="py-16 text-center text-sm text-tertiary">Loading…</p>;
@@ -142,24 +190,13 @@ export default function ForMePage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <PageHeader
         title="For me"
-        description={
-          researcher ? (
-            <>
-              New papers close to the work of <span className="font-medium text-secondary">{researcher.display_name}</span>.{" "}
-              <button type="button" onClick={unclaim} className="font-medium text-brand-secondary hover:underline">
-                Not you?
-              </button>
-            </>
-          ) : (
-            "New papers close to your own work."
-          )
-        }
-        actions={researcher && data && <span className="text-sm text-tertiary">{data.total} papers</span>}
+        description="New papers close to the work of your favourite Boğaziçi researchers."
+        actions={favoriteIds && data && <span className="text-sm text-tertiary">{data.total} papers</span>}
       />
 
-      {!researcher ? (
-        <FindProfile />
-      ) : (
+      <Favorites />
+
+      {favoriteIds && (
         <>
           <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
             <SelectField
@@ -196,7 +233,7 @@ export default function ForMePage() {
                 <EmptyState.FeaturedIcon color="brand" icon={User01} />
               </EmptyState.Header>
               <EmptyState.Content>
-                <EmptyState.Title>Nothing close to your work yet</EmptyState.Title>
+                <EmptyState.Title>Nothing close to their work yet</EmptyState.Title>
                 <EmptyState.Description>
                   New papers arrive from the institutions people follow. Try a longer period, or follow more
                   institutions.

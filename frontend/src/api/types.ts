@@ -31,7 +31,7 @@ export interface Paper {
   field: string | null;
   oa_url: string | null;
   top_researchers: ResearcherMatch[];
-  my_match: ResearcherMatch | null;
+  favorite_matches: ResearcherMatch[];
   is_seen: boolean;
 }
 
@@ -42,7 +42,7 @@ export interface PapersResponse {
   pages: number;
 }
 
-export interface PaperDetail extends Omit<Paper, "top_researchers" | "my_match" | "is_seen"> {
+export interface PaperDetail extends Omit<Paper, "top_researchers" | "favorite_matches" | "is_seen"> {
   all_researchers: ResearcherMatch[];
 }
 
@@ -56,5 +56,5 @@ export interface ResearcherBrief {
 export interface Me {
   email: string;
   is_admin: boolean;
-  researcher: ResearcherBrief | null;
+  favorites: ResearcherBrief[];
 }

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ModalOverlay, Modal, Dialog } from "@/components/application/modals/modal";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { CheckCircle, LinkExternal01, XClose } from "@untitledui/icons";
+import { LinkExternal01, Star01, XClose } from "@untitledui/icons";
 import client from "../api/client";
 import { useMe } from "../hooks/useMe";
 import MatchLevel from "./MatchLevel";
@@ -47,8 +47,8 @@ export default function ResearcherModal({ name, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [coauthor, setCoauthor] = useState<string | null>(null);
-  const [claimError, setClaimError] = useState(false);
-  const { me, claim } = useMe();
+  const [favoriteError, setFavoriteError] = useState(false);
+  const { me, addFavorite, removeFavorite } = useMe();
   const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -72,15 +72,15 @@ export default function ResearcherModal({ name, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [name]);
 
-  const isMe = !!data && !!me?.researcher && data.ids.includes(me.researcher.id);
+  const isFavorite = !!data && !!me && me.favorites.some((f) => data.ids.includes(f.id));
 
-  const claimProfile = async () => {
+  const toggleFavorite = async () => {
     if (!data) return;
-    setClaimError(false);
+    setFavoriteError(false);
     try {
-      await claim(data.ids[0]);
+      await (isFavorite ? removeFavorite(data.ids) : addFavorite(data.ids));
     } catch {
-      setClaimError(true);
+      setFavoriteError(true);
     }
   };
 
@@ -117,15 +117,14 @@ export default function ResearcherModal({ name, onClose }: Props) {
                   {data && (
                     <>
                       <div className="flex flex-wrap items-center gap-3">
-                        {isMe ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success-primary">
-                            <CheckCircle className="size-4" /> Your profile
-                          </span>
-                        ) : (
-                          <Button color="secondary" size="sm" onClick={claimProfile}>
-                            This is me
-                          </Button>
-                        )}
+                        <Button
+                          color={isFavorite ? "primary" : "secondary"}
+                          size="sm"
+                          iconLeading={Star01}
+                          onClick={toggleFavorite}
+                        >
+                          {isFavorite ? "Favourite" : "Add to favourites"}
+                        </Button>
                         {data.openalex_urls.map((url, i) => (
                           <a
                             key={url}
@@ -137,7 +136,7 @@ export default function ResearcherModal({ name, onClose }: Props) {
                             OpenAlex{data.openalex_urls.length > 1 ? ` ${i + 1}` : ""} <LinkExternal01 className="size-3.5" />
                           </a>
                         ))}
-                        {claimError && <span className="text-xs text-error-primary">Could not claim this profile.</span>}
+                        {favoriteError && <span className="text-xs text-error-primary">Could not update your favourites.</span>}
                       </div>
 
                       {data.topics.length > 0 && (

@@ -101,27 +101,42 @@ function ExploreEvidence({ researchers, onResearcher }: { researchers: Researche
   );
 }
 
-function ForMeEvidence({ match }: { match: ResearcherMatch }) {
-  const work = match.matched_papers[0];
+function FavoriteEvidence({ matches, onResearcher }: { matches: ResearcherMatch[]; onResearcher: (name: string) => void }) {
   return (
-    <div className="space-y-2.5">
-      <p className="text-sm text-tertiary">
-        <MatchLevel score={match.score} className="mr-2 align-middle" />
-        {work ? (
-          <>
-            Close to your work <WorkTitle work={work} />
-          </>
-        ) : (
-          "Close to your works"
-        )}
-      </p>
-      <VerdictControl
-        paperId={match.paper_openalex_id}
-        researcherId={match.researcher_id}
-        initial={match.my_verdict}
-        initialReason={match.my_reason}
-        question="Is this relevant to your work?"
-      />
+    <div className="space-y-4">
+      {matches.map((match) => {
+        const work = match.matched_papers[0];
+        return (
+          <div key={match.researcher_id} className="space-y-2">
+            <div className="text-sm">
+              <span className="inline-flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResearcher(match.display_name);
+                  }}
+                  className="font-semibold text-primary hover:text-brand-secondary"
+                >
+                  {match.display_name}
+                </button>
+                <MatchLevel score={match.score} />
+              </span>
+              {work && (
+                <p className="mt-0.5 text-xs text-tertiary">
+                  Matched through <WorkTitle work={work} />
+                </p>
+              )}
+            </div>
+            <VerdictControl
+              paperId={match.paper_openalex_id}
+              researcherId={match.researcher_id}
+              initial={match.my_verdict}
+              initialReason={match.my_reason}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -178,8 +193,8 @@ export default function PaperCard({ paper, mode }: PaperCardProps) {
         )}
 
         <div className="border-t border-secondary pt-3">
-          {mode === "forme" && paper.my_match ? (
-            <ForMeEvidence match={paper.my_match} />
+          {mode === "forme" && paper.favorite_matches.length > 0 ? (
+            <FavoriteEvidence matches={paper.favorite_matches} onResearcher={setResearcherName} />
           ) : paper.top_researchers.length > 0 ? (
             <ExploreEvidence researchers={paper.top_researchers} onResearcher={setResearcherName} />
           ) : (
