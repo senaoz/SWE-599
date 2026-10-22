@@ -1,36 +1,14 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  ModalOverlay,
-  Modal,
-  Dialog,
-} from "@/components/application/modals/modal";
+import { ModalOverlay, Modal, Dialog } from "@/components/application/modals/modal";
 import { Badge } from "@/components/base/badges/badges";
 import { LinkExternal01, XClose } from "@untitledui/icons";
-import FeedbackButtons from "./FeedbackButtons";
-import PublicationDate from "./PublicationDate";
-import ScoreBar from "./ScoreBar";
 import client from "../api/client";
+import type { PaperDetail } from "../api/types";
+import MatchLevel from "./MatchLevel";
+import PaperMeta from "./PaperMeta";
 import ResearcherModal from "./ResearcherModal";
-
-interface MatchedBounPaper {
-  title: string | null;
-  score: number;
-}
-interface Researcher {
-  researcher_id: string;
-  display_name: string;
-  score: number;
-  matched_papers: MatchedBounPaper[];
-}
-interface PaperDetail {
-  openalex_id: string;
-  title: string | null;
-  abstract: string | null;
-  publication_date: string | null;
-  source_institution_name: string | null;
-  all_researchers: Researcher[];
-}
+import VerdictControl from "./VerdictControl";
 
 interface Props {
   paperId: string;
@@ -38,63 +16,47 @@ interface Props {
   onClose: () => void;
 }
 
+function ExternalLink({ href, children }: { href: string; children: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 text-sm font-medium text-brand-secondary hover:underline"
+    >
+      {children} <LinkExternal01 className="size-3.5" />
+    </a>
+  );
+}
+
 export default function PaperModal({ paperId, title, onClose }: Props) {
   const [data, setData] = useState<PaperDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [showFullAbstract, setShowFullAbstract] = useState(false);
-  const [feedback, setFeedback] = useState<Record<string, boolean | null>>({});
-  const [researcherModal, setResearcherModal] = useState<{
-    name: string;
-  } | null>(null);
+  const [researcherName, setResearcherName] = useState<string | null>(null);
   const [, setSearchParams] = useSearchParams();
+  const shortId = paperId.replace("https://openalex.org/", "");
 
   useEffect(() => {
-    const shortId = paperId.replace("https://openalex.org/", "");
-    setSearchParams(
-      (p) => {
-        p.set("paper", shortId);
-        return p;
-      },
-      { replace: true },
-    );
+    setSearchParams((p) => {
+      p.set("paper", shortId);
+      return p;
+    }, { replace: true });
     return () =>
-      setSearchParams(
-        (p) => {
-          p.delete("paper");
-          return p;
-        },
-        { replace: true },
-      );
-  }, [paperId]); // eslint-disable-line react-hooks/exhaustive-deps
+      setSearchParams((p) => {
+        p.delete("paper");
+        return p;
+      }, { replace: true });
+  }, [shortId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     client
-      .get<PaperDetail>(
-        `/papers/${paperId.replace("https://openalex.org/", "")}`,
-      )
+      .get<PaperDetail>(`/papers/${shortId}`)
       .then((r) => setData(r.data))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [paperId]);
-
-  const handleFeedback = async (
-    researcher_id: string,
-    is_relevant: boolean,
-  ) => {
-    const prev = feedback[researcher_id];
-    const next = prev === is_relevant ? null : is_relevant;
-    setFeedback((f) => ({ ...f, [researcher_id]: next }));
-    if (next !== null) {
-      await client
-        .post("/feedback", {
-          paper_openalex_id: paperId,
-          researcher_id,
-          is_relevant: next,
-        })
-        .catch(() =>
-          setFeedback((f) => ({ ...f, [researcher_id]: prev ?? null })),
-        );
-    }
-  };
+  }, [shortId]);
 
   const abstract = data?.abstract ?? null;
   const longAbstract = !!abstract && abstract.length > 600;
@@ -106,15 +68,16 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
           <Dialog aria-label={data?.title ?? title ?? "Paper details"}>
             {() => (
               <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-primary shadow-xl ring-1 ring-primary">
-                {/* Header */}
                 <div className="flex items-start justify-between gap-4 border-b border-secondary px-6 py-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    {data?.source_institution_name && (
-                      <Badge type="color" color="blue" size="sm">
-                        {data.source_institution_name}
-                      </Badge>
+                    {data && (
+                      <PaperMeta
+                        institution={data.source_institution_name}
+                        date={data.publication_date}
+                        type={data.type}
+                        hasAbstract={!!data.abstract}
+                      />
                     )}
-                    <PublicationDate date={data?.publication_date ?? null} />
                   </div>
                   <button
                     type="button"
@@ -126,20 +89,19 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
                   </button>
                 </div>
 
-                {/* Body */}
                 <div className="max-h-[75vh] space-y-6 overflow-y-auto px-6 py-5">
                   <div className="space-y-3">
-                    <h2 className="text-lg font-semibold leading-snug text-primary">
-                      {data?.title ?? title ?? "(No title)"}
-                    </h2>
-                    <a
-                      href={paperId}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-secondary hover:underline"
-                    >
-                      Open in OpenAlex <LinkExternal01 className="size-3.5" />
-                    </a>
+                    <div>
+                      <h2 className="text-lg font-semibold leading-snug text-primary">
+                        {data?.title ?? title ?? "(No title)"}
+                      </h2>
+                      {data?.field && <p className="mt-1 text-sm text-tertiary">{data.field}</p>}
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {data?.doi && <ExternalLink href={`https://doi.org/${data.doi.replace(/^https?:\/\/doi\.org\//, "")}`}>DOI</ExternalLink>}
+                      {data?.oa_url && <ExternalLink href={data.oa_url}>Open-access copy</ExternalLink>}
+                      <ExternalLink href={paperId}>OpenAlex</ExternalLink>
+                    </div>
                     {abstract && (
                       <div>
                         <p className={`text-sm leading-relaxed text-tertiary ${longAbstract && !showFullAbstract ? "line-clamp-6" : ""}`}>
@@ -159,50 +121,49 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
                   </div>
 
                   {loading && <p className="text-sm text-tertiary">Loading matches…</p>}
+                  {error && <p className="text-sm text-error-primary">Could not load this paper.</p>}
 
-                  {!loading && data && (
+                  {data && (
                     <section>
                       <div className="mb-3 flex items-baseline justify-between gap-2">
                         <h3 className="text-sm font-semibold text-primary">Boğaziçi researchers on this topic</h3>
                         <span className="text-xs text-tertiary">{data.all_researchers.length} matched</span>
                       </div>
-
                       {data.all_researchers.length === 0 ? (
                         <p className="text-sm text-tertiary">No researcher matched yet.</p>
                       ) : (
                         <ol className="space-y-2">
-                          {data.all_researchers.map((r, i) => (
-                            <li key={r.researcher_id} className="rounded-xl p-3 ring-1 ring-secondary">
+                          {data.all_researchers.map((r) => (
+                            <li key={r.researcher_id} className="space-y-2.5 rounded-xl p-3 ring-1 ring-secondary">
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                <span className="w-5 text-xs font-medium tabular-nums text-quaternary">{i + 1}</span>
+                                <span className="w-5 text-xs font-medium tabular-nums text-quaternary">{r.rank}</span>
                                 <button
                                   type="button"
-                                  onClick={() => setResearcherModal({ name: r.display_name })}
+                                  onClick={() => setResearcherName(r.display_name)}
                                   className="text-left text-sm font-semibold text-primary transition-colors hover:text-brand-secondary"
                                 >
                                   {r.display_name}
                                 </button>
-                                <span className="ml-auto flex items-center gap-2">
-                                  <ScoreBar score={r.score} />
-                                  <FeedbackButtons
-                                    value={feedback[r.researcher_id] ?? null}
-                                    onChange={(v) => handleFeedback(r.researcher_id, v)}
-                                    size="md"
-                                  />
-                                </span>
+                                <MatchLevel score={r.score} className="ml-auto" />
                               </div>
                               {r.matched_papers.length > 0 && (
-                                <ul className="mt-2 space-y-1 border-l-2 border-secondary pl-3 ml-8">
-                                  {r.matched_papers.map((mp, j) => (
-                                    <li key={j} className="flex items-start gap-2 text-xs text-tertiary">
-                                      <span className="w-8 shrink-0 tabular-nums text-quaternary">
-                                        {Math.round(mp.score * 100)}%
-                                      </span>
-                                      <span>{mp.title}</span>
+                                <ul className="ml-8 space-y-1 border-l-2 border-secondary pl-3">
+                                  {r.matched_papers.map((w) => (
+                                    <li key={w.work_id} className="text-xs text-tertiary">
+                                      <span className="text-secondary">{w.title}</span>
+                                      {w.year && <span className="text-quaternary"> ({w.year})</span>}
+                                      {w.large_collaboration && (
+                                        <span className="ml-1.5 align-middle">
+                                          <Badge type="color" color="gray" size="sm">Collaboration</Badge>
+                                        </span>
+                                      )}
                                     </li>
                                   ))}
                                 </ul>
                               )}
+                              <div className="ml-8">
+                                <VerdictControl paperId={paperId} researcherId={r.researcher_id} initial={r.my_verdict} />
+                              </div>
                             </li>
                           ))}
                         </ol>
@@ -216,9 +177,7 @@ export default function PaperModal({ paperId, title, onClose }: Props) {
         </Modal>
       </ModalOverlay>
 
-      {researcherModal && (
-        <ResearcherModal name={researcherModal.name} onClose={() => setResearcherModal(null)} />
-      )}
+      {researcherName && <ResearcherModal name={researcherName} onClose={() => setResearcherName(null)} />}
     </>
   );
 }
