@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Badge } from "@/components/base/badges/badges";
+import { Eye } from "@untitledui/icons";
+import { Badge, BadgeWithIcon } from "@/components/base/badges/badges";
 import ResearcherChip from "./ResearcherChip";
 import PublicationDate from "./PublicationDate";
 import PaperModal from "./PaperModal";
@@ -73,7 +74,11 @@ export default function PaperCard({
   return (
     <>
     <div
-      className={`cursor-pointer rounded-xl bg-primary p-5 shadow-sm ring-1 mb-4 transition-colors ${seen ? "ring-secondary opacity-75" : "ring-primary"}`}
+      className={`mb-4 cursor-pointer rounded-xl p-5 ring-1 transition ${
+        seen
+          ? "bg-secondary_alt ring-secondary"
+          : "bg-primary shadow-sm ring-primary hover:shadow-md"
+      }`}
       onClick={openModal}
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -83,11 +88,18 @@ export default function PaperCard({
           </Badge>
         )}
         <PublicationDate date={publication_date} />
+        {seen && (
+          <BadgeWithIcon type="color" color="gray" size="sm" iconLeading={Eye} className="ml-auto">
+            Viewed
+          </BadgeWithIcon>
+        )}
       </div>
 
       <button
         onClick={openModal}
-        className="mb-2 block text-left text-md font-semibold text-primary leading-snug hover:text-brand-secondary transition-colors"
+        className={`mb-2 block text-left text-md leading-snug transition-colors hover:text-brand-secondary ${
+          seen ? "font-medium text-tertiary" : "font-semibold text-primary"
+        }`}
       >
         {title ?? "(No title)"}
       </button>
