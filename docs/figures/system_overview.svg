@@ -191,8 +191,8 @@
     <rect class="barbg" x="914" y="250" width="232" height="6" rx="3"/>
     <rect class="app" x="914" y="250" width="171.7" height="6" rx="3"/>
 
-    <text class="ink t" x="914" y="270">Llama 8B listwise (1 seed)</text>
-    <text class="ink t" x="1146" y="270" text-anchor="end">67.1 / 60.6</text>
+    <text class="ink t" x="914" y="270">Llama 8B listwise (5 seeds)</text>
+    <text class="ink t" x="1146" y="270" text-anchor="end">66.3 / 62.8</text>
     <rect class="barbg" x="914" y="276" width="232" height="6" rx="3"/>
     <rect class="app" x="914" y="276" width="155.7" height="6" rx="3"/>
 
@@ -337,7 +337,8 @@
   <text class="ink t" x="1146" y="816" text-anchor="end">0.233 (no gain)</text>
   <text class="ink t" x="760" y="834">coupling alone · + SPECTER2</text>
   <text class="ink t" x="1146" y="834" text-anchor="end">0.299 · 0.197</text>
-  <text class="muted t" x="760" y="854">Llama 3.1 8B listwise on these labels: running (Oct 2026)</text>
+  <text class="ink t" x="760" y="852">Llama 8B listwise, shuffled · worst first</text>
+  <text class="ink t" x="1146" y="852" text-anchor="end">0.388 · 0.253</text>
 
   <!-- Row 6: deployed app -->
   <g transform="translate(0,390)">
