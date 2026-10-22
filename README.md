@@ -4,7 +4,7 @@
 
 Sena Öz · Advisor: H. Birkan Yılmaz · Boğaziçi University, M.S. Software Engineering (SWE 599), 2026
 
-[One-page summary](research/audit/SUMMARY.md) · [Statistics](research/v2/stats/) · [v1 → v2 comparison](research/audit/BEFORE_AFTER.md) · [Audit of v1](research/audit/AUDIT.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md) · [Final report (PDF, v1)](SWE599_Final_2026S_OZ_Sena.pdf)
+[Paper draft (PDF)](paper/main.pdf) · [One-page summary](research/audit/SUMMARY.md) · [Statistics](research/v2/stats/) · [v1 → v2 comparison](research/audit/BEFORE_AFTER.md) · [Audit of v1](research/audit/AUDIT.md) · [System setup](README_APP.md) · [Development log](docs/DEVLOG.md) · [Final report (PDF, v1)](SWE599_Final_2026S_OZ_Sena.pdf)
 
 Researchers miss relevant work from institutions they don't routinely follow. This project has two parts:
 
@@ -21,7 +21,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 | Part | State |
 |---|---|
-| Research | Done through notebook 18 (`research/v2/`). Paper being written as a benchmark paper with position bias as the headline ([PAPER_NOTES.md](research/audit/PAPER_NOTES.md)). |
+| Research | Done through notebook 18 (`research/v2/`). Paper draft in [`paper/`](paper/) ([PDF](paper/main.pdf)), not yet on arXiv; written as an audit and re-evaluation with position bias as the headline. |
 | Deployed app | **Unchanged since v1:** still Qwen3-Embedding → Llama 3.2 3B, seeded from the old `boun.csv`. The research says stage 2 should go; [APP_NOTES.md](APP_NOTES.md) collects what the app needs. |
 | App redesign | Draft in [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md): no LLM stage 2, a per-work Boğaziçi index on the cleaned data, versioned matches and feedback. Decisions D1–D10 open; no code yet. |
 | Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **On hold, not to be merged as is:** the feed's cosine filter (0.3) would hide every LLM-scored match. |
@@ -37,14 +37,14 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 | **Boğaziçi data** | Is the app's researcher data sound? | Partly: rebuilt as 7,822 cleaned works | `13` · [BOUN_DATA.md](research/audit/BOUN_DATA.md) |
 | **Gold standard** | Do the conclusions hold on human expertise labels? Does bibliographic coupling help? | Yes, same winner; coupling is real but adds nothing to Qwen3 | `14`–`18` · [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) |
 
-![System overview: v1 audit, v2 pipeline, local models, Phase 5 and the deployed app](docs/figures/system_overview.svg)
+![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
 
-*The overview diagram covers the project up to Phase 5; the gold-standard work is in the section below.*
+*The overview diagram covers every part of the project; each part has its own section below.*
 
 ## Main findings
 
 1. **Embedding models beat every LLM variant.** On v2, Qwen3-Embedding-8B reaches R-precision 87.0% [84.2, 89.7] on random negatives and 80.1% [77.0, 83.0] on topically matched ones. Listwise Llama 3.2 3B scores 43.9% and 42.0%, close to chance (33.3%) and about 40 points below Qwen3 (p ≈ 2·10⁻¹⁹).
-2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them.
+2. **The earlier "LLM advantage" was position bias.** With only the candidate order changed, the same model gets MRR 0.95–0.98 when positives come first (v1's order) and 0.27–0.33 when they come last, below chance (≈ 0.56). Most of the time it returns the candidates in the order it was given them. A larger model does not remove the effect but reverses it: Llama 3.1 8B favours the *last* candidates, with R-precision 73.9 / 69.0 when the cited papers come first and 89.4 / 85.9 when they come last, above Qwen3-Embedding (shuffle seed 0). Over five shuffle seeds the 8B model scores 66.3 / 62.8, point estimates below BM25 (68.6 / 63.4), and 21 / 17 points below Qwen3-Embedding. The same reversal holds on human labels: the 8B model's loss is 0.413 with the best papers first and 0.253 with them last (Holm p = 7.7·10⁻⁵).
 3. **Reranking hurts the two-stage pipeline, and stage 1 is not the reason.** Qwen3's top 10 already holds about 90% of the true references; reranking them with Llama scores 13.0 / 10.4 points below Qwen3 alone (p ≤ 3·10⁻¹⁰).
 4. **Small embedding models are almost as good as large ones.** MiniLM (22M parameters) is within 3.7 / 4.3 points of Qwen3-8B.
 5. **The full corpus is much harder, and extra signals add little.** Against 11,967 papers, Qwen3's R-precision falls to 25.1%. Leakage-controlled co-citation expansion adds nothing significant; pointwise Llama halves nDCG@10; only Qwen3-Reranker-4B, fused with the embedding, helps modestly.
@@ -52,7 +52,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 ![R-precision with 95% confidence intervals, random benchmark](research/v2/figures/05_rprec_ci_random.svg)
 
-![Listwise Llama under three candidate orders](research/v2/figures/06_position_bias.svg)
+![Listwise Llama 3.2 3B and 3.1 8B under three candidate orders, with Qwen3-Embedding for reference](research/v2/figures/position_bias_3b_8b.svg)
 
 ---
 
@@ -150,6 +150,7 @@ R-precision % [95% CI] and MRR. The chance level (a random ranking) is 33.3% R-p
 | Llama + MiniLM (fusion) | 69.0 [66.9, 71.1] | 63.7 [61.3, 66.2] | 0.966 | 0.935 |
 | BM25 | 68.6 [65.5, 71.5] | 63.4 [60.0, 66.7] | 0.904 | 0.856 |
 | bge-reranker-base (cross-encoder) | 67.2 [63.3, 71.0] | 58.1 [54.4, 61.8] | 0.912 | 0.872 |
+| Llama 3.1 8B, listwise, full list (scale check, own test family) | 66.3 [63.5, 69.1] | 62.8 [59.9, 65.6] | 0.942 | 0.922 |
 | Llama 3.2 3B, listwise, sliding window | 55.6 [53.5, 57.8] | 52.2 [49.9, 54.5] | 0.797 | 0.777 |
 | Llama 3.2 3B, listwise, full list | 43.9 [41.9, 46.0] | 42.0 [40.2, 43.9] | 0.662 | 0.638 |
 
@@ -241,6 +242,7 @@ It also tests **bibliographic coupling** (a new paper and a researcher's paper c
 | Coupling, IDF-cosine, max (pre-registered) | 0.299 [0.248, 0.348] | not significant |
 | Pointwise Llama 3.2 3B | 0.337 [0.282, 0.395] | worse, Holm p = 3.9·10⁻⁴ |
 | Listwise Llama 3.2 3B, shuffled | 0.467 [0.442, 0.493] | worse, Holm p = 1.6·10⁻⁷ |
+| Listwise Llama 3.1 8B, shuffled (scale check) | 0.388 [0.339, 0.438] | worse, Holm p = 4.6·10⁻⁶ (own family) |
 | Forward citation (new paper cites a profile paper) | 0.468 [0.445, 0.488] | |
 | Constant | 0.500 | |
 
@@ -253,6 +255,7 @@ It also tests **bibliographic coupling** (a new paper and a researcher's paper c
 | Coupling + Qwen3-Embedding, linear fusion | 0.212 [0.164, 0.264] |
 | Listwise Llama, best-first (true order shown) | 0.253 [0.179, 0.328] |
 | Listwise Llama, worst-first | 0.685 [0.604, 0.765] |
+| Listwise Llama 3.1 8B, best-first / worst-first | 0.413 [0.323, 0.503] / 0.253 [0.194, 0.323] |
 
 The LLM prompts (notebook `17`) ask how qualified the researcher is to review the paper, with the same structure as on the citation benchmark. Listwise and pointwise Llama see the profile titles. Qwen3-Reranker-4B takes each profile paper as the query, max over the profile. The fused reranker (notebook `18`, weight by leave-one-participant-out) is better for 0 researchers, worse for 18 and tied for 40 (p = 1.96·10⁻⁴).
 
@@ -266,6 +269,8 @@ The LLM prompts (notebook `17`) ask how qualified the researcher is to review th
 5. **Coupling adds nothing significant on top of Qwen3-Embedding** (Holm p = 1.0). One of six pre-registered fusions reached significance (with SPECTER2, Holm p = 8.3·10⁻³), so coupling is no reason to change the app's design, just like co-citation in Phase 5. A title search that raised profile coverage to 85.2% moves coupling to 0.292 [0.238, 0.343] and changes no test conclusion.
 6. **On the app's own data (descriptive, no labels; notebook `15`).** Of 200 new papers from the followed institutions (15–19 Oct 2026), 101 have references in OpenAlex and 52 share at least one with a Boğaziçi work. Coupling and Qwen3-Embedding mostly pick different researchers: 22.9% of coupling's top researchers are in the embedding's top 10. In a sanity check on 110 Boğaziçi works with a followed-institution co-author (index restricted to earlier works), the work's own Boğaziçi author is in the top 10 for 80.0% of queries with the embedding and 72.7% with coupling, although co-authors' shared self-citations favour coupling.
 7. **Scope.** The dataset orders papers *for one researcher*; the app orders *researchers for one paper*, and cross-researcher calibration is untested. Almost all papers are CS/ML.
+
+![LLM and lexical methods on the gold standard, including listwise Llama under three orders](research/v2/figures/17_llm_goldstandard.svg)
 
 ![Bibliographic coupling and embeddings on the gold standard](research/v2/figures/14_bibcoupling_goldstandard.svg)
 
@@ -293,7 +298,7 @@ So that nobody repeats them without a reason:
 
 1. **Rebuild the app's matching** as drafted in [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md): the cleaned Boğaziçi data, one embedding per work, no LLM stage 2, a calibrated cut-off, and a model version on every match and feedback row. Decisions D1–D10 come first.
 2. **Use the app's feedback.** The app records thumbs-up/down on each paper–researcher match; relating it to offline scores needs a database dump.
-3. **The paper.** Benchmark paper with position bias as the headline; working notes in [PAPER_NOTES.md](research/audit/PAPER_NOTES.md). The full research plan with status notes is in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
+3. **The paper.** Benchmark paper with position bias as the headline; draft in [`paper/`](paper/). The full research plan with status notes is in [TODO.md](research/audit/TODO.md) and [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md).
 
 ---
 
@@ -365,7 +370,6 @@ SWE599_Progress_2026S_OZ_Sena.pdf, SWE599_Final_2026S_OZ_Sena.pdf   course repor
 | [BOUN_DATA.md](research/audit/BOUN_DATA.md) | Data card for the cleaned Boğaziçi works |
 | [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) | Data card for the Stelmakh et al. gold standard |
 | [BIBCOUPLING_PROMPT.md](research/audit/BIBCOUPLING_PROMPT.md) | Brief for the bibliographic-coupling experiment |
-| [PAPER_NOTES.md](research/audit/PAPER_NOTES.md) | Decisions for the paper in progress |
 | [TODO.md](research/audit/TODO.md), [IMPROVEMENT_IDEAS.md](research/audit/IMPROVEMENT_IDEAS.md) | Research plan and ideas, with status notes |
 | [research/README.md](research/README.md) | How to set up models and run the notebooks |
 | [DEVLOG.md](docs/DEVLOG.md) | Every step, dated, with commits |

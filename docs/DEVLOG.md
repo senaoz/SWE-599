@@ -837,8 +837,71 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **Bug found.** With pgvector 0.5.1 (unpinned, so a fresh image installs it), raw-SQL reads return `pgvector.Vector` objects and `row_to_emb` raised `TypeError`, so the rematch job crashed on already-embedded papers. Fixed in `row_to_emb`.
 - **Checks.** 11 backend unit tests pass (`python -m pytest backend/tests`). A synthetic end-to-end run on a throwaway `pgvector/pgvector:pg16` container (7 researchers, 3 papers, encoder stubbed, no Ollama) stored the expected matches, and the feed showed 5 per paper and the detail page 6. Not run: the real Ollama encoder, the OpenAlex fetch and the frontend build.
 
+### 2026-10-21 — Llama 3.1 8B: setup and dev pilot (scale check for the position-bias claim)
+
+- **Why.** Every LLM result so far comes from Llama 3.2 3B (Q4). Reviewers will ask whether order-copying is just a small-model effect. Llama 3.1 8B Instruct keeps the family and quantization, so only size changes (user decision, 2026-10-21).
+- **Model.** `bartowski/Meta-Llama-3.1-8B-Instruct-GGUF`, Q4_K_M, 4,920,739,232 bytes, sha256 `7b064f58…3033557c` (matches the Hugging Face LFS hash). `hf download` stalled at 0 bytes (Xet); a resumable `curl` of the resolve URL worked. Served by a separate `llama-server` on port 1338 (ctx 16384, as the 3B); `~/models/llama-server.ini` is unchanged.
+- **Code.** `RunConfig.llm` and `jan.JAN_MODEL_MAP["llama8b"]` choose the model for every LLM method; non-default models write their own runs (`llama8b__shuffled__s0.jsonl`, `qwen→llama8b_k10_…`), so 3B files are untouched. Gold standard: `GS_LLM=llama8b` caches to `data/v2/goldstandard_llm/llama8b/`. Fixed `check_jan`, which required the 3B whenever the method was named `llama`. Tests: 44 pass (3 new in `tests/test_pipeline_v2.py`).
+- **Dev pilot** (listwise, shuffled, seed 0, 50 dev queries, `tac_600_1500`; dev only, nothing tuned):
+
+  | dev, seed 0 | R-prec `random` | R-prec `concept` | MRR `random` / `concept` | partial |
+  |---|---|---|---|---|
+  | Qwen3-Embedding-8B | 88.7 | 81.3 | 1.000 / 1.000 | — |
+  | BM25 | 73.4 | 63.8 | 0.947 / 0.922 | — |
+  | Llama 3.1 8B listwise | 67.5 | 61.3 | 0.955 / 0.944 | 7 / 8 of 50 |
+  | Llama 3.2 3B listwise | 46.9 | 43.6 | 0.722 / 0.670 | 24 / 20 of 50 |
+
+  8B is far better than 3B, but stays below BM25 and about 20 points below the embedding.
+- **Order-copying** (Spearman ρ between output position and shown position, model's own parsed output with ≥ 5 items, the 2026-10-12 definition; it reproduces the 3B test numbers exactly: 1,177 outputs, median 0.98, 50.6% copies):
+
+  | shuffled, seed 0, dev | outputs | median ρ | copies (ρ > 0.8) | reverses (ρ < −0.8) | order-independent (\|ρ\| ≤ 0.3) |
+  |---|---|---|---|---|---|
+  | Llama 3.2 3B | 96 | 0.92 | 51.0% | 7.3% | 28.1% |
+  | Llama 3.1 8B | 100 | −0.19 | 1.0% | 16.0% | 45.0% |
+
+  On dev, 8B almost never copies the shown order, but reverses it more often than 3B. Dev and one seed only; the outcome-level test is the best-first / worst-first runs on test.
+- **Partial outputs** (15 of 100): 14 are complete JSON arrays that skip 1–16 candidates; only 1 is cut off at the token budget. So "8B omits candidates", not "8B truncates".
+- **Speed.** 18.2 / 18.8 s per query (3B: 7.0 / 9.2 s). Prompt processing ran at about 210 tokens/s, generation at about 18 tokens/s, with 17.9 GB of swap in use by other apps; earlier swap pressure halved reranker speed (lessons.md), so a clean machine may be faster.
+
+### 2026-10-21 — Llama 3.1 8B: position-bias trio on the citation test split (tier 1)
+
+- **Run.** Listwise 8B, test split (118 queries), both benchmarks, seed 0, orders shuffled / original (cited first) / reversed (cited last): 708 calls, 10:38–15:12, about 20 s per query. No HTTP errors; partial outputs 8–21 per condition, parse failures 2. Run files: `research/v2/runs/*/tac_600_1500/llama8b__*__s0.jsonl`.
+- **R-precision (random / concept):**
+
+  | | Cited first | Shuffled | Cited last |
+  |---|---|---|---|
+  | Llama 3.2 3B | 72.3 / 74.1 | 46.3 / 43.1 | 30.0 / 19.9 |
+  | Llama 3.1 8B | 73.9 / 69.0 | 67.1 / 60.6 | 89.4 / 85.9 |
+  | Qwen3-Embedding-8B | 87.0 / 80.1 (order-independent) | | |
+
+- **Findings.** The 8B model favours late candidates: first vs last −15.5 / −16.9 R-precision (paired Wilcoxon p = 4.8e-06 / 5.1e-05; 3B: +42.3 / +54.2). With the cited papers last it scores above Qwen3-Embedding on both benchmarks. Shuffled, it trails Qwen3 by 19.8 / 19.5 (p ≈ 1e-12) and beats 3B by 20.8 / 17.5. Order-copying on shuffled test outputs (seed 0, ≥ 5 items): 3B 52.6% copies, 5.1% reverses; 8B 0.9% copies, 10.3% reverses, 51.5% order-independent.
+- **Session end.** The 8B server, started as a session background task, stopped when the session ended at about 15:15, 20 calls into tier 2. The runner was stopped before any failed call was cached (all 20 records ok); server and tier 2 were restarted with `nohup` and resumed from the cache.
+
+### 2026-10-21 — Llama 3.1 8B on the gold standard (tier 2, notebook 17)
+
+- **Run.** Listwise 8B, 3 orders × 5 seeds × 58 participants = 870 calls, all ok, 0 partial, 15:12–17:53 (restarted once after the session end, see the tier-1 entry; 20 calls before, 850 after). About 8 s per call on mains power, about 22 s on battery; a `caffeinate` kept the machine awake. Cache: `research/data/v2/goldstandard_llm/llama8b/` (gitignored).
+- **Notebook 17.** Calls loading refactored into `load_calls` / `call_summary` so both models use one path; 8B added as `listwise8b_*` with its own test family (3), so the Holm values of families 1–2 are unchanged (checked: the old rows of `17_results.csv` and `17_tests.csv` are identical; the CSVs only gain rows). New `17_listwise8b_calls.csv`.
+- **Results** (pooled loss, 95% participant bootstrap): shuffled 0.388 [0.339, 0.438] (3B 0.467; Qwen3 0.222, worse for 46 of 58, Holm p = 4.6e-06); best-first 0.413 [0.323, 0.503]; worst-first 0.253 [0.194, 0.323] (worst- vs best-first 43 vs 15, Holm p = 7.7e-05). The 8B favours the end of the list on human labels as on citation labels. Exact copies of the shown order: 2.1% shuffled (3B 34.5%); mean Kendall τ with the shown order −0.20 shuffled (3B +0.31).
+- **Figures.** `research/scripts/paper_figures.py` now draws the human panel of `position_bias_3b_8b` and adds the 8B to `fig3_label_agreement` (Kendall τ between the two label sources over 8 methods: 0.786, 3 of 28 pairs swap).
+
+### 2026-10-21 — Paper draft: reviewer pass and audit framing
+
+- **Reviewer pass** (subagent, claims checked against the primary records): 22 fixes. The main one: the headline said a fixed order "can make either model look better than dense retrieval", but the 3B with cited papers first stays below Qwen3 (72.3 vs 87.0, p = 2.8e-05 / 0.031); v1's lead also needed F6. The 8B's cited-last lead over Qwen3 is significant on `concept` only (p = 0.004; `random` p = 0.10). Also: queries are from 2020 on (100 of 168 in 2020), the human-label fusion is significantly worse (p = 2.0e-04, single test, flat-optimum footnote), R1–R5 listed exactly, GRIT and contamination cited. The |ρ| ≤ 0.3 "order-independent" threshold is the 2026-10-12 definition (reviewer flagged it as undocumented).
+- **Robustness** (no model calls). RQ1 on the queries where a model returns complete rankings in all three orders: cited first minus cited last, 3B +32.9 / +41.9 (36 / 26 queries), 8B −12.0 / −12.1 (79 / 85 queries), all p ≤ 8.4e-03.
+- **Mechanism figure** (`order_mechanism`, label-free): mean relative output position by tenth of the shown list, shuffled seed 0: 3B 0.24 (first tenth) → 0.73 (last tenth); 8B 0.57 → 0.40.
+- **τ interval.** Kendall τ between the two label sources over 8 methods 0.79 [0.57, 0.86] (2,000 joint bootstraps of queries and researchers). Recompute after tier 3.
+- **Framing.** Title "Do Small Local LLM Rerankers Help Scientific Paper Recommendation? An Audit and Re-evaluation with Citation and Human Expertise Labels"; the audit (F1–F9) moved from the appendix to Section 3; contributions open with the audit.
+
 ### 2026-10-21 — Matching design updated to the current repo and the paper
 
 - **What.** `docs/MATCHING_DESIGN.md` brought up to date: section 2 describes the code after PRs 1, 2 and #8; the gap table marks stage 2 and the f-string SQL as done; sections 3–6 follow D1–D10 (no tag field, `doi` and `duplicate_ids` for the self-match rule, `embedding_version` example, aggregation, data handling, authorship canary in 5.2); the research summary and the no-stage-2 evidence now include the gold standard, Llama 3.1 8B and bibliographic coupling results; section 7 lists open questions instead of decisions.
 - **New open questions.** O1 hosting `llama-server` in production (production runs Ollama in Docker; the Q4_K_M GGUF is 4.4 GB; VPS size unknown), O2 `from_created_date`, O3 query instruction prefix, O4 the local-only Crossref/S2 cache needed for a full re-embed.
 - **PR 4 note.** The Experiment B cache holds 8,016 vectors keyed by the sha256 of the embedded text; the seeder can reuse one only if it builds the identical string.
+
+### 2026-10-21 — Llama 3.1 8B: shuffle seeds 1–4 on citation labels (tier 3)
+
+- **Run.** Listwise 8B, shuffled, seeds 1–4, test split, both benchmarks: 944 calls, finished 23:56, no HTTP errors; 11–17 partial outputs per seed (of 118).
+- **Notebook 05.** The 8B is scored apart (own bootstrap, own Holm family) in a "Scale check" table; the main tables in `results_*.md` are unchanged. Five seeds: R-precision 66.3 [63.5, 69.1] / 62.8 [59.9, 65.6] (SD 0.9 / 2.0); vs Qwen3 −20.6 / −17.3 (Holm p = 9.7e-18 / 1.9e-14); vs 3B +22.4 / +20.7.
+- **Paper figures.** Fig 4 uses the five-seed 8B. Kendall τ between label sources unchanged, 0.79 [0.57, 0.86], same three swapped pairs (TF-IDF, BM25, pointwise Llama); the 8B stays below BM25 on citation labels.
+- **Text.** Paper (RQ2 gap, captions, seeds note, limitations), README table and finding 2, and the overview diagram now use five seeds; the order comparison (RQ1) stays on shuffle seed 0.
+- **Server.** The 8B `llama-server` on port 1338 was stopped after the run.

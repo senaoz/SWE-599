@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -130,7 +131,7 @@ def listwise_cache(root: Path, order: str, seed: int) -> Path:
     return root / f"listwise_{order}_seed{seed}.jsonl"
 
 
-def run_listwise(data: dict, root: Path, orders=ORDERS, seeds=LISTWISE_SEEDS) -> int:
+def run_listwise(data: dict, root: Path, orders=ORDERS, seeds=LISTWISE_SEEDS, model: str | None = None) -> int:
     from src.rankers_v2 import listwise_rank
     refs, text = data["refs"], data["text"]
     new = 0
@@ -145,7 +146,8 @@ def run_listwise(data: dict, root: Path, orders=ORDERS, seeds=LISTWISE_SEEDS) ->
                         continue
                     shown = shown_order(refs[rv], order, seed, rv)
                     res = listwise_rank(profile_query(data, seed, rv), [text[p][:CAND_CHARS] for p in shown],
-                                        rng_for("fallback", order, seed, rv), seed=seed, template=LISTWISE_EXPERTISE)
+                                        rng_for("fallback", order, seed, rv), model=model, seed=seed,
+                                        template=LISTWISE_EXPERTISE)
                     f.write(json.dumps({"reviewer": rv, "order": order, "seed": seed, "sample": seed, "shown": shown,
                                         "ranked": [shown[k] for k in res["order"]], "status": res["status"],
                                         "n_ranked": res["n_ranked"], "prompt_tokens": res["prompt_tokens"],
@@ -165,14 +167,14 @@ def read_listwise(root: Path, order: str, seed: int) -> list[dict]:
 # Pointwise: Llama (profile titles + candidate) and Qwen3-Reranker (one profile paper per query)
 # ---------------------------------------------------------------------------
 
-def llama_cache(root: Path):
+def llama_cache(root: Path, model: str | None = None):
     from src.rerank import PointwiseCache, llama_pointwise
     return PointwiseCache(root / "pointwise_llama.jsonl",
-                          scorer=lambda q, texts: llama_pointwise(q, texts, template=POINTWISE_EXPERTISE))
+                          scorer=lambda q, texts: llama_pointwise(q, texts, model=model, template=POINTWISE_EXPERTISE))
 
 
-def run_llama(data: dict, root: Path, samples=SAMPLES) -> int:
-    cache, new = llama_cache(root), 0
+def run_llama(data: dict, root: Path, samples=SAMPLES, model: str | None = None) -> int:
+    cache, new = llama_cache(root, model), 0
     for i in samples:
         for rv in sorted(data["refs"]):
             new += cache.ensure(f"{rv}|d_20_{i}", profile_query(data, i, rv), sorted(data["refs"][rv]),
@@ -218,13 +220,18 @@ def max_preds(data: dict, cache) -> list[dict]:
 
 if __name__ == "__main__":
     what, G = sys.argv[1], Path(sys.argv[2])
+    # GS_LLM=llama8b: the larger Llama, cached in its own subfolder so the 3B caches stay untouched.
+    from src.jan import JAN_MODEL_MAP
+    llm = os.getenv("GS_LLM", "llama")
     ROOT = Path(__file__).resolve().parents[1] / "data" / "v2" / "goldstandard_llm"
+    if llm != "llama":
+        ROOT = ROOT / llm
     data = load(G)
     if what == "listwise":
-        print("new calls:", run_listwise(data, ROOT))
+        print("new calls:", run_listwise(data, ROOT, model=JAN_MODEL_MAP[llm]))
     elif what == "pointwise":
         samples = [int(x) for x in sys.argv[3].split(",")] if len(sys.argv) > 3 else SAMPLES
-        print("new calls:", run_llama(data, ROOT, samples))
+        print("new calls:", run_llama(data, ROOT, samples, model=JAN_MODEL_MAP[llm]))
     elif what == "reranker":
         print("new pairs:", run_reranker(data, ROOT))
     else:

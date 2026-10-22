@@ -1,0 +1,9 @@
+method,label,family,rprec,rprec_lo,rprec_hi,loss,loss_lo,loss_hi
+qwen,Qwen3-Embedding-8B,Embedding,86.9764,84.1641,89.6633,0.2223,0.1765,0.2737
+specter2,SPECTER2,Embedding,83.4783,80.4524,86.3817,0.2307,0.1827,0.2818
+minilm,MiniLM,Embedding,83.3078,80.1734,86.3420,0.2416,0.1944,0.2924
+tfidf,TF-IDF,Lexical,75.3170,72.3136,78.2588,0.2894,0.2331,0.3495
+bm25,BM25,Lexical,68.5507,65.5494,71.4971,0.2752,0.2165,0.3314
+llama-pointwise,Llama 3B pointwise,LLM,78.7558,75.5797,81.8927,0.3372,0.2820,0.3950
+llama,Llama 3B listwise,LLM,43.9247,41.9033,45.9807,0.4666,0.4424,0.4927
+llama8b,Llama 8B listwise,LLM,66.3283,63.5439,69.0550,0.3885,0.3392,0.4380
