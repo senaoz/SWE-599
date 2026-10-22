@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 
-app = FastAPI(title="BOUN Paper Recommender", lifespan=lifespan)
+app = FastAPI(title="Scholar Radar", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

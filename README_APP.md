@@ -1,6 +1,6 @@
-# SWE-599 — BOUN Paper Recommender
+# SWE-599 — Scholar Radar
 
-Automated paper recommendation system for Boğaziçi University (BOUN) researchers. Users follow academic institutions; when new papers are published, the system retrieves the most similar BOUN works by cosine similarity of Qwen3-Embedding vectors and lists those works' BOUN authors.
+Scholar Radar is an automated paper recommendation system for Boğaziçi University (BOUN) researchers. Users follow academic institutions; when new papers are published, the system retrieves the most similar BOUN works by cosine similarity of Qwen3-Embedding vectors and lists those works' BOUN authors.
 
 > The research in this repository found that an LLM reranking stage does not improve on Qwen3-Embedding alone, on citation labels or on human expertise labels, so the app has no second stage. The design and its decisions are in [`docs/MATCHING_DESIGN.md`](docs/MATCHING_DESIGN.md); known issues are in [`APP_NOTES.md`](APP_NOTES.md).
 

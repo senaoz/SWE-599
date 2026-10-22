@@ -303,7 +303,7 @@ So that nobody repeats them without a reason:
 
 ## The system
 
-A containerized recommender. Every 6 hours (`JOB_INTERVAL_HOURS`, or on demand from the admin panel) it:
+Scholar Radar, a containerized recommender. Every 6 hours (`JOB_INTERVAL_HOURS`, or on demand from the admin panel) it:
 
 1. **Fetches** new papers from the followed institutions (a fixed list of seven) through the OpenAlex API, starting from each institution's cursor (following an institution starts it 14 days back), at most 200 per institution per run.
 2. **Embeds** each paper's title and abstract with Qwen3-Embedding-8B (Q4_K_M on llama.cpp's `llama-server`, 4096-d, the research setup), stored in PostgreSQL with pgvector and an embedding version.
