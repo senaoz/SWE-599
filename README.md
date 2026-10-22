@@ -25,6 +25,10 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 | App | **Rebuilt (October 2026):** stage 2 removed; one embedding stage (Qwen3-Embedding-8B on `llama-server`) over a per-work index of the cleaned Boğaziçi data, versioned matches and feedback, and a researcher-centred UI (For me / Explore). Design and decisions D1–D10: [docs/MATCHING_DESIGN.md](docs/MATCHING_DESIGN.md). Next: a calibrated cut-off, ingest fixes, feedback export. |
 | Branch `app-mtplx-stage2` | Stage 2 on a 27B model via MTPLX. **Obsolete:** the app no longer has a stage 2. Kept for reference, not to be merged. |
 
+![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
+
+*The overview diagram covers every part of the project; each part has its own section below.*
+
 ## The project at a glance
 
 | Phase | Question | Answer in one line | Notebooks · details |
@@ -35,10 +39,6 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 | **Phase 5** | Does it hold on a full 12k-paper corpus, with co-citation expansion and reranking? | Yes; co-citation adds nothing significant; only a trained reranker (fused) helps a little | `07`–`12` · [PHASE5_DESIGN.md](research/audit/PHASE5_DESIGN.md) |
 | **Boğaziçi data** | Is the app's researcher data sound? | Partly: rebuilt as 7,822 cleaned works | `13` · [BOUN_DATA.md](research/audit/BOUN_DATA.md) |
 | **Gold standard** | Do the conclusions hold on human expertise labels? Does bibliographic coupling help? | Yes, same winner; coupling is real but adds nothing to Qwen3 | `14`–`18` · [GOLDSTANDARD_DATA.md](research/audit/GOLDSTANDARD_DATA.md) |
-
-![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
-
-*The overview diagram covers every part of the project; each part has its own section below.*
 
 ## Main findings
 
