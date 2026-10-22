@@ -897,3 +897,11 @@ Ad hoc checks on the notebook-08 graph. They will move into notebook 08 together
 - **What.** `docs/MATCHING_DESIGN.md` brought up to date: section 2 describes the code after PRs 1, 2 and #8; the gap table marks stage 2 and the f-string SQL as done; sections 3–6 follow D1–D10 (no tag field, `doi` and `duplicate_ids` for the self-match rule, `embedding_version` example, aggregation, data handling, authorship canary in 5.2); the research summary and the no-stage-2 evidence now include the gold standard, Llama 3.1 8B and bibliographic coupling results; section 7 lists open questions instead of decisions.
 - **New open questions.** O1 hosting `llama-server` in production (production runs Ollama in Docker; the Q4_K_M GGUF is 4.4 GB; VPS size unknown), O2 `from_created_date`, O3 query instruction prefix, O4 the local-only Crossref/S2 cache needed for a full re-embed.
 - **PR 4 note.** The Experiment B cache holds 8,016 vectors keyed by the sha256 of the embedded text; the seeder can reuse one only if it builds the identical string.
+
+### 2026-10-21 — Llama 3.1 8B: shuffle seeds 1–4 on citation labels (tier 3)
+
+- **Run.** Listwise 8B, shuffled, seeds 1–4, test split, both benchmarks: 944 calls, finished 23:56, no HTTP errors; 11–17 partial outputs per seed (of 118).
+- **Notebook 05.** The 8B is scored apart (own bootstrap, own Holm family) in a "Scale check" table; the main tables in `results_*.md` are unchanged. Five seeds: R-precision 66.3 [63.5, 69.1] / 62.8 [59.9, 65.6] (SD 0.9 / 2.0); vs Qwen3 −20.6 / −17.3 (Holm p = 9.7e-18 / 1.9e-14); vs 3B +22.4 / +20.7.
+- **Paper figures.** Fig 4 uses the five-seed 8B. Kendall τ between label sources unchanged, 0.79 [0.57, 0.86], same three swapped pairs (TF-IDF, BM25, pointwise Llama); the 8B stays below BM25 on citation labels.
+- **Text.** Paper (RQ2 gap, captions, seeds note, limitations), README table and finding 2, and the overview diagram now use five seeds; the order comparison (RQ1) stays on shuffle seed 0.
+- **Server.** The 8B `llama-server` on port 1338 was stopped after the run.
