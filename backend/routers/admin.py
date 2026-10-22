@@ -8,6 +8,7 @@ from backend.auth import require_admin
 from backend.database import get_db
 from sqlalchemy import text
 from backend.models import User, FetchedPaper, PaperResearcherMatch, Researcher, FetchCursor
+from backend.config import EMBEDDING_VERSION
 from backend.schemas import AdminStatus
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -19,12 +20,16 @@ async def get_status(
     db: AsyncSession = Depends(get_db),
 ):
     paper_count = await db.scalar(select(func.count(FetchedPaper.openalex_id))) or 0
-    match_count = await db.scalar(select(func.count()).select_from(PaperResearcherMatch)) or 0
+    match_count = await db.scalar(
+        select(func.count()).select_from(PaperResearcherMatch)
+        .where(PaperResearcherMatch.embedding_version == EMBEDDING_VERSION)
+    ) or 0
     researcher_count = await db.scalar(select(func.count(Researcher.id))) or 0
     unmatched_count = await db.scalar(text(
         "SELECT COUNT(*) FROM fetched_papers fp "
-        "WHERE NOT EXISTS (SELECT 1 FROM paper_researcher_matches m WHERE m.paper_openalex_id = fp.openalex_id)"
-    )) or 0
+        "WHERE NOT EXISTS (SELECT 1 FROM paper_researcher_matches m "
+        "WHERE m.paper_openalex_id = fp.openalex_id AND m.embedding_version = :v)"
+    ), {"v": EMBEDDING_VERSION}) or 0
 
     last_cursor = await db.scalar(
         select(FetchCursor.last_run_at).order_by(FetchCursor.last_run_at.desc()).limit(1)

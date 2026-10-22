@@ -7,8 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./backend/
 COPY research/src/ ./research/src/
-COPY research/requirements.txt ./research/requirements.txt
-RUN pip install --no-cache-dir rank-bm25 google-generativeai
 
 ENV PYTHONPATH=/app
 

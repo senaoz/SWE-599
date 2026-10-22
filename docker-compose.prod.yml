@@ -22,16 +22,15 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://swe599:${DB_PASSWORD}@db:5432/swe599
       JWT_SECRET: ${JWT_SECRET}
-      BOUN_CSV_PATH: research/data/cleaned/boun.csv
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      OLLAMA_URL: http://ollama:11434
+      EMBED_URL: http://embedder:8080/v1
       OPENALEX_EMAIL: ${OPENALEX_EMAIL:-}
     volumes:
       - ./research/data:/app/research/data
     depends_on:
       db:
         condition: service_healthy
-      ollama:
+      embedder:
         condition: service_healthy
     logging:
       driver: json-file
@@ -39,40 +38,30 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  ollama:
-    image: ollama/ollama
+  # Qwen3-Embedding-8B Q4_K_M on llama.cpp's server, with the research settings (D2; research/README.md).
+  # The GGUF (about 4.4 GB) is downloaded from Hugging Face on first start into the llama_cache volume.
+  # Needs enough RAM for the 8B model; see docs/MATCHING_DESIGN.md, open question O1.
+  embedder:
+    image: ghcr.io/ggml-org/llama.cpp:server-b11146
     restart: always
+    command: >
+      --hf-repo Qwen/Qwen3-Embedding-8B-GGUF --hf-file Qwen3-Embedding-8B-Q4_K_M.gguf
+      --alias Qwen/Qwen3-Embedding-8B-Q4_K_M
+      --embeddings --pooling last --ctx-size 0 --batch-size 2048 --ubatch-size 2048
+      --host 0.0.0.0 --port 8080
     volumes:
-      - ollama_data:/root/.ollama
+      - llama_cache:/root/.cache/llama.cpp
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "ollama", "list"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
-      retries: 10
-    # GPU support: uncomment if your VPS has NVIDIA GPU
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-
-  ollama-init:
-    image: ollama/ollama
-    entrypoint: >
-      sh -c "ollama pull qwen3-embedding"
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-    depends_on:
-      ollama:
-        condition: service_healthy
-    restart: on-failure
+      retries: 60
+      start_period: 120s
 
   frontend:
     build:
@@ -85,4 +74,4 @@ services:
 
 volumes:
   postgres_data:
-  ollama_data:
+  llama_cache:

@@ -28,46 +28,33 @@ async def get_db():
         yield session
 
 
+class SchemaError(RuntimeError):
+    pass
+
+
 async def init_db() -> None:
+    """Create the schema. There is no migration tool yet (docs/MATCHING_DESIGN.md, D9): a database
+    from the old schema, or with a wrong embedding dimension, stops start-up instead of losing data."""
+    from backend.config import EMBEDDING_DIM
+    import backend.models  # noqa: F401  (registers the tables on Base.metadata)
+
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
+        if await conn.scalar(text("SELECT to_regclass('public.researcher_papers') IS NOT NULL")):
+            raise SchemaError(
+                "This database has the old schema (researcher_papers). Reset it "
+                "(e.g. `docker compose down -v`) and start again."
+            )
+
         await conn.run_sync(Base.metadata.create_all)
 
-        # Migrate BYTEA embedding columns to vector(4096) (idempotent)
-        await conn.execute(text("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name='researcher_papers' AND column_name='embedding' AND data_type='bytea'
-                ) THEN
-                    ALTER TABLE researcher_papers DROP COLUMN embedding;
-                    ALTER TABLE researcher_papers ADD COLUMN embedding vector(4096);
-                END IF;
-
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name='researchers' AND column_name='profile_embedding' AND data_type='bytea'
-                ) THEN
-                    ALTER TABLE researchers DROP COLUMN profile_embedding;
-                    ALTER TABLE researchers ADD COLUMN profile_embedding vector(4096);
-                END IF;
-
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name='fetched_papers' AND column_name='embedding' AND data_type='bytea'
-                ) THEN
-                    ALTER TABLE fetched_papers DROP COLUMN embedding;
-                    ALTER TABLE fetched_papers ADD COLUMN embedding vector(4096);
-                END IF;
-            END $$
+        rows = await conn.execute(text("""
+            SELECT c.relname, format_type(a.atttypid, a.atttypmod)
+            FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid
+            WHERE a.attname = 'embedding' AND c.relkind = 'r' AND NOT a.attisdropped
+              AND c.relnamespace = 'public'::regnamespace
         """))
-
-        for stmt in [
-            "ALTER TABLE paper_researcher_matches ADD COLUMN IF NOT EXISTS matched_paper_ids TEXT",
-            "ALTER TABLE paper_researcher_matches ADD COLUMN IF NOT EXISTS llm_score FLOAT",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false",
-        ]:
-            await conn.execute(text(stmt))
-
+        wrong = {table: type_ for table, type_ in rows if type_ != f"vector({EMBEDDING_DIM})"}
+        if wrong:
+            raise SchemaError(f"Embedding columns are not vector({EMBEDDING_DIM}): {wrong}")

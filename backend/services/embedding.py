@@ -1,88 +1,33 @@
 from __future__ import annotations
 
-import os
-import sys
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+import requests
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
-
-from src.similarity import MODEL_MAP, OLLAMA_MODEL_MAP, MAX_TEXT_CHARS
-
-_model_cache: dict[str, any] = {}
+from backend.config import EMBED_URL, EMBED_MODEL, EMBEDDING_DIM
 
 
-def _get_st_model(model_name: str):
-    """Load and cache a SentenceTransformer model."""
-    if model_name not in _model_cache:
-        from sentence_transformers import SentenceTransformer
-        import torch
-        device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
-        _model_cache[model_name] = SentenceTransformer(model_name, device=device)
-    return _model_cache[model_name]
+def paper_text(title: str | None, abstract: str | None) -> str:
+    """The embedded text, the same for BOUN works and new papers (D7): title + abstract, untruncated.
+    Must stay identical to src.boun_data.work_texts, or the research vectors stop matching."""
+    return f"{title or ''} {abstract or ''}".strip()
 
 
-def _truncate(texts: list[str], model_key: str) -> list[str]:
-    limit = MAX_TEXT_CHARS.get(model_key, 1024)
-    return [t[:limit] if t else "" for t in texts]
-
-
-def encode_texts(texts: list[str], model_key: str) -> np.ndarray:
-    """Encode texts with the given model key. Returns (n, dim) float32 array."""
-    model_id = MODEL_MAP.get(model_key)
-    if not model_id:
-        raise ValueError(f"Unknown embedding model: {model_key}")
-    model = _get_st_model(model_id)
-    truncated = _truncate(texts, model_key)
-    return model.encode(truncated, show_progress_bar=False, convert_to_numpy=True).astype(np.float32)
-
-
-def encode_texts_ollama(
-    texts: list[str],
-    model_key: str,
-    ollama_url: str,
-    batch_size: int = 32,
-) -> np.ndarray:
-    """Encode texts via Ollama in batches. Returns (n, dim) float32 array."""
-    import requests
-    ollama_model = OLLAMA_MODEL_MAP.get(model_key)
-    if not ollama_model:
-        raise ValueError(f"Unknown Ollama model: {model_key}")
-
-    embeddings = []
-    for i in range(0, len(texts), batch_size):
-        batch = [t[:2048] if t else "" for t in texts[i : i + batch_size]]
+def encode(texts: list[str], batch_size: int = 32, timeout: float = 600) -> np.ndarray:
+    """Embed texts with the llama-server encoder (OpenAI-style /embeddings). Returns (n, dim) float32."""
+    out: list[list[float]] = []
+    for start in range(0, len(texts), batch_size):
         resp = requests.post(
-            f"{ollama_url}/api/embed",
-            json={"model": ollama_model, "input": batch},
-            timeout=300,
+            f"{EMBED_URL.rstrip('/')}/embeddings",
+            json={"model": EMBED_MODEL, "input": texts[start:start + batch_size]},
+            timeout=timeout,
         )
         resp.raise_for_status()
-        embeddings.extend(resp.json()["embeddings"])
-    return np.array(embeddings, dtype=np.float32)
-
-
-def encode_checked(
-    texts: list[str],
-    model_key: str,
-    ollama_url: str,
-    expected_dim: int = 4096,
-) -> np.ndarray:
-    """Encode texts with local Ollama and check the embedding dimension."""
-    embs = encode_texts_ollama(texts, model_key, ollama_url)
-    if embs.shape[1] != expected_dim:
-        raise ValueError(
-            f"Ollama returned dim={embs.shape[1]}, expected {expected_dim}. "
-            f"Check model configuration."
-        )
+        rows = sorted(resp.json()["data"], key=lambda d: d["index"])
+        out.extend(r["embedding"] for r in rows)
+    embs = np.asarray(out, dtype=np.float32)
+    if embs.shape != (len(texts), EMBEDDING_DIM):
+        raise ValueError(f"Encoder returned shape {embs.shape}, expected ({len(texts)}, {EMBEDDING_DIM}).")
     return embs
-
-
-def batch_score(paper_embs: np.ndarray, researcher_embs: np.ndarray) -> np.ndarray:
-    """Cosine similarity matrix: (n_papers, n_researchers)."""
-    return cosine_similarity(paper_embs, researcher_embs).astype(np.float32)
 
 
 def emb_to_list(emb: np.ndarray) -> list:

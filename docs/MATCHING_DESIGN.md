@@ -1,6 +1,6 @@
 # Matching design: from the current job to the target flow
 
-**Status (updated 2026-10-21).** Drafted 2026-10-15; decisions D1–D10 made 2026-10-21 (section 8); PRs 1 and 2 merged (senaoz/SWE-599#6, #7), plus vector binding through pgvector's type (#8). Next is PR 3. Schema changes, seeding, long embedding runs and backfills still need explicit approval when their PR comes up.
+**Status (updated 2026-10-21).** Drafted 2026-10-15; decisions D1–D10 made 2026-10-21 (section 8); PRs 1 and 2 merged (senaoz/SWE-599#6, #7), plus vector binding through pgvector's type (#8). PRs 3–5 were done as one rebuild (2026-10-21), since there was no data to migrate. Sections 2.1 and 2.2 describe the code before the rebuild. Long embedding runs and backfills still need explicit approval.
 
 **Task (restated 2026-10-15, `docs/DEVLOG.md`).** For each new paper from a followed institution, list the Boğaziçi (BOUN) researchers who work on its topic. Relevance is topical expertise: not "would cite it", not "wrote it".
 
@@ -22,7 +22,7 @@ The draft target flow holds up against the research and the code, with five corr
 
 `backend/services/matching.py`, `run_matching_job`, every `JOB_INTERVAL_HOURS` (6):
 
-1. For each distinct followed institution, fetch OpenAlex works with `from_publication_date` = the institution's cursor (`FetchCursor`, initialised to *today*), at most 200 per run (`openalex.py`, `max_papers=200`).
+1. For each distinct followed institution, fetch OpenAlex works with `from_publication_date` = the institution's cursor (`FetchCursor`; following an institution sets it 14 days back, `routers/institutions.py`), at most 200 per run (`openalex.py`, `max_papers=200`).
 2. Insert into `fetched_papers`, dropping exact-title duplicates per institution.
 3. Embed `"{title} {abstract} {concepts}"` (cut to 2,048 characters) with `qwen3-embedding:latest` via local Ollama only (the Ollama Cloud fallback was removed). Vectors are bound through pgvector's SQLAlchemy type (#8), no longer written with f-string SQL.
 4. Load **every** `researcher_papers.embedding` into numpy and compute the cosine matrix (`services/ranking.py`, `cosine_matrix`).
@@ -36,7 +36,7 @@ No stage 2 since PR 2. `run_rematch_unmatched` reruns steps 3–6 for papers wit
 | # | Target (draft) | Current code | Gap |
 |---|---|---|---|
 | 1 | Persistent BOUN index with `model_version` | `researcher_papers` row per (researcher, work), vector per row, no version | Duplicate vectors per co-author; no way to tell which model produced a vector |
-| 2 | External side as a stream, never compared with each other | Already the case (new papers × BOUN only) | Cursor starts *today*, so no backfill; `from_publication_date` misses works that OpenAlex indexes late with an older date; cap of 200 per run silently truncates |
+| 2 | External side as a stream, never compared with each other | Already the case (new papers × BOUN only) | A 14-day backfill on follow (not 30 days, D8); `from_publication_date` misses works that OpenAlex indexes late with an older date; cap of 200 per run silently truncates |
 | 3 | Work-level retrieval, researcher-level output, matched works as explanation | Work-level cosine, researcher score by `MATCH_AGGREGATION` (max default), top-5 works stored as JSON | Close already. Aggregation is over all works above 0.3, not over a top-K₁; JSON blob instead of rows |
 | 4 | pgvector search in SQL | Full table into numpy every run | 4,096 dims cannot be ANN-indexed (section 1); exact `<=>` in SQL is fine at this size |
 | 5 | Same model and template both sides; re-embed on change | Same template both sides; local Ollama only (Cloud fallback removed) | Runtime differs from the research's verified `llama-server` setup (D2); template differs from D7 (title + abstract, no truncation) |
@@ -133,10 +133,7 @@ At 7,822 rows × 4,096 dims (~128 MB as float32) this is a sequential scan, well
 
 ### 3.6 Migration path
 
-1. Add the new tables next to the old ones; old job keeps running.
-2. Load the cleaned BOUN data and embed it (needs approval; see 6, PR 4). The Experiment B vectors can fill most of it (section 6, PR 4).
-3. Switch the job and the read path to the new tables in one PR.
-4. Drop `researcher_papers`, `profile_embedding`, `llm_score`, `matched_paper_ids` after a release with no reads from them.
+None needed: there was no data to keep (user, 2026-10-21), so the rebuild creates the target schema directly. `init_db` stops start-up on a database with the old schema or a wrong embedding dimension, instead of altering or dropping anything.
 
 ## 4. Target flow, with the open questions answered as proposals
 
@@ -209,20 +206,18 @@ Each PR is small and leaves the app working. ⚠ = needs explicit approval befor
 
 1. ✅ **Read path and constants** (senaoz/SWE-599#6). The cut-off rule is one function (`rank_researchers`) used by both jobs; no behaviour change.
 2. ✅ **Remove stage 2** (senaoz/SWE-599#7). Cosine scores only, `MATCH_AGGREGATION` parameter, shared job code, tests on fixed vectors. Also merged: vector binding through pgvector's type (#8).
-3. ⚠ **Alembic and schema** (D9): a baseline migration of the current schema, then works, authorships, versions, evidence and the feedback snapshot (section 3) next to the old tables. `init_db`'s drop-and-recreate block becomes a start-up error.
-4. ⚠ **Seeder from `research/data/boun/` and the `llama-server` encoder** (D1, D2, D5, D7): load works and authorships, embed once, write `embedding_version`.
-   - **Vector reuse.** The Experiment B cache (`research/data/v2/embeddings_boun/qwen.npz`, gitignored, local only) holds 8,016 Qwen3-Embedding-8B vectors from the D2 setup, keyed by the sha256 of the embedded text. The seeder can reuse a vector only if it builds the identical string (`src.boun_data.work_texts`: `f"{title} {abstract}".strip()`, abstract from OpenAlex or the Crossref/S2 cache). Check the hit rate and the runtime-equivalence test (3.4) before relying on it; the rest is embedded live.
-   - Needs the hosting decision (O1) for production.
-5. **Search in SQL and job switch, together with the read path and the calibrated floor.** Exact `<=>` top-K₁, aggregation, top-K₂ with floor; read path reads the new tables at the current version. Offline checks 5.2 reported in the PR.
-6. **Ingest fixes.** `from_created_date` (if available, O2), the 200-per-run cap fixed, the self-match rule (D6), and the ⚠ 30-day backfill on first follow (D8; count call per institution first).
-7. **Feedback snapshot in the UI flow** and a small export script for 5.3.
-8. **Cleanup.** Drop old tables and columns, `profile_embedding`, the `.npz` writes into `research/`, and the `src.similarity` import.
+3. ✅ **Rebuild, replacing the planned PRs 3–5** (2026-10-21, branch `app-rebuild`): the target schema (section 3) with no migration tool (D9 revised), the seeder from `research/data/boun/` reusing the Experiment B vectors (7,822 of 7,822 hits; live encoding reproduces them at cosine 1.000000 on 20 works), the `llama-server` encoder, exact search in SQL with the self-match rule (D6, moved here from PR 6), the read path at the current version and the feedback snapshot (moved here from PR 7). The calibrated floor and the 5.2 checks are not done: on the first run the 0.3 floor removed no paper (top-1 scores 0.41–0.95), so they are the next matching task.
+4. **Calibrated floor and the 5.2 checks**, with the D10 canary and the D4 exposure check. The 0.3 floor removed no paper on the first run.
+5. **Ingest fixes.** `from_created_date` (if available, O2), the 200-per-run cap fixed, and the ⚠ 30-day backfill on first follow (D8; following sets a 14-day cursor today).
+6. **Feedback export** for 5.3 (the snapshot itself is stored since the rebuild).
+
+The planned cleanup PR is no longer needed: the rebuild removed the old tables and columns, `profile_embedding`, the `.npz` writes into `research/` and the `src.similarity` import.
 
 ## 7. Open questions
 
 D1–D10 are decided (section 8). Still open:
 
-- **O1. Hosting the encoder in production.** Production runs Ollama in Docker on the VPS. D2 needs a `llama-server` service there with the Q4_K_M GGUF (4.4 GB on disk) and enough RAM; the VPS size is not recorded in the repo. If it cannot host 8B, the fallback is MiniLM (D1), which changes `embedding_version` and needs a full re-embed. Decide before PR 4 reaches production.
+- **O1. Hosting the encoder in production.** Production runs Ollama in Docker on the VPS. D2 needs a `llama-server` service there with the Q4_K_M GGUF (4.4 GB on disk) and enough RAM; the VPS size is not recorded in the repo. If it cannot host 8B, the fallback is MiniLM (D1), which changes `embedding_version` and needs a full re-embed. Seeding there without the gitignored research cache means embedding all 7,822 works live: about 6 h at the local speed of the first run (2.8 s per text with another 8B model loaded); copying the cache to the server avoids it. Decide before deploying the rebuild.
 - **O2.** Whether OpenAlex's `from_created_date` filter is available on the current plan (PR 6).
 - **O3.** Whether to measure Qwen3-Embedding's query instruction prefix (section 4, Model choice). Not planned; it would force a full re-embed.
 - **O4.** A full re-embed of the BOUN index needs the gitignored Crossref/S2 abstract cache, which exists only on the author's machine (D5). Keep a backup of it, or accept title-only vectors for those 591 works after a re-embed elsewhere.
@@ -239,5 +234,5 @@ Made with the user, one at a time, starting 2026-10-21.
 - **D6 (2026-10-21). Exclude the paper itself from retrieval in PR 6**, matched by OpenAlex id, the cleaned data's duplicate ids and DOI. A "co-author" label for BOUN authors of the new paper is left for later (it needs the new papers' author lists stored).
 - **D7 (2026-10-21). Title + abstract on both sides, no truncation, no tag field** (template id e.g. `ta_full` in `embedding_version`). For Qwen3 the template barely matters on v2 dev (R-precision 88.2 / 88.2 / 88.7 on `random` and 81.9 / 81.2 / 81.3 on `concept` for t / ta / tac at 600/1500; `03_dev_tuning.ipynb`); `tac` was chosen by mean rank over all methods, mostly for the lexical ones. This is the Experiment B template (`work_texts`, `sample_text`), so its vectors can be reused, and it drops the open question of whether OpenAlex still fills `concepts`.
 - **D8 (2026-10-21). Backfill 30 days on the first follow of an institution, once per institution** (same as the feed window, 3.2), in PR 6 with a count call per institution and the 200-per-run cap fixed (paging or a logged cap). Rough cost from Experiment B (about 40 papers with abstracts per day over the 7 institutions): about 1,200 papers, about 12 list calls ($0.0012), and about 16 min of embedding on the M1 Max; server time unknown. The first backfill runs only after the user approves it.
-- **D9 (2026-10-21). Alembic with PR 3:** a baseline migration of the current schema, then the new tables. The block in `init_db` that drops and recreates `embedding` columns on a dimension mismatch (`backend/database.py`) is removed; a mismatch stops start-up with an error instead of deleting data.
+- **D9 (2026-10-21; revised the same day: no migration tool until there is data to keep, since the app had none).** Originally: Alembic with PR 3: a baseline migration of the current schema, then the new tables. The block in `init_db` that drops and recreates `embedding` columns on a dimension mismatch (`backend/database.py`) is removed; a mismatch stops start-up with an error instead of deleting data.
 - **D10 (2026-10-21). Authorship leave-one-out canary only, in PR 5, reported as a regression signal, never as quality.** BOUN works with a followed co-author are used as queries with the work itself excluded (D6 rule); the check is whether a BOUN author is still retrieved in the top 10 through their other works. Experiment B gives the starting point (182 non-collaboration works, 110 with a BOUN author who has an earlier work; own author in the top 10 for 80.0% of queries; DEVLOG 2026-10-19). No citation canary: coverage is partial (52 of 200 followed papers share a reference with a BOUN work) and it needs reference fetches per paper.

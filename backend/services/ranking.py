@@ -12,14 +12,6 @@ AGGREGATIONS = {
 }
 
 
-def cosine_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Cosine similarity matrix (len(a), len(b)); zero vectors score 0."""
-    def unit(x):
-        norms = np.linalg.norm(x, axis=1, keepdims=True)
-        return x / np.where(norms == 0, 1.0, norms)
-    return (unit(np.asarray(a, dtype=np.float32)) @ unit(np.asarray(b, dtype=np.float32)).T).astype(np.float32)
-
-
 def rank_researchers(
     scores: np.ndarray,
     researcher_ids: Sequence[str],
@@ -48,14 +40,22 @@ def rank_researchers(
     return ranked[:top_k]
 
 
-def match_papers(
-    paper_embs: np.ndarray,
-    boun_embs: np.ndarray,
-    researcher_ids: Sequence[str],
-    threshold: float,
+def rank_from_works(
+    work_hits: Sequence[tuple[str, float]],
+    authors: dict[str, list[str]],
+    floor: float,
     top_k: int,
     aggregate: str = "max",
-) -> list[list[tuple[str, float, list[tuple[float, int]]]]]:
-    """rank_researchers for each new paper (row of paper_embs) against the BOUN paper rows."""
-    scores = cosine_matrix(paper_embs, boun_embs)
-    return [rank_researchers(row, researcher_ids, threshold, top_k, aggregate) for row in scores]
+) -> list[tuple[str, float, list[tuple[float, str]]]]:
+    """Rank researchers for one new paper from its retrieved BOUN works.
+
+    `work_hits` are (work_id, cosine), best first; `authors` maps a work to its BOUN researchers.
+    Each (work, author) pair is one row for rank_researchers. If the best researcher scores below
+    `floor`, the paper gets no researchers at all (a paper-level floor, docs/MATCHING_DESIGN.md §4).
+    Returns (researcher_id, score, [(cosine, work_id), …]) with the hits best first.
+    """
+    rows = [(cos, wid, r_id) for wid, cos in work_hits for r_id in authors.get(wid, [])]
+    ranked = rank_researchers([c for c, _, _ in rows], [r for _, _, r in rows], float("-inf"), top_k, aggregate)
+    if not ranked or ranked[0][1] < floor:
+        return []
+    return [(r_id, score, [(c, rows[j][1]) for c, j in hits]) for r_id, score, hits in ranked]

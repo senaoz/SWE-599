@@ -1,8 +1,8 @@
 # SWE-599 — BOUN Paper Recommender
 
-Automated paper recommendation system for Boğaziçi University (BOUN) researchers. Users follow academic institutions; when new papers are published, the system matches them against BOUN researcher profiles by cosine similarity of Qwen3-Embedding vectors.
+Automated paper recommendation system for Boğaziçi University (BOUN) researchers. Users follow academic institutions; when new papers are published, the system retrieves the most similar BOUN works by cosine similarity of Qwen3-Embedding vectors and lists those works' BOUN authors.
 
-> The research in this repository found that an LLM reranking stage does not improve on Qwen3-Embedding alone, on citation labels or on human expertise labels, so the app has no second stage. The planned redesign and its decisions are in [`docs/MATCHING_DESIGN.md`](docs/MATCHING_DESIGN.md); known issues are in [`APP_NOTES.md`](APP_NOTES.md).
+> The research in this repository found that an LLM reranking stage does not improve on Qwen3-Embedding alone, on citation labels or on human expertise labels, so the app has no second stage. The design and its decisions are in [`docs/MATCHING_DESIGN.md`](docs/MATCHING_DESIGN.md); known issues are in [`APP_NOTES.md`](APP_NOTES.md).
 
 ---
 
@@ -11,12 +11,8 @@ Automated paper recommendation system for Boğaziçi University (BOUN) researche
 ### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
-- [Ollama](https://ollama.com/) — must be running on the host machine
-- Pull the embedding model:
-
-```bash
-ollama pull qwen3-embedding        # embedding model (4096-d)
-```
+- `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) (build b11146) serving Qwen3-Embedding-8B Q4_K_M with `--pooling last` on `127.0.0.1:1337`: the research setup in [`research/README.md`](research/README.md). The backend container reaches it at `host.docker.internal:1337`.
+- The cleaned BOUN data in `research/data/boun/` (Git LFS: run `git lfs pull`). Optional but much faster: the research embedding cache `research/data/v2/embeddings_boun/qwen.npz` and the Crossref/S2 abstract cache `research/data/v2/boun/` (both gitignored). With them, the 7,822 BOUN works load from the cache in about two minutes; without them, every work is embedded live (about 6 h at the speed measured locally, 2.8 s per text with another 8B model loaded; not measured on a server) and works whose abstract came from Crossref/S2 get title-only vectors.
 
 ### 1. Environment Setup
 
@@ -49,15 +45,17 @@ This starts:
 - **Backend** (FastAPI) on port `8001`
 
 On first start, the backend automatically:
-1. Creates database tables
-2. Seeds 2671 BOUN researchers from `research/data/cleaned/boun.csv`
-3. Computes embeddings for ~7,800 researcher–paper rows (4,608 papers) in the background
+1. Creates the database tables
+2. Loads 3,648 BOUN researchers, 7,822 works and their authorships from `research/data/boun/`
+3. Embeds the works in the background, reusing the research cache where the text matches
 
-Wait until you see this in the logs before using the app:
+Wait until you see this in the logs before running the matching job:
 
 ```
-INFO:backend.services.seeder:Profile embeddings and individual paper embeddings stored.
+backend.services.seeder — BOUN works embedded at qwen3-emb-8b|llama.cpp-b11146-q4_k_m|d4096|last|ta_full|noinstr.
 ```
+
+A database created by the old schema (with `researcher_papers`) stops start-up with an error; there is no migration, so reset it with `docker compose down -v`.
 
 ### 3. Start the Frontend
 
@@ -78,14 +76,14 @@ Frontend runs at **http://localhost:5173**
 2. Go to **Institutions** → follow one or more institutions (a fixed list: MIT, Stanford, Harvard, UC Berkeley, U. Michigan, Google, Google DeepMind)
 3. Go to **Admin** → click **Run matching job now** (the scheduled job first runs 6 hours after start-up; **Rematch unmatched** reruns matching for papers with no match)
 4. Go to **Dashboard** → see papers matched to BOUN researchers
-5. Go to **Researchers** → browse/search all 2671 BOUN researchers
-6. Mark a listed researcher as relevant or not (thumbs-up/down); feedback is stored but not yet used for matching
+5. Go to **Researchers** → browse/search all 3,648 BOUN researchers
+6. Mark a listed researcher as relevant or not (thumbs-up/down); feedback is stored with the embedding version, score and rank that were shown, but not yet used for matching
 
 Only admins see the Admin page; the `/admin` API returns 403 for everyone else. Admin rights live in `users.is_admin` and are granted or revoked (`--revoke`) with `backend.make_admin`.
 
 ### Production
 
-`docker-compose.prod.yml` runs the whole stack in containers: PostgreSQL, the backend, Ollama, a one-off `ollama-init` service that pulls `qwen3-embedding`, and the frontend built into nginx (which proxies `/api/` to the backend). Set `DB_PASSWORD`, `JWT_SECRET` and `VITE_API_URL` in `.env` (see `.env.example`), then:
+`docker-compose.prod.yml` runs the whole stack in containers: PostgreSQL, the backend, an `embedder` service (llama.cpp's server with Qwen3-Embedding-8B Q4_K_M, downloaded from Hugging Face on first start; it needs RAM for an 8B model, see open question O1 in the design doc), and the frontend built into nginx (which proxies `/api/` to the backend). Set `DB_PASSWORD`, `JWT_SECRET` and `VITE_API_URL` in `.env` (see `.env.example`), then:
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
@@ -93,7 +91,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 After registering, grant admin rights with `docker compose -f docker-compose.prod.yml exec backend python -m backend.make_admin you@example.com`.
 
-The file publishes no host ports; expose the frontend's port 80 through a reverse proxy or a `ports:` entry. For an NVIDIA GPU, uncomment the `deploy` block of the `ollama` service.
+The file publishes no host ports; expose the frontend's port 80 through a reverse proxy or a `ports:` entry. The backend mounts `./research/data`, so copy the BOUN data (and, to skip live embedding, the caches above) to the server.
 
 ---
 
@@ -112,15 +110,16 @@ The file publishes no host ports; expose the frontend's port 80 through a revers
                     └────────────────┬─────────────────────────┘
                                      │
                     ┌────────────────▼─────────────────────────┐
-                    │  PostgreSQL (:5432)                       │
-                    │  researchers, researcher_papers,          │
-                    │  fetched_papers, paper_researcher_matches,│
+                    │  PostgreSQL + pgvector (:5432)            │
+                    │  researchers, boun_works,                 │
+                    │  boun_authorships, fetched_papers,        │
+                    │  paper_researcher_matches, match_evidence,│
                     │  paper_feedback                           │
                     └────────────────┬─────────────────────────┘
                                      │
                     ┌────────────────▼─────────────────────────┐
-                    │  Ollama (host:11434)                      │
-                    │  qwen3-embedding — embeddings             │
+                    │  llama-server (host:1337)                 │
+                    │  Qwen3-Embedding-8B — embeddings          │
                     └──────────────────────────────────────────┘
 ```
 
@@ -128,12 +127,13 @@ The file publishes no host ports; expose the frontend's port 80 through a revers
 
 Every 6 hours (or on manual trigger):
 
-1. **Fetch** — new papers from followed institutions via the OpenAlex API, from each institution's last fetched publication date (the first run starts from today), at most 200 per institution per run
-2. **Embed** — new papers with Qwen3-Embedding via local Ollama (if Ollama is unreachable, the job logs the error and stops)
-3. **Rank** — cosine similarity against the ~7,800 researcher–paper embeddings, computed in Python; drop pairs below `MATCH_THRESHOLD`; score each researcher by their best paper (`MATCH_AGGREGATION`); keep the top `RAG_RETRIEVE_TOP_K` researchers (`backend/services/ranking.py`, shared by the matching and rematch jobs)
-4. **Store** — `PaperResearcherMatch` rows with the cosine score, the embedding model as `model`, and the researcher's top `RAG_CONTEXT_PAPERS` matching BOUN papers
+1. **Fetch** — new papers from followed institutions via the OpenAlex API, from each institution's cursor (following an institution starts it 14 days back), at most 200 per institution per run
+2. **Embed** — `title + abstract` of each new paper with Qwen3-Embedding-8B on `llama-server`, stored with `EMBEDDING_VERSION` (if the encoder is unreachable, the job logs the error and stops)
+3. **Search** — exact cosine search in PostgreSQL (pgvector `<=>`) for the `RETRIEVE_WORKS` nearest BOUN works at the current version, leaving out the paper itself (same OpenAlex id, a merged duplicate, or the same DOI)
+4. **Rank** — each retrieved work counts for each of its BOUN authors; a researcher's score is their best work (`MATCH_AGGREGATION`); keep the top `RAG_RETRIEVE_TOP_K` researchers, or none if the best scores below `MATCH_THRESHOLD` (`backend/services/ranking.py`)
+5. **Store** — `paper_researcher_matches` (score, rank, version) and `match_evidence` (each researcher's top `RAG_CONTEXT_PAPERS` matched works)
 
-The feed shows at most `TOP_K_MATCHES` researchers per paper, with score ≥ `MATCH_THRESHOLD`; the paper page shows all stored researchers.
+The feed shows at most `TOP_K_MATCHES` researchers per paper with score ≥ the dashboard's minimum score; the paper page shows all stored researchers. Only matches at the current `EMBEDDING_VERSION` are shown.
 
 ---
 
@@ -145,8 +145,8 @@ The feed shows at most `TOP_K_MATCHES` researchers per paper, with score ≥ `MA
 │   ├── services/
 │   │   ├── matching.py   # matching and rematch jobs
 │   │   ├── ranking.py    # threshold, aggregation and top-K per paper
-│   │   ├── seeder.py     # BOUN researcher seeding + embedding computation
-│   │   ├── embedding.py  # encode_texts_ollama, cosine similarity
+│   │   ├── seeder.py     # loads the cleaned BOUN data, embeds works (cache first)
+│   │   ├── embedding.py  # llama-server encoder, text template
 │   │   └── openalex.py   # paper/institution fetching via OpenAlex API
 │   ├── scheduler.py      # APScheduler job every JOB_INTERVAL_HOURS
 │   ├── make_admin.py     # grant/revoke admin rights
@@ -157,30 +157,32 @@ The feed shows at most `TOP_K_MATCHES` researchers per paper, with score ≥ `MA
 │   └── src/pages/        # Dashboard, Institutions, Researchers, ResearcherDetail, Admin, Login, Register
 ├── research/
 │   ├── src/              # shared library (also imported by backend/)
-│   ├── data/cleaned/     # boun.csv (BOUN papers for the app)
-│   ├── data/boun/        # cleaned BOUN works, not used by the app yet (research/audit/BOUN_DATA.md)
+│   ├── data/boun/        # cleaned BOUN works, the app's seed (research/audit/BOUN_DATA.md)
 │   ├── v1/               # numbered notebooks + benchmark results
 │   └── v2/               # leak-free benchmark, Phase 5, gold standard (see research/README.md)
-├── docs/MATCHING_DESIGN.md  # draft redesign of the matching
-├── docker-compose.yml       # dev: db + backend (Ollama and frontend on the host)
-└── docker-compose.prod.yml  # prod: db, backend, Ollama, frontend (nginx)
+├── docs/MATCHING_DESIGN.md  # matching design and decisions
+├── docker-compose.yml       # dev: db + backend (llama-server and frontend on the host)
+└── docker-compose.prod.yml  # prod: db, backend, embedder (llama.cpp), frontend (nginx)
 ```
 
 ---
 
 ## Configuration
 
-Key constants in `backend/config.py` (all but `RETRIEVE_MODEL` can be overridden by an environment variable of the same name):
+Key constants in `backend/config.py` (all but `EMBEDDING_DIM` can be overridden by an environment variable of the same name):
 
 | Variable | Default | Description |
 |---|---|---|
-| `MATCH_THRESHOLD` | `0.3` | Min cosine for a BOUN paper to count; also the feed's minimum score |
+| `MATCH_THRESHOLD` | `0.3` | A paper whose best researcher scores below this gets no researchers; also the feed's default minimum score. Not yet calibrated |
 | `TOP_K_MATCHES` | `5` | Researchers shown per paper in UI |
-| `RETRIEVE_MODEL` | `qwen` | Embedding model (qwen3-embedding via Ollama) |
-| `MATCH_AGGREGATION` | `max` | Researcher score from their papers' cosines: `max` or `mean_top3` |
+| `EMBED_URL` | `http://localhost:1337/v1` | OpenAI-style base URL of the encoder |
+| `EMBED_MODEL` | `Qwen/Qwen3-Embedding-8B-Q4_K_M` | Model id on the encoder |
+| `EMBEDDING_VERSION` | `qwen3-emb-8b\|llama.cpp-b11146-q4_k_m\|d4096\|last\|ta_full\|noinstr` | Stored with every vector and match; changing it re-embeds the BOUN works on the next start |
+| `RETRIEVE_WORKS` | `50` | BOUN works retrieved per new paper |
+| `RESEARCH_DIR` | `research` | Folder with `data/boun/` and the caches |
+| `MATCH_AGGREGATION` | `max` | Researcher score from their works' cosines: `max` or `mean_top3` |
 | `RAG_RETRIEVE_TOP_K` | `10` | Researchers stored per paper |
-| `RAG_CONTEXT_PAPERS` | `5` | Matching BOUN papers stored per researcher |
-| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama |
+| `RAG_CONTEXT_PAPERS` | `5` | Matched BOUN works stored per researcher |
 | `OPENALEX_EMAIL` | unset | OpenAlex polite pool |
 | `JWT_EXPIRE_MINUTES` | `10080` | Login lifetime (7 days) |
 | `JOB_INTERVAL_HOURS` | `6` | Background job frequency |
