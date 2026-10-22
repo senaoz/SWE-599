@@ -18,14 +18,13 @@ function daysFromToday(value: string): number | null {
   return Math.round((day.getTime() - today.getTime()) / DAY_MS);
 }
 
-/** The publication date, with a badge for papers from the last week or dated after today. */
+/** A badge for papers from the last week or dated after today, then the publication date. */
 export default function PublicationDate({ date }: { date: string | null }) {
   if (!date) return null;
   const days = daysFromToday(date);
 
   return (
     <>
-      <span className="text-xs text-tertiary">{date}</span>
       {days !== null && days > 0 && (
         <span title="OpenAlex lists a publication date after today: often a journal's scheduled issue date, sometimes a date entered by the uploader.">
           <Badge type="color" color="purple" size="sm">
@@ -40,6 +39,7 @@ export default function PublicationDate({ date }: { date: string | null }) {
           </Badge>
         </span>
       )}
+      <span className="text-xs text-tertiary">{date}</span>
     </>
   );
 }
