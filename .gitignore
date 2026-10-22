@@ -16,3 +16,4 @@ research/data/cleaned/*
 !research/data/boun
 .vscode/
 .vscode/*.pytest_cache/
+research/audit/PAPER_NOTES.md
