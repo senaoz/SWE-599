@@ -15,7 +15,7 @@ Researchers miss relevant work from institutions they don't routinely follow. Th
 
 **Short answer: no.** On citation labels, on a 12k-paper corpus and on human expertise labels, a good embedding model (Qwen3-Embedding-8B) alone is best. A small general LLM (Llama 3.2 3B) used as a reranker lowers the ranking, and its listwise variant mostly copies the order it is shown.
 
-> **Correction (October 2026).** The final report (May 2026) presents v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)): candidates were always shown positives-first, the prompt's example pointed at a positive, and positive candidates carried other papers' text. Everything below comes from the rebuilt, leak-free v2 benchmark and later phases, and supersedes v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
+> **Correction (October 2026).** The [final report](archive/SWE599_Final_2026S_OZ_Sena.pdf) (May 2026) presents v1 results, in which Llama 3.2 3B listwise reranking reached MRR 0.84 and beat every embedding method. An audit found the v1 evaluation invalid ([AUDIT.md](research/audit/AUDIT.md)): candidates were always shown positives-first, the prompt's example pointed at a positive, and positive candidates carried other papers' text. Everything below comes from the rebuilt, leak-free v2 benchmark and later phases, and supersedes v1. The v1 code and results are preserved at tag [`v1-results`](https://github.com/senaoz/SWE-599/tree/v1-results).
 
 ![System overview: v1 audit, v2 citation benchmark, local models, Phase 5, human-label evaluation and the deployed app](docs/figures/system_overview.svg)
 
@@ -357,7 +357,7 @@ docs/MATCHING_DESIGN.md        the app's matching design and decisions
 docs/figures/                  system overview and ranking primer diagrams
 APP_NOTES.md                   backlog for the deployed app
 README_APP.md                  app setup
-SWE599_Progress_2026S_OZ_Sena.pdf, SWE599_Final_2026S_OZ_Sena.pdf   course reports (v1 results)
+archive/                       SWE 599 progress and final reports (May 2026, v1 results)
 ```
 
 ## Where to read more
